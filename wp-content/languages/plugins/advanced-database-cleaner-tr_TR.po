@@ -1,0 +1,477 @@
+# Translation of Plugins - Advanced Database Cleaner - Stable (latest release) in Turkish
+# This file is distributed under the same license as the Plugins - Advanced Database Cleaner - Stable (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2017-06-19 20:32:02+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: GlotPress/4.0.0-alpha.1\n"
+"Language: tr\n"
+"Project-Id-Version: Plugins - Advanced Database Cleaner - Stable (latest release)\n"
+
+#. Author URI of the plugin
+msgid "https://www.sigmaplugin.com"
+msgstr "https://www.sigmaplugin.com"
+
+#. Author of the plugin
+msgid "Younes JFR."
+msgstr "Younes JFR."
+
+#. Plugin URI of the plugin
+msgid "https://sigmaplugin.com/downloads/wordpress-advanced-database-cleaner"
+msgstr "https://sigmaplugin.com/downloads/wordpress-advanced-database-cleaner"
+
+#. Plugin Name of the plugin
+msgid "Advanced Database Cleaner"
+msgstr "Advanced Database Cleaner"
+
+#: includes/premium_page.php:67
+msgid "No additional fees"
+msgstr "İlave ücret yoktur"
+
+#: includes/premium_page.php:45
+msgid "Need support as well ?"
+msgstr "Desteğe mi ihtiyacınız var?"
+
+#: includes/overview_settings.php:167
+msgid "Settings"
+msgstr "Ayarlar"
+
+#: includes/overview_settings.php:151
+msgid "seconds"
+msgstr "saniye"
+
+#: includes/overview_settings.php:141
+msgid "Number of sites"
+msgstr "Site sayısı"
+
+#: includes/overview_settings.php:125
+msgid "Total cron tasks"
+msgstr "Toplam zamanlanmış görev"
+
+#: includes/header_page_filter.php:110 includes/overview_settings.php:69
+msgid "No"
+msgstr "Hayır"
+
+#: includes/header_page_filter.php:104 includes/overview_settings.php:66
+msgid "Yes"
+msgstr "Evet"
+
+#: includes/functions.php:521
+msgid "Plugins tables"
+msgstr "Eklenti tabloları"
+
+#: includes/header_page_filter.php:59
+msgid "All tables"
+msgstr "Tüm tablolar"
+
+#: includes/functions.php:511
+msgid "Themes options"
+msgstr "Tema seçenekleri"
+
+#: includes/functions.php:510
+msgid "Plugins options"
+msgstr "Eklenti seçenekleri"
+
+#: includes/functions.php:500
+msgid "Themes tasks"
+msgstr "Tema görevleri"
+
+#: includes/functions.php:499
+msgid "Plugins tasks"
+msgstr "Eklenti görevleri"
+
+#: includes/custom-clean-view/class_clean_relationships.php:107
+msgid "Term order"
+msgstr "Terim sıralaması"
+
+#: includes/custom-clean-view/class_clean_relationships.php:106
+msgid "Term taxonomy id"
+msgstr "Terim taksonomi id"
+
+#: includes/custom-clean-view/class_clean_meta_comment_post_user_term.php:40
+msgid "Post meta key"
+msgstr "Yazı meta anahtar"
+
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:37
+msgid "Trash post title"
+msgstr "Silinen yazı başlığı"
+
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:36
+msgid "Trash posts"
+msgstr "Silinen yazılar"
+
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:35
+msgid "Trash post"
+msgstr "Silinen yazı"
+
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:27
+#: includes/functions.php:293
+msgid "Auto drafts"
+msgstr "Otomatik taslaklar"
+
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:26
+msgid "Auto draft"
+msgstr "Otomatik taslak"
+
+#: includes/custom-clean-view/class_clean_meta_comment_post_user_term.php:160
+msgid "Meta value"
+msgstr "Meta değeri"
+
+#: includes/custom-clean-view/class_clean_meta_comment_post_user_term.php:31
+msgid "Comment meta key"
+msgstr "Yorum meta anahtarı"
+
+#: includes/custom-clean-view/class_clean_comment.php:173
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:153
+msgid "Date"
+msgstr "Tarih"
+
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:152
+msgid "Content"
+msgstr "İçerik"
+
+#: includes/custom-clean-view/class_clean_comment.php:171
+msgid "Author"
+msgstr "Yazar"
+
+#: includes/custom-clean-view/class_clean_comment.php:170
+#: includes/custom-clean-view/class_clean_meta_comment_post_user_term.php:158
+#: includes/custom-clean-view/class_clean_relationships.php:105
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:150
+#: includes/custom-clean-view/class_clean_transient.php:148
+msgid "ID"
+msgstr "ID"
+
+#: includes/custom-clean-view/class_clean_comment.php:45
+msgid "Trash comments"
+msgstr "Silinmiş yorumlar"
+
+#: includes/custom-clean-view/class_clean_comment.php:44
+msgid "Trash comment"
+msgstr "Silinmiş yorum"
+
+#: includes/custom-clean-view/class_clean_comment.php:27
+#: includes/functions.php:298
+msgid "Pending comments"
+msgstr "Onay bekleyen yorumlar"
+
+#: includes/custom-clean-view/class_clean_comment.php:26
+msgid "Pending comment"
+msgstr "Onay bekleyen yorum"
+
+#: includes/class_clean_tables.php:193
+msgid "Lost"
+msgstr "Kayıp"
+
+#: includes/class_general_cleanup.php:146
+#: includes/edit_item_categorization.php:124
+msgid "Save"
+msgstr "Kaydet"
+
+#: includes/class_clean_options.php:126 includes/class_clean_tables.php:192
+msgid "Size"
+msgstr "Boyut"
+
+#: includes/class_clean_tables.php:189
+msgid "Table name"
+msgstr "Tablo ismi"
+
+#: includes/class_clean_tables.php:39
+msgid "Table"
+msgstr "Tablo"
+
+#: includes/class_clean_options.php:125
+#: includes/custom-clean-view/class_clean_transient.php:150
+#: includes/custom-clean-view/header_page_custom_clean.php:78
+msgid "Value"
+msgstr "Değer"
+
+#: includes/class_clean_options.php:124
+msgid "Option name"
+msgstr "Seçenek ismi"
+
+#: includes/class_clean_options.php:32
+msgid "Option"
+msgstr "Seçenek"
+
+#: includes/class_clean_cron.php:203 includes/class_clean_options.php:204
+#: includes/class_clean_tables.php:322 includes/class_clean_tables.php:800
+#: includes/class_general_cleanup.php:419
+msgid "Delete"
+msgstr "Sil"
+
+#: includes/custom-clean-view/class_clean_comment.php:174
+#: includes/custom-clean-view/class_clean_meta_comment_post_user_term.php:161
+#: includes/custom-clean-view/class_clean_relationships.php:108
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:154
+#: includes/custom-clean-view/class_clean_transient.php:153
+msgid "Site id"
+msgstr "Site id"
+
+#: includes/class_clean_cron.php:121
+msgid "Next run - Frequency"
+msgstr "Sonraki çalışma sıklığı"
+
+#: includes/class_clean_cron.php:33
+msgid "Tasks"
+msgstr "Görevler"
+
+#: includes/class_clean_cron.php:32
+msgid "Task"
+msgstr "Görev"
+
+#: advanced-db-cleaner.php:840
+msgid "Premium"
+msgstr "Premium"
+
+#: advanced-db-cleaner.php:836 includes/class_clean_tables.php:40
+msgid "Tables"
+msgstr "Tablolar"
+
+#: includes/class_clean_tables.php:319 includes/class_clean_tables.php:755
+#: includes/custom-schedule-view/class_add_optimize_schedule.php:227
+#: includes/custom-schedule-view/class_edit_optimize_schedule.php:271
+msgid "Optimize"
+msgstr "Optimize et"
+
+#: advanced-db-cleaner.php:307
+msgid "Once monthly"
+msgstr "Ayda bir"
+
+#: advanced-db-cleaner.php:302
+msgid "Once weekly"
+msgstr "Haftada bir"
+
+#: includes/overview_settings.php:217
+msgid "Save settings"
+msgstr "Ayarları kaydet"
+
+#: includes/overview_settings.php:157
+msgid "Local time"
+msgstr "Yerel zaman"
+
+#: includes/overview_settings.php:87
+msgid "Overview"
+msgstr "Genel bakış"
+
+#: includes/premium_page.php:88
+msgid "Buy now!"
+msgstr "Şimdi satın al"
+
+#: includes/overview_settings.php:149
+msgid "Script Max timeout"
+msgstr "Betik zaman aşımı"
+
+#: includes/overview_settings.php:101
+msgid "Database size"
+msgstr "Veritabanı boyutu"
+
+#: includes/premium_page.php:62
+msgid "Get technical support"
+msgstr "Teknik destek al"
+
+#: includes/overview_settings.php:185
+msgid "Show plugin left menu"
+msgstr "Eklenti sol menüsünü göster"
+
+#: includes/custom-clean-view/class_clean_comment.php:36
+#: includes/functions.php:300
+msgid "Spam comments"
+msgstr "İstenmeyen yorumlar"
+
+#: includes/custom-clean-view/class_clean_comment.php:35
+msgid "Spam comment"
+msgstr "İstenmeyen yorum"
+
+#: includes/class_general_cleanup.php:19
+#: includes/custom-schedule-view/class_add_cleanup_schedule.php:20
+#: includes/custom-schedule-view/class_edit_cleanup_schedule.php:20
+msgid "Elements"
+msgstr "Elemanlar"
+
+#: includes/class_general_cleanup.php:18
+#: includes/custom-schedule-view/class_add_cleanup_schedule.php:19
+#: includes/custom-schedule-view/class_edit_cleanup_schedule.php:19
+msgid "Element"
+msgstr "Eleman"
+
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:28
+msgid "Auto draft title"
+msgstr "Otomatik taslak başlığı"
+
+#: includes/class_clean_cron.php:119
+msgid "Hook name"
+msgstr "Kanca ismi"
+
+#: advanced-db-cleaner.php:837 includes/class_clean_options.php:33
+msgid "Options"
+msgstr "Seçenekler"
+
+#: advanced-db-cleaner.php:835
+msgid "General clean-up"
+msgstr "Genel temizlik"
+
+#: includes/functions.php:522
+msgid "Themes tables"
+msgstr "Tema tabloları"
+
+#: includes/class_clean_options.php:127
+#: includes/custom-clean-view/class_clean_transient.php:152
+#: includes/header_page_filter.php:98
+msgid "Autoload"
+msgstr "Otomatik yükleme"
+
+#: includes/class_general_cleanup.php:197
+msgid "View"
+msgstr "Görünüm"
+
+#: includes/overview_settings.php:93
+msgid "WP Version"
+msgstr "WP sürümü"
+
+#: includes/functions.php:501
+msgid "WP tasks"
+msgstr "WP görevleri"
+
+#: includes/functions.php:523
+msgid "WP tables"
+msgstr "WP tabloları"
+
+#: includes/functions.php:512
+msgid "WP options"
+msgstr "WP seçenekleri"
+
+#: includes/class_clean_tables.php:693
+msgid "table(s) should be optimized!"
+msgstr "tablo(lar) optimize edilmeli!"
+
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:45
+#: includes/functions.php:291
+msgid "Revisions"
+msgstr "Sürümler"
+
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:46
+msgid "Revision title"
+msgstr "Sürüm başlığı"
+
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:44
+msgid "Revision"
+msgstr "Sürüm"
+
+#: advanced-db-cleaner.php:277
+msgid "Please select an action!"
+msgstr "Lütfen bir eylem seçin!"
+
+#: includes/premium_page.php:9
+msgid "Find more advanced features!"
+msgstr "Daha fazla gelişmiş özellik"
+
+#: includes/overview_settings.php:22
+msgid "Indicates the total number of rows in your option tables of all your network sites, including transients..."
+msgstr "Tüm websitesi ağınızın seçenek tablolarında yer alan kısa süreli bilgilerin dahil olduğu toplam satır sayısını belirtir"
+
+#. Description of the plugin
+msgid "Clean database by deleting unused data such as 'old revisions', 'old drafts', 'orphan options', etc. Optimize database and more."
+msgstr "'Eski sürümler', 'eski taslaklar', 'kullanılmayan seçenekler' gibi kullanılmayan verileri silerek veritabanınızı temizleyin. Veritabanınızı optimize edin ve daha fazlasını yapın."
+
+#: includes/premium_page.php:47
+msgid "We are available to support you!"
+msgstr "Size destek vermek için her zaman hazırız"
+
+#: includes/premium_page.php:7
+msgid "Need more features ?"
+msgstr "Daha fazla mı özellik gerekiyor?"
+
+#: includes/overview_settings.php:133
+msgid "WP multisite Enabled ?"
+msgstr "WP çoklu site özelliği aktif"
+
+#: includes/overview_settings.php:117
+msgid "Total options"
+msgstr "Toplam seçenek"
+
+#: includes/overview_settings.php:109
+msgid "Total tables"
+msgstr "Toplam tablo"
+
+#: includes/overview_settings.php:77
+msgid "Settings saved successfully!"
+msgstr "Ayarlar başarıyla kaydedildi"
+
+#: includes/functions.php:975
+msgid "Unknown!"
+msgstr "Bilinmiyor"
+
+#: includes/class_clean_tables.php:672
+msgid "Your database is optimized!"
+msgstr "Veritabanınız optimize edildi"
+
+#: includes/class_general_cleanup.php:295
+msgid "Selected elements successfully cleaned!"
+msgstr "Seçili elemanlar başarıyla temizlendi"
+
+#: includes/class_general_cleanup.php:257
+#: includes/class_general_cleanup.php:328
+#: includes/custom-schedule-view/class_add_cleanup_schedule.php:262
+#: includes/custom-schedule-view/class_edit_cleanup_schedule.php:280
+msgid "Your database is clean!"
+msgstr "Veritabanı temiz"
+
+#: includes/custom-schedule-view/class_add_cleanup_schedule.php:90
+#: includes/custom-schedule-view/class_add_optimize_schedule.php:88
+#: includes/custom-schedule-view/class_edit_cleanup_schedule.php:99
+#: includes/custom-schedule-view/class_edit_optimize_schedule.php:96
+msgid "The clean-up schedule saved successfully!"
+msgstr "Temizleme işlemi için zamanlama başarıyla kaydedildi"
+
+#: includes/class_clean_tables.php:389
+msgid "Selected tables cleaned successfully!"
+msgstr "Seçili tablolar başarıyla temizlendi"
+
+#: includes/class_clean_options.php:284
+msgid "Selected options cleaned successfully!"
+msgstr "Seçili ayarlar başarıyla temizlendi"
+
+#: includes/class_clean_cron.php:319
+msgid "Selected scheduled tasks cleaned successfully!"
+msgstr "Seçili olan zamanlanmış görevler silindi"
+
+#: includes/class_clean_cron.php:487 includes/class_clean_options.php:526
+#: includes/class_clean_tables.php:614
+#: includes/custom-clean-view/header_page_custom_clean.php:92
+#: includes/functions.php:673 includes/header_page_filter.php:223
+msgid "Available in Pro version!"
+msgstr "Pro sürümde etkin"
+
+#: includes/class_clean_cron.php:219
+msgid "No tasks found!"
+msgstr "Görev bulunamadı"
+
+#: includes/class_general_cleanup.php:250
+#: includes/custom-clean-view/class_clean_comment.php:247
+#: includes/custom-clean-view/class_clean_meta_comment_post_user_term.php:233
+#: includes/custom-clean-view/class_clean_relationships.php:181
+#: includes/custom-clean-view/class_clean_revision_draft_trash.php:228
+#: includes/custom-clean-view/class_clean_transient.php:227
+msgid "Clean"
+msgstr "Temizle"
+
+#: includes/class_general_cleanup.php:196
+msgid "Count"
+msgstr "Sayı"
+
+#: includes/class_clean_tables.php:191
+msgid "Rows"
+msgstr "Satır"
+
+#: includes/class_clean_tables.php:190
+msgid "Prefix"
+msgstr "Ön ek"
+
+#: includes/class_clean_cron.php:123 includes/class_clean_options.php:129
+#: includes/class_clean_tables.php:195
+msgid "Belongs to"
+msgstr "Dahil olunan"

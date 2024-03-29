@@ -1,0 +1,28 @@
+.marka {
+    filter: alpha(opacity=40);
+    opacity: 0.8;
+    transition: all .2s ease-out;
+    border-radius: 0.3rem;
+    -webkit-transition: all 0.3s ease-in-out 0s;
+    -moz-transition: all 0.3s ease-in-out 0s;
+    transition: all 0.3s ease-in-out 0s;
+    padding: 6px;
+    -webkit-filter: grayscale(100%);
+    filter: grayscale(100%);
+    width: 78%;
+
+    @include responsive(tablet-kucuk) {
+        margin-left: 0rem;
+    }
+
+    &:hover {
+        opacity: 1;
+
+        transform: translateY(-.3rem);
+        -webkit-filter: grayscale(0%);
+        filter: grayscale(0%);
+        @include responsive(tablet-kucuk) {
+        }
+
+    }
+}

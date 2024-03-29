@@ -1,0 +1,5 @@
+
+
+RewriteEngine On
+
+ErrorDocument 404 https://garantiwebtasarim.com/aeste-aesthetic-plastic-surgery/404.html
