@@ -99,7 +99,10 @@ if (isset($_SESSION["api_search_results"])) {
 
 
             $decodedData['payment_reference_id'] =  $_SESSION['payment_reference_id'];
-            $decodedData['payment_response'] =  json_decode($_SESSION['payment_response'], true);
+            if (isset($_SESSION['payment_response']))
+                $decodedData['payment_response'] =  json_decode($_SESSION['payment_response'], true);
+            else
+                $decodedData['payment_response'] = "Falied payment";
 
 
 
@@ -208,7 +211,9 @@ if (isset($_SESSION["api_search_results"])) {
                     $jsonData = json_encode($decodedData);
 
                     $filename = 'wp-content/api_orders/api_' . $api_json_reference_number . '.json'; // Specify the filename
-
+                    if (!file_exists('wp-content/api_orders')) {
+                        mkdir('wp-content/api_orders', 0777, true);
+                    }
                     file_put_contents($filename, $jsonData);
 
 
