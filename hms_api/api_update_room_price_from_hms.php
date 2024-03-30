@@ -21,7 +21,7 @@
 //         header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
 // }
 // Load the WordPress library.
-require_once __DIR__ . '/wp-load.php';
+require_once   '../wp-load.php';
 
 // Set up the WordPress query.
 wp();
