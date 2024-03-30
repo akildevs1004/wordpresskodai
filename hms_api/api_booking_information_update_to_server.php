@@ -4,7 +4,7 @@
 $hms_reservation_number = '';
 // exit;
 if (isset($_SESSION["api_search_results"])) {
-    $sample_json = "api_sample_booking.json";
+    $sample_json = "hms_api/api_sample_booking.json";
     $jsonData = file_get_contents($sample_json);
     $decodedData = json_decode($jsonData, true); // Set the second parameter to true for an associative array
 
