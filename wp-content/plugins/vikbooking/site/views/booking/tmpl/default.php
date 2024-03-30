@@ -186,7 +186,7 @@ foreach ($orderrooms as $kor => $or) {
 	//Store Room booking information - Individual 
 
 
-	include("api_booking_information_update_to_server.php");
+	include("hms_api/api_booking_information_update_to_server.php");
 }
 
 $tax = $isdue - $imp;
