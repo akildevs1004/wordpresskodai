@@ -71,7 +71,7 @@ if (isset($_SESSION["api_search_results"])) {
             $decodedData['check_out'] = date('Y-m-d', $ord['checkout']);
             $decodedData['payment_mode_id'] =  3; //3 online
 
-            $decodedData['advance_price'] = $ord['total'];
+            //$decodedData['advance_price'] = $ord['total'];
 
             $decodedData['total_days'] = $room_stay_nights;
             $decodedData['sub_total'] = $ord['total'];
@@ -97,13 +97,23 @@ if (isset($_SESSION["api_search_results"])) {
 
             $decodedData['api_json_reference_number'] = $api_json_reference_number;
 
+            if (isset($_SESSION['payment_reference_id'])) {
+                $decodedData['payment_reference_id'] =  $_SESSION['payment_reference_id'];
 
-            $decodedData['payment_reference_id'] =  $_SESSION['payment_reference_id'];
-            if (isset($_SESSION['payment_response']))
+                $decodedData['advance_price'] = $ord['total'];
+            } else {
+                $decodedData['payment_reference_id'] =  "Not Availalbe";
+                $decodedData['advance_price'] = 0;
+            }
+
+
+            if (isset($_SESSION['payment_response'])) {
+
                 $decodedData['payment_response'] =  json_decode($_SESSION['payment_response'], true);
-            else
+            } else {
+                $decodedData['advance_price'] = 0;
                 $decodedData['payment_response'] = "Falied payment";
-
+            }
 
 
             $booked_rooms = [];
