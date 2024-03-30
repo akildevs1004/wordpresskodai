@@ -84,10 +84,10 @@ function vboConvertCurrency(toCurrency) {
 					jQuery(this).text(convobj[i].price);
 				});
 				if (jQuery('.vbcurconv-flag').length) {
-					jQuery("#vbcurconv-flag-img").attr("src", vbcurconvbasepath+toCurrency+".png");
-					jQuery("#vbcurconv-flag-img").attr("alt", toCurrency);
-					jQuery("#vbcurconv-flag-img").attr("title", toCurrency);
-					jQuery("#vbcurconv-flag-symb").html(convobj[0].symbol);
+					jQuery(".vbcurconv-flag-img").attr("src", vbcurconvbasepath+toCurrency+".png");
+					jQuery(".vbcurconv-flag-img").attr("alt", toCurrency);
+					jQuery(".vbcurconv-flag-img").attr("title", toCurrency);
+					jQuery(".vbcurconv-flag-symb").html(convobj[0].symbol);
 				}
 			}
 		}).fail(function(){
@@ -95,7 +95,7 @@ function vboConvertCurrency(toCurrency) {
 			vboUndoConversion();
 		});
 	} else {
-		jQuery("#modcurconvsel").val("<?php echo $active_suff; ?>");
+		jQuery(".modcurconvsel").val("<?php echo $active_suff; ?>");
 	}
 }
 function vboUndoConversion() {
@@ -104,12 +104,12 @@ function vboUndoConversion() {
 		jQuery(this).text(sendprices[i]);
 	});
 	if (jQuery('.vbcurconv-flag').length) {
-		jQuery("#vbcurconv-flag-symb").text(fromSymbol);
-		jQuery("#vbcurconv-flag-img").attr("src", vbcurconvbaseflag);
-		jQuery("#vbcurconv-flag-img").attr("alt", fromCurrency);
-		jQuery("#vbcurconv-flag-img").attr("title", fromCurrency);
+		jQuery(".vbcurconv-flag-symb").text(fromSymbol);
+		jQuery(".vbcurconv-flag-img").attr("src", vbcurconvbaseflag);
+		jQuery(".vbcurconv-flag-img").attr("alt", fromCurrency);
+		jQuery(".vbcurconv-flag-img").attr("title", fromCurrency);
 	}
-	jQuery("#modcurconvsel").val(fromCurrency);
+	jQuery(".modcurconvsel").val(fromCurrency);
 }
 </script>
 
@@ -119,16 +119,16 @@ if ((int)$params->get('showflag', '0')) {
 ?>
 	<div class="vbcurconv-flag">
 		<?php
-		echo '<img id="vbcurconv-flag-img" alt="'.$active_suff.'" title="'.$active_suff.'" src="'.$baseurl.'modules/mod_vikbooking_currencyconverter/images/flags/'.$active_suff.'.png'.'"/>';
+		echo '<img class="vbcurconv-flag-img" alt="'.$active_suff.'" title="'.$active_suff.'" src="'.$baseurl.'modules/mod_vikbooking_currencyconverter/images/flags/'.$active_suff.'.png'.'"/>';
 		$active_symb = array_key_exists($active_suff, $currencymap) && isset($currencymap[$active_suff]['symbol']) ? '&#'.$currencymap[$active_suff]['symbol'].';' : '';
 		?>
-		<span id="vbcurconv-flag-symb"><?php echo $active_symb; ?></span>
+		<span class="vbcurconv-flag-symb"><?php echo $active_symb; ?></span>
 	</div>
 <?php
 }
 ?>
 	<div class="vbcurconv-menu">
-		<select id="modcurconvsel" name="mod_vikbooking_currencyconverter" onchange="vboConvertCurrency(this.value);">
+		<select class="modcurconvsel" name="mod_vikbooking_currencyconverter" onchange="vboConvertCurrency(this.value);">
 	<?php
 	foreach ($currencies as $cur) {
 		$three_code = substr($cur, 0, 3);

@@ -568,9 +568,10 @@
 	border-radius: 8px;
 }
 #ui-datepicker-div {
-	box-shadow: 0 2px 5px 0 rgba(50,54,72,.08);
-	border-radius: 0;
+	box-shadow: 0 0 10px rgba(0,0,0,0.2);
+	border-radius: 28px;
 	padding: 20px;
+	z-index: 2147483647 !important;
 }
 .ui-datepicker .ui-datepicker-header .ui-datepicker-title {
 	font-size: 14px !important;
@@ -609,6 +610,8 @@
 .vbo-horizsearch-dpicker-cont > .ui-datepicker-multi {
 	width: auto !important;
 	padding: 20px;
+	box-shadow: 0 0 10px rgba(0,0,0,0.2);
+	border-radius: 28px;
 }
 .vbo-horizsearch-dpicker-cont a {
 	box-shadow: none !important;
@@ -717,7 +720,7 @@
     }
     .vbo-horizsearch-standardformat-wrap.vbmodhorsearchmaindiv form > div {
         flex-basis: 100%;
-        margin-right: 0 !important;
+        margin-right: 0;
         margin-top: 5px;
         margin-bottom: 5px;
     }
@@ -749,6 +752,14 @@
     .vbo-horizsearch-standardformat-wrap .vbmodhorsearchrac > .vbmodhorsearchroomdentr > * > div, .vbo-horizsearch-standardformat-wrap .vbmodhorsearchrac .vbmoreroomscontmod > * .vbmodhorsearchroomdentr .horsanumdiv {
         flex-basis: 100%;
     }
+	.vbo-horizsearch-standardformat-wrap .vbmodhorsearchroomdentr .horsrnum, .vbo-horizsearch-standardformat-wrap .vbmodhorsearchroomdentr {
+		text-align: left;
+		flex-basis: 100%;
+	}
+	.vbo-horizsearch-standardformat-wrap .vbmodhorsearchrac .vbmodhorsearchroomdentrfirst > .horsanumdiv, .vbo-horizsearch-standardformat-wrap .vbmodhorsearchrac .vbmodhorsearchroomdentrfirst > .horscnumdiv {
+		flex-basis: auto;
+		flex: 1;
+	}
     .vbo-horizsearch-standardformat-wrap .vbmoreroomscontmod > div > .vbmodhorsearchroomdentr > .horsanumdiv  {
         display: flex;
         margin-right: 0;
@@ -762,8 +773,15 @@
     .vbo-horizsearch-standardformat-wrap .vbmodhorsearchcategoriesblock .vbhsrcselsp select {
         width: 100%;
     }
+	.vbo-horizsearch-standardformat-wrap .vbmodhorsearchbookdiv .btn {
+		margin-left: 0;
+		width: 100%;
+	}
 	.ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default {
 		padding: 0;
+	}
+	.vbmodhorsearchmaindiv form .vbo-mod-horsearch-inquiry-submit {
+		margin-right: 10px;
 	}
 	.vbmodhorsearchmaindiv form .vbo-mod-horsearch-inquiry-submit .btn {
 		width: 100%;

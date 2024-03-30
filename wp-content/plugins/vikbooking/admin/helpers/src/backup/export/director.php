@@ -155,8 +155,17 @@ class VBOBackupExportDirector
 			$flag = 0;
 		}
 
+		// try to encode the manifest in JSON format
+		$json = json_encode($manifest, $flag);
+
+		if ($json === false)
+		{
+			// an error has occurred while trying to encode the manifest file in JSON format
+			throw new UnexpectedValueException('Failed to encode the manifest file. Error: ' . json_last_error() . '.', 500);
+		}
+
 		// add manifest file into the root of the archive
-		$this->archive->addBuffer(json_encode($manifest, $flag), 'manifest.json');
+		$this->archive->addBuffer($json, 'manifest.json');
 
 		// complete the backup process by creating the archive
 		return $this->archive->compress();

@@ -134,6 +134,11 @@ class VBOBackupExportRuleFolder extends VBOBackupExportRule
 
 			// scan the given folder
 			$files = JFolder::files($data['source'], '.', $this->recursive, $fullPath = true, $exclude);
+
+			if ($files === false)
+			{
+				throw new Exception(sprintf('Reading source failed: %s', $data['source']), 500);
+			}
 		}
 
 		// iterate all files stored within the given folder

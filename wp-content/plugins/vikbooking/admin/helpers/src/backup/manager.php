@@ -25,7 +25,7 @@ class VBOBackupManager
 	 * 
 	 * @var string
 	 */
-	const MINIMUM_REQUIRED_VERSION_JOOMLA = '1.15.0';
+	const MINIMUM_REQUIRED_VERSION_JOOMLA = '1.16.5';
 
 	/**
 	 * Indicates the minimum required version while creating a
@@ -34,7 +34,7 @@ class VBOBackupManager
 	 * 
 	 * @var string
 	 */
-	const MINIMUM_REQUIRED_VERSION_WORDPRESS = '1.5.0';
+	const MINIMUM_REQUIRED_VERSION_WORDPRESS = '1.6.5';
 
 	/**
 	 * An associative array containing the supported export types, where the
@@ -83,7 +83,7 @@ class VBOBackupManager
 		if (empty($options['filename']))
 		{
 			// use the current date and time as file name
-			$options['filename'] = 'backup_' . $type . '_' . JFactory::getDate()->format('Y-m-d H:i:s');
+			$options['filename'] = 'backup_' . $type . '_' . JFactory::getDate()->format('Y-m-d H-i-s');
 		}
 
 		if (!empty($options['prefix']))
@@ -190,15 +190,15 @@ class VBOBackupManager
 
 		if (!$status)
 		{
-			// cannot extract the archive
-			throw new Exception(sprintf('Unable to extract [%s] into [%s]', $path, $extractdir), 500);
+			// cannot extract the archive (422 Unprocessable Content)
+			throw new Exception(sprintf('Unable to extract [%s] into [%s]', $path, $extractdir), 422);
 		}
 
 		// create backup import director
 		$director = new VBOBackupImportDirector($extractdir);
 
 		// set the manifest version equals to the minimum required one, according to the CMS in use
-		if (defined('ABSPATH'))
+		if (VBOPlatformDetection::isWordPress())
 		{
 			$director->setVersion(static::MINIMUM_REQUIRED_VERSION_WORDPRESS);
 		}
@@ -255,7 +255,7 @@ class VBOBackupManager
 		 * 
 		 * @since 	1.5
 		 */
-		$paths = JFactory::getApplication()->triggerEvent('onLoadBackupExportTypesVikBooking');
+		$paths = VBOFactory::getPlatform()->getDispatcher()->filter('onLoadBackupExportTypesVikBooking');
 
 		// merge returned paths with the existing ones
 		foreach ($paths as $path)

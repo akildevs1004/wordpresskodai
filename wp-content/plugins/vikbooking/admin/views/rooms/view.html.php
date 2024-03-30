@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     VikBooking
  * @subpackage  com_vikbooking
@@ -13,9 +14,11 @@ defined('ABSPATH') or die('No script kiddies please!');
 // import Joomla view library
 jimport('joomla.application.component.view');
 
-class VikBookingViewRooms extends JViewVikBooking {
-	
-	function display($tpl = null) {
+class VikBookingViewRooms extends JViewVikBooking
+{
+
+	function display($tpl = null)
+	{
 		// Set the toolbar
 		$this->addToolBar();
 
@@ -29,23 +32,24 @@ class VikBookingViewRooms extends JViewVikBooking {
 		$proomid = VikRequest::getString('roomid', '', 'request');
 		$dbo = JFactory::getDBO();
 		if ((!empty($pmodtar) || !empty($ptarmod)) && !empty($proomid)) {
-			$q = "SELECT * FROM `#__vikbooking_dispcost` WHERE `idroom`=".$dbo->quote($proomid).";";
+			$q = "SELECT * FROM `#__vikbooking_dispcost` WHERE `idroom`=" . $dbo->quote($proomid) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() > 0) {
 				$tars = $dbo->loadAssocList();
 				foreach ($tars as $tt) {
-					$tmpcost = VikRequest::getString('cost'.$tt['id'], '', 'request');
-					$tmpattr = VikRequest::getString('attr'.$tt['id'], '', 'request');
+					$tmpcost = VikRequest::getString('cost' . $tt['id'], '', 'request');
+					$tmpattr = VikRequest::getString('attr' . $tt['id'], '', 'request');
+					$tmpcost = $tmpcost + 5;
 					if (strlen($tmpcost)) {
-						$q = "UPDATE `#__vikbooking_dispcost` SET `cost`='".$tmpcost."'".(strlen($tmpattr) ? ", `attrdata`=".$dbo->quote($tmpattr)."" : "")." WHERE `id`='".$tt['id']."';";
+						$q = "UPDATE `#__vikbooking_dispcost` SET `cost`='" . $tmpcost . "'" . (strlen($tmpattr) ? ", `attrdata`=" . $dbo->quote($tmpattr) . "" : "") . " WHERE `id`='" . $tt['id'] . "';";
 						$dbo->setQuery($q);
 						$dbo->execute();
 					}
 				}
 			}
 			$lim0 = VikRequest::getVar('limitstart', 0, '', 'int');
-			$mainframe->redirect("index.php?option=com_vikbooking&task=tariffs&cid[]=".$proomid."&limitstart=".$lim0);
+			$mainframe->redirect("index.php?option=com_vikbooking&task=tariffs&cid[]=" . $proomid . "&limitstart=" . $lim0);
 			exit;
 		}
 		$lim = $mainframe->getUserStateFromRequest("com_vikbooking.limit", 'limit', $mainframe->get('list_limit'), 'int');
@@ -80,8 +84,8 @@ class VikBookingViewRooms extends JViewVikBooking {
 			array_push($clauses, "(`r`.`idcat`='" . $pidcat . ";' OR `r`.`idcat` LIKE '" . $pidcat . ";%' OR `r`.`idcat` LIKE '%;" . $pidcat . ";%' OR `r`.`idcat` LIKE '%;" . $pidcat . ";')");
 		}
 		//
-		
-		$q = "SELECT SQL_CALC_FOUND_ROWS `r`.*, (SELECT 1 FROM `#__vikbooking_calendars_xref` AS `x` WHERE `x`.`mainroom`=`r`.`id` OR `x`.`childroom`=`r`.`id` LIMIT 1) AS `sharedcals` FROM `#__vikbooking_rooms` AS `r`" . (count($clauses) ? ' WHERE ' . implode(' AND ', $clauses) : '') . " ORDER BY `r`.`".$orderby."` ".$ordersort;
+
+		$q = "SELECT SQL_CALC_FOUND_ROWS `r`.*, (SELECT 1 FROM `#__vikbooking_calendars_xref` AS `x` WHERE `x`.`mainroom`=`r`.`id` OR `x`.`childroom`=`r`.`id` LIMIT 1) AS `sharedcals` FROM `#__vikbooking_rooms` AS `r`" . (count($clauses) ? ' WHERE ' . implode(' AND ', $clauses) : '') . " ORDER BY `r`.`" . $orderby . "` " . $ordersort;
 		$dbo->setQuery($q, $lim0, $lim);
 		$dbo->execute();
 
@@ -98,17 +102,17 @@ class VikBookingViewRooms extends JViewVikBooking {
 			$rows = $dbo->loadAssocList();
 			$dbo->setQuery('SELECT FOUND_ROWS();');
 			jimport('joomla.html.pagination');
-			$pageNav = new JPagination( $dbo->loadResult(), $lim0, $lim );
-			$navbut = "<table align=\"center\"><tr><td>".$pageNav->getListFooter()."</td></tr></table>";
+			$pageNav = new JPagination($dbo->loadResult(), $lim0, $lim);
+			$navbut = "<table align=\"center\"><tr><td>" . $pageNav->getListFooter() . "</td></tr></table>";
 		}
-		
-		$this->rows = &$rows;
-		$this->lim0 = &$lim0;
-		$this->navbut = &$navbut;
-		$this->orderby = &$orderby;
-		$this->ordersort = &$ordersort;
-		$this->allcats = &$allcats;
-		
+
+		$this->rows = $rows;
+		$this->lim0 = $lim0;
+		$this->navbut = $navbut;
+		$this->orderby = $orderby;
+		$this->ordersort = $ordersort;
+		$this->allcats = $allcats;
+
 		// Display the template
 		parent::display($tpl);
 	}
@@ -116,7 +120,8 @@ class VikBookingViewRooms extends JViewVikBooking {
 	/**
 	 * Sets the toolbar
 	 */
-	protected function addToolBar() {
+	protected function addToolBar()
+	{
 		JToolBarHelper::title(JText::translate('VBMAINDEAFULTTITLE'), 'vikbooking');
 		if (JFactory::getUser()->authorise('core.create', 'com_vikbooking')) {
 			JToolBarHelper::addNew('newroom', JText::translate('VBMAINDEFAULTNEW'));
@@ -127,7 +132,7 @@ class VikBookingViewRooms extends JViewVikBooking {
 			JToolBarHelper::spacer();
 			JToolBarHelper::editList('tariffs', JText::translate('VBMAINDEFAULTEDITT'));
 			JToolBarHelper::spacer();
-			JToolBarHelper::custom( 'calendar', 'calendar', 'calendar', JText::translate('VBMAINDEFAULTCAL'), true, false);
+			JToolBarHelper::custom('calendar', 'calendar', 'calendar', JText::translate('VBMAINDEFAULTCAL'), true, false);
 			JToolBarHelper::spacer();
 		}
 		if (JFactory::getUser()->authorise('core.delete', 'com_vikbooking')) {
@@ -135,5 +140,4 @@ class VikBookingViewRooms extends JViewVikBooking {
 			JToolBarHelper::spacer();
 		}
 	}
-
 }

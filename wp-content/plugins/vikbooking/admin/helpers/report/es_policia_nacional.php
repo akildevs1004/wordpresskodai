@@ -10,8 +10,6 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-//error_reporting(-1); ini_set('display_errors', true);
-
 class VikBookingReportEsPoliciaNacional extends VikBookingReport
 {
 	/**
@@ -53,6 +51,8 @@ class VikBookingReportEsPoliciaNacional extends VikBookingReport
 
 		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
 
+		$this->registerExportFileName();
+
 		$this->nazioni = array();
 
 		parent::__construct();
@@ -91,7 +91,7 @@ class VikBookingReportEsPoliciaNacional extends VikBookingReport
 		}
 
 		//get VBO Application Object
-		$vbo_app = new VboApplication();
+		$vbo_app = VikBooking::getVboApplication();
 
 		//load the jQuery UI Datepicker
 		$this->loadDatePicker();
@@ -944,7 +944,6 @@ class VikBookingReportEsPoliciaNacional extends VikBookingReport
 			}
 			$customerCount++;
 		}
-		$name = strtoupper($photelcode).'.'.$progressivecode;
 
 		$separator = '|';
 		$line_cont = '1' . $separator . strtoupper($photelcode) . $separator . strtoupper($photelname) . $separator . date('Ymd') . $separator . date('Hi') . $separator . count($customers);
@@ -970,12 +969,41 @@ class VikBookingReportEsPoliciaNacional extends VikBookingReport
 			VikBooking::getBookingHistoryInstance()->setBid($bid)->store('RP', $this->reportName);
 		}
 
-		//Force text file download
+		/**
+		 * Custom export method supports a custom export handler, if previously set.
+		 * 
+		 * @since 	1.16.1 (J) - 1.6.1 (WP)
+		 */
+		if ($this->hasExportHandler()) {
+			// write data onto the custom file handler
+			$fp = $this->getExportCSVHandler();
+			fwrite($fp, implode("\r\n", $lines));
+			fclose($fp);
+
+			return true;
+		}
+
+		// force text file download
 		header("Content-type: text/plain");
 		header("Cache-Control: no-store, no-cache");
-		header('Content-Disposition: attachment; filename="'.$name.'.txt"');
+		header('Content-Disposition: attachment; filename="' . $this->getExportCSVFileName() . '"');
 		echo implode("\r\n", $lines);
 		exit;
+	}
+
+	/**
+	 * Registers the name to give to the file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	private function registerExportFileName()
+	{
+		$photelcode = VikRequest::getString('hotelcode', '', 'request');
+		$progressivecode = VikRequest::getString('progressivecode', '', 'request');
+
+		$this->setExportCSVFileName(strtoupper($photelcode) . '.' . $progressivecode . '.txt');
 	}
 
 	/**
@@ -1077,7 +1105,4 @@ class VikBookingReportEsPoliciaNacional extends VikBookingReport
 		}
 		return $staval;
 	}
-
-	
-
 }

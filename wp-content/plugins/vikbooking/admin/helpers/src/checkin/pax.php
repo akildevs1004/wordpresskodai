@@ -137,7 +137,7 @@ final class VBOCheckinPax
 		 *
 		 * @return 	array 	a list of supported drivers.
 		 */
-		$list = JFactory::getApplication()->triggerEvent('onLoadPaxdatafieldsDrivers');
+		$list = VBOFactory::getPlatform()->getDispatcher()->filter('onLoadPaxdatafieldsDrivers');
 		foreach ($list as $chunk) {
 			// merge default driver files with the returned ones
 			$drivers_files = array_merge($drivers_files, (array)$chunk);
@@ -207,6 +207,57 @@ final class VBOCheckinPax
 		$record->pax_data = json_encode($pax_data);
 
 		return $dbo->updateObject('#__vikbooking_customers_orders', $record, 'idorder');
+	}
+
+	/**
+	 * Helper method to load the previous pax data for this customer in case
+	 * previous check-ins were made already for this customer. This is to
+	 * quicky populate the previous check-in information.
+	 * 
+	 * @param 	int 	$bid 	the booking ID.
+	 * @param 	int 	$lim 	the maximum number of previous records to load.
+	 * 
+	 * @return 	array 	the list of previous pax data records for this customer.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public static function getCustomerAllPaxData($bid, $lim = 5)
+	{
+		if (empty($bid)) {
+			return [];
+		}
+
+		$dbo = JFactory::getDbo();
+
+		$q = "SELECT `idcustomer` FROM `#__vikbooking_customers_orders` WHERE `idorder`=" . (int)$bid;
+		$dbo->setQuery($q, 0, 1);
+		$dbo->execute();
+		if (!$dbo->getNumRows()) {
+			return [];
+		}
+		$id_customer = $dbo->loadResult();
+
+		$q = "SELECT `co`.`idorder`, `co`.`pax_data`, `o`.`ts`, `o`.`checkin`, `o`.`checkout` FROM `#__vikbooking_customers_orders` AS `co` 
+			LEFT JOIN `#__vikbooking_orders` AS `o` ON `co`.`idorder`=`o`.`id` 
+			WHERE `co`.`idcustomer`=" . (int)$id_customer . " AND `co`.`idorder` != " . (int)$bid . " AND `co`.`pax_data` IS NOT NULL ORDER BY `co`.`idorder` DESC";
+		$dbo->setQuery($q, 0, $lim);
+		$dbo->execute();
+		if (!$dbo->getNumRows()) {
+			return [];
+		}
+		$prev_records = $dbo->loadAssocList();
+
+		foreach ($prev_records as $k => $v) {
+			// attempt to decode checkin data
+			$pax_data = json_decode($v['pax_data'], true);
+			if (!is_array($pax_data) || !count($pax_data)) {
+				unset($prev_records[$k]);
+				continue;
+			}
+			$prev_records[$k]['pax_data'] = $pax_data;
+		}
+
+		return $prev_records;
 	}
 
 	/**

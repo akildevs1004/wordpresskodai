@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.mail
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -100,22 +100,17 @@ class JMail
 	/**
 	 * Magic method set to define certain object properties.
 	 * 
-	 * @param 	string 	$name 	the property name
-	 * @param 	mixed 	$value 	the value for the property
+	 * @param   string  $name   The property name.
+	 * @param   mixed   $value  The value for the property.
 	 * 
-	 * @return 	void
+	 * @return  void
 	 * 
-	 * @since 	10.1.6
+	 * @since   10.1.6
 	 */
 	public function __set($name, $value)
 	{
-		if (strcasecmp($name, 'SMTPOptions'))
-		{
-			return;
-		}
-
 		// hook to the PHPMailer init action
-		add_action('phpmailer_init', function(&$phpmailer) use ($value)
+		add_action('phpmailer_init', function(&$phpmailer) use ($name, $value)
 		{	
 			if (!$phpmailer instanceof PHPMailer)
 			{
@@ -123,7 +118,15 @@ class JMail
 				return $phpmailer;
 			}
 
-			$phpmailer->SMTPOptions = $value;
+			/**
+			 * Check whether the specified property is supported by PHPMailer.
+			 * 
+			 * @since 10.1.47
+			 */
+			if (property_exists($phpmailer, $name))
+			{
+				$phpmailer->{$name} = $value;
+			}
 		});
 	}
 

@@ -2,8 +2,8 @@
 Contributors: e4jvikwp
 Tags: hotel booking, booking engine, channel manager, hotel, reservations, vik, B&B, apartments, villa, hostel, CRS, IBE, reservation system
 Requires at least: 4.7
-Tested up to: 6.1
-Stable tag: 1.5.11
+Tested up to: 6.4
+Stable tag: 1.6.6
 Requires PHP: 5.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -129,38 +129,23 @@ Vik Booking is the Booking Engine and PMS plugin, it can work alone on any exist
 
 == Changelog ==
 
-= 1.5.11 =
-*Release date - 26 July 2022*
+= 1.6.6 =
+*Release date - 13 December 2023*
 
-* Conditional text rules improvements.
-* Support for multiple hotel rooms categories (Google Hotel).
-* Added support for WP-Cron scheduled tasks with a new and extendable Cron Jobs framework.
-* Added support for Booking.com Guest Messaging API.
-* Zoom feature for Airbnb profile picture of guest reservations.
-* Improved custom email sending functions through the Visual Editor.
-* Improved performances for databases with a large amount of reservations (2+ GBs).
-* Implemented extra anti-XSS/CSRF checks for the admin pages.
-* Added support for customer profile picture (avatar).
-* Prevented switch of non refundable rates during booking modification.
-* Sanitized malicious data injections.
-* Fixed compatibility issues with Windows servers.
-* Major core framework release.
-* Dark mode appearance for dark color scheme preferences.
-* Multitask panel to quickly query the system without changing pages.
-* Browser (web push) notifications with real-time alerts.
-* New admin widgets and framework.
-* Reminders with scheduled due dates.
-* Rates flow monitoring for OTA and Website rates.
-* Custom data collection for guests registration.
-* myDATA AADE integration for electronic invoicing in Greece.
-* Inquiry reservations with pending status and auto room-assignment.
-* Backups: import and export an entire configuration from one site to another.
-* Visual (rich text) editor and composer for any email message.
-* New statistics tracking features.
-* Coupon codes with minimum stay filter.
-* New conditional text rules.
-* New permissions for front-end Tableaux and operators.
-* Support (and certification) for Google Hotel Free Booking Links!!! (Vik Channel Manager + E4JConnect subscription required)
+* Added support for the E4jConnect Trial activation system.
+* Added search facility to translations.
+* New actions and filters introduced.
+
+= 1.6.5 =
+*Release date - 13 November 2023*
+
+* New Booking Details admin-widget.
+* Admin widgets framework refactoring.
+* Introducing Push notifications through ServiceWorker.
+* Improved Desktop (Web) notifications.
+* Added support for WebApp through apposite manifest for MacOS.
+* Added support for new Channel Manager capabilities with the Booking.com Content APIs.
+* New overrides manager interface and breaking changes detection framework.
 
 = Earlier versions =
 

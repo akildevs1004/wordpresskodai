@@ -30,14 +30,12 @@ JText::script('VBO_CSS_EDITING_HELP');
 JText::script('VBO_INSPECTOR_START');
 JText::script('VBO_EDITTPL_FATALERROR');
 
-$rows = array();
 $navbut = "";
 
 $q = "SELECT SQL_CALC_FOUND_ROWS * FROM `#__vikbooking_condtexts` ORDER BY `#__vikbooking_condtexts`.`lastupd` DESC";
 $dbo->setQuery($q, $lim0, $lim);
-$dbo->execute();
-if ($dbo->getNumRows() > 0) {
-	$rows = $dbo->loadAssocList();
+$rows = $dbo->loadAssocList();
+if ($rows) {
 	$dbo->setQuery('SELECT FOUND_ROWS();');
 	jimport('joomla.html.pagination');
 	$pageNav = new JPagination($dbo->loadResult(), $lim0, $lim);
@@ -177,6 +175,7 @@ if ($dbo->getNumRows() > 0) {
 					<div class="vbo-param-setting">
 						<div class="vbo-inspector-cmds">
 							<button id="vbo-inspector-save" type="button" class="btn btn-success" disabled><?php VikBookingIcons::e('save'); ?> <?php echo JText::translate('VBSAVE'); ?></button>
+							<button id="vbo-inspector-preview" type="button" class="btn btn-secondary" data-prew-type="" style="display: none;"><?php VikBookingIcons::e('eye'); ?> <?php echo JText::translate('VBOPREVIEW'); ?></button>
 							<button id="vbo-inspector-cancel" type="button" class="btn btn-secondary"><?php VikBookingIcons::e('times'); ?> <?php echo JText::translate('VBANNULLA'); ?></button>
 						</div>
 					</div>
@@ -259,7 +258,8 @@ foreach ($tpl_contents as $file => $content) {
 		current_file = null,
 		current_target = null,
 		css_editing = false,
-		css_custom_classes = [];
+		css_custom_classes = [],
+		vbo_back_to_tab = null;
 
 	/**
 	 * Generates a unique class for the target in the CSS inspector.
@@ -306,17 +306,19 @@ foreach ($tpl_contents as $file => $content) {
 		}
 
 		jQuery('.vbo-inspector-wrap').find('*').not('center, table, thead, tbody, tr').hover(function() {
-			jQuery('.vbo-inspector-hover').removeClass('vbo-inspector-hover');
-			jQuery(this).addClass('vbo-inspector-hover');
+			jQuery('.vbo-inspector-hover').removeClass('vbo-inspector-hover vbo-tooltip vbo-tooltip-top');
+			let current_elem = jQuery(this);
+			current_elem.addClass('vbo-inspector-hover vbo-tooltip vbo-tooltip-top').attr('data-tooltiptext', current_elem.prop('tagName'));
 		}, function() {
-			if (jQuery(this).parent().length && jQuery(this).parent().is(':hover')) {
-				jQuery(this).parent().addClass('vbo-inspector-hover');
+			let current_elem = jQuery(this);
+			if (current_elem.parent().length && current_elem.parent().is(':hover')) {
+				current_elem.parent().addClass('vbo-inspector-hover vbo-tooltip vbo-tooltip-top').attr('data-tooltiptext', current_elem.parent().prop('tagName'));
 			}
-			jQuery(this).removeClass('vbo-inspector-hover');
+			current_elem.removeClass('vbo-inspector-hover vbo-tooltip vbo-tooltip-top');
 		});
 
 		jQuery('.vbo-inspector-wrap').mouseleave(function() {
-			jQuery('.vbo-inspector-hover').removeClass('vbo-inspector-hover');
+			jQuery('.vbo-inspector-hover').removeClass('vbo-inspector-hover vbo-tooltip vbo-tooltip-top');
 		});
 	}
 
@@ -354,6 +356,8 @@ foreach ($tpl_contents as $file => $content) {
 			jQuery('.vbo-tplcontent-inspector-ghost[data-inspectfile="' + file + '"]').find('script').remove();
 			// grab requested content and move it to the inspector wrapper
 			jQuery('.vbo-inspector-wrap').html(jQuery('.vbo-tplcontent-inspector-ghost[data-inspectfile="' + file + '"]').html()).attr('data-inspectfile', file);
+			// always hide the preview button
+			jQuery('#vbo-inspector-preview').attr('data-prew-type', '').hide();
 			// register hovering event
 			vboRegisterInspector(true);
 		}
@@ -726,6 +730,8 @@ foreach ($tpl_contents as $file => $content) {
 		 * Tries to undo the last action. Behaves differently depending on the active mode.
 		 */
 		jQuery('#vbo-inspector-cancel').click(function() {
+			// always hide the preview button
+			jQuery('#vbo-inspector-preview').attr('data-prew-type', '').hide();
 			if (current_file === null) {
 				// file cannot be null, hide inspector outer no matter what
 				jQuery('#vbo-inspector-outer').hide();
@@ -783,60 +789,116 @@ foreach ($tpl_contents as $file => $content) {
 				action_type = 'styles';
 			}
 			// make the request
-			var jqxhr = jQuery.ajax({
-				type: "POST",
-				url: "<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=condtext_update_tmpl'); ?>",
-				data: {
+			VBOCore.doAjax(
+				"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=condtext_update_tmpl'); ?>",
+				{
 					tmpl: "component",
 					tagaction: action_type,
 					tag: current_tag,
 					file: current_file,
 					newcontent: jQuery('.vbo-inspector-wrap').html(),
 					custom_classes: css_custom_classes
-				}
-			}).done(function(response) {
-				try {
-					var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
-					if (!obj_res.hasOwnProperty('newhtml')) {
-						console.error('Unexpected JSON response', obj_res);
-						return false;
+				},
+				(response) => {
+					try {
+						var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
+						if (!obj_res.hasOwnProperty('newhtml')) {
+							console.error('Unexpected JSON response', obj_res);
+							return false;
+						}
+						// stop loading
+						savebtn.find('i').removeClass().addClass('<?php echo VikBookingIcons::i('check-circle'); ?>');
+						// disable another saving
+						savebtn.prop('disabled', true);
+						// check for preview if supported
+						if (current_file && jQuery('.vbo-preview-btn[data-prew-type="' + current_file + '"]').length) {
+							// display the preview button
+							jQuery('#vbo-inspector-preview').attr('data-prew-type', current_file).show();
+						} else {
+							// hide the preview button no matter what
+							jQuery('#vbo-inspector-preview').hide();
+						}
+						if (current_tag !== null) {
+							// update button classes and icon
+							var btn_triggering = jQuery('.vbo-condtext-tmpl-status[data-inspectfile="' + current_file + '"][data-specialtag="' + current_tag + '"]');
+							btn_triggering.removeClass('btn-secondary vbo-condtext-notintmpl').addClass('btn-success vbo-condtext-intmpl');
+							btn_triggering.find('i').removeClass().addClass('<?php echo VikBookingIcons::i('check-circle'); ?>');
+							// hide helper
+							jQuery('#vbo-inspector-help').hide().html('');
+							// unset tag editing mode
+							current_tag = null;
+						}
+						if (css_editing && css_custom_classes.length) {
+							// empty the list of custom CSS classes as they were all saved
+							css_custom_classes = [];
+						}
+						// update template file HTML code
+						jQuery('.vbo-tplcontent-inspector-ghost[data-inspectfile="' + current_file + '"]').html(obj_res['newhtml']);
+					} catch(err) {
+						console.error('could not parse JSON response after saving', err, response);
+						// display error message
+						alert(Joomla.JText._('VBO_EDITTPL_FATALERROR'));
+						// restore backup of the file source code
+						vboRestoreBackupFile();
 					}
-					// stop loading
-					savebtn.find('i').removeClass().addClass('<?php echo VikBookingIcons::i('check-circle'); ?>');
-					// disable another saving
-					savebtn.prop('disabled', true);
-					if (current_tag !== null) {
-						// update button classes and icon
-						var btn_triggering = jQuery('.vbo-condtext-tmpl-status[data-inspectfile="' + current_file + '"][data-specialtag="' + current_tag + '"]');
-						btn_triggering.removeClass('btn-secondary vbo-condtext-notintmpl').addClass('btn-success vbo-condtext-intmpl');
-						btn_triggering.find('i').removeClass().addClass('<?php echo VikBookingIcons::i('check-circle'); ?>');
-						// hide helper
-						jQuery('#vbo-inspector-help').hide().html('');
-						// unset tag editing mode
-						current_tag = null;
-					}
-					if (css_editing && css_custom_classes.length) {
-						// empty the list of custom CSS classes as they were all saved
-						css_custom_classes = [];
-					}
-					// update template file HTML code
-					jQuery('.vbo-tplcontent-inspector-ghost[data-inspectfile="' + current_file + '"]').html(obj_res['newhtml']);
-				} catch(err) {
-					console.error('could not parse JSON response after saving', err, response);
+				},
+				(err) => {
+					console.error('Request failed completely');
 					// display error message
 					alert(Joomla.JText._('VBO_EDITTPL_FATALERROR'));
 					// restore backup of the file source code
 					vboRestoreBackupFile();
 				}
-			}).fail(function() {
-				console.error('Request failed completely');
-				// display error message
-				alert(Joomla.JText._('VBO_EDITTPL_FATALERROR'));
-				// restore backup of the file source code
-				vboRestoreBackupFile();
-			});
+			);
 		});
 
+		/**
+		 * Handles the preview button clicked from a tab outside the actual preview modal.
+		 */
+		jQuery('#vbo-inspector-preview').click(function() {
+			var prev_type  = jQuery(this).attr('data-prew-type');
+			var target_btn = jQuery('.vbo-preview-btn[data-prew-type="' + prev_type + '"]');
+			if (!prev_type || !target_btn.length) {
+				// hide the button
+				jQuery(this).hide();
+				return;
+			}
+
+			// make sure the proper configuration tab is active
+			var proper_tab_cont = target_btn.closest('dd.tabs');
+			if (!proper_tab_cont.is(':visible')) {
+				var tab_id = proper_tab_cont.attr('id').replace('pt', '');
+				if (jQuery('dt.tabs[data-ptid="' + tab_id + '"]').length) {
+					// simulate click on proper tab, as CSS editing can be started also from another tab
+					jQuery('dt.tabs[data-ptid="' + tab_id + '"]').trigger('click');
+					// turn current tab flag on
+					vbo_back_to_tab = jQuery(this).closest('dd.tabs').attr('id').replace('pt', '');
+				}
+			}
+
+			// simulate click on proper preview button
+			target_btn.trigger('click');
+		});
+
+		/**
+		 * Register to the event emitted when the modal for edit or preview template file is dismissed.
+		 */
+		document.addEventListener('vbo-dismiss-modal-tmplfile', (e) => {
+			if (typeof vbo_back_to_tab !== 'undefined' && vbo_back_to_tab) {
+				// simulate click on proper tab, as CSS editing can be started also from another tab
+				jQuery('dt.tabs[data-ptid="' + vbo_back_to_tab + '"]').trigger('click');
+				// schedule scroll to the proper position
+				setTimeout(() => {
+					jQuery('html,body').animate({scrollTop: jQuery('#vbo-inspector-outer').offset().top - 40}, {duration: 400});
+				}, 50);
+				// turn current tab flag off
+				vbo_back_to_tab = null;
+			}
+		});
+
+		/**
+		 * Saves the content-wrapper HTML structure.
+		 */
 		jQuery('#vbo-contwrapper-save').click(function() {
 			var wrapper_code = jQuery('#vbo-contwrapper-html').val();
 			if (!wrapper_code || !wrapper_code.length) {

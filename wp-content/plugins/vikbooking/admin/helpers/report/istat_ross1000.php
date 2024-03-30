@@ -11,8 +11,21 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 /**
- * ISTAT ROSS 1000 è valido per diverse regioni. Sicuramente per la Romagna.
- * Sviluppato e mantenuto da GIES (Repubblica di San Marino). Simile a SITRA.
+ * ISTAT ROSS 1000 è valido per diverse regioni. Sicuramente per la Romagna e per il Piemonte.
+ * Sviluppato e mantenuto da GIES (Repubblica di San Marino). Simile a SITRA. Il sistema
+ * supporta diversi URL regionali/cittadini per l'eventuale trasmissione a mezzo WSDL.
+ * 
+ * @link 	Piemonte https://piemontedatiturismo.regione.piemonte.it/ws/checkinV2?wsdl
+ * @link 	Città Metropolitana di Firenze https://turismo5firenze.regione.toscana.it/ws/checkinV2?wsdl
+ * @link 	Provincia di Pistoia https://turismo5pistoia.regione.toscana.it/ws/checkinV2?wsdl
+ * @link 	Provincia di Prato https://turismo5prato.regione.toscana.it/ws/checkinV2?wsdl
+ * @link 	Abruzzo https://app.regione.abruzzo.it/Turismo5/ws/checkinV2?wsdl
+ * @link 	Veneto https://flussituristici.regione.veneto.it/ws/checkinV2?wsdl
+ * @link 	Emilia-Romagna https://datiturismo.regione.emilia-romagna.it/ws/checkinV2?wsdl
+ * @link 	Marche https://istrice-ross1000.turismo.marche.it/ws/checkinV2?wsdl
+ * @link 	Lombardia https://www.flussituristici.servizirl.it/Turismo5/app/ws/checkinV2?wsdl
+ * @link 	Calabria https://sirdat.regione.calabria.it/ws/checkinV2?wsdl
+ * @link 	Sardegna https://sardegnaturismo.ross1000.it/ws/checkinV2?wsdl
  * 
  * @since 	1.15.4 (J) - 1.5.10 (WP)
  */
@@ -96,6 +109,8 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 			'14' => 'Non specificato'
 		);
 
+		$this->registerExportFileName();
+
 		parent::__construct();
 	}
 
@@ -141,7 +156,7 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				}';
 	 	$doc->addStyleDeclaration($css);
 		//get VBO Application Object
-		$vbo_app = new VboApplication();
+		$vbo_app = VikBooking::getVboApplication();
 
 		//load the jQuery UI Datepicker
 		$this->loadDatePicker();
@@ -240,6 +255,15 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 		);
 		array_push($this->reportFilters, $filter_opt);
 
+		// To Date Filter
+		$filter_opt = array(
+			'label' => '<label for="todate">'.JText::translate('VBOREPORTSDATETO').'</label>',
+			'html' => '<input type="text" id="todate" name="todate" value="" class="vbo-report-datepicker vbo-report-datepicker-to" />',
+			'type' => 'calendar',
+			'name' => 'todate'
+		);
+		array_push($this->reportFilters, $filter_opt);
+
 		// apertura struttura
 		$papertura = VikRequest::getString('apertura', '', 'request');
 		$filter_opt = array(
@@ -259,6 +283,7 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 			'name' => 'numletti'
 		);
 		array_push($this->reportFilters, $filter_opt);
+
 		// Filtro Codice Struttura
 		$pcodstru = VikRequest::getString('codstru', '', 'request');
 		$filter_opt = array(
@@ -269,12 +294,29 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 		);
 		array_push($this->reportFilters, $filter_opt);
 
-		//jQuery code for the datepicker calendars, select2 and triggers for the dropdown menus
+		// append button to save the data when creating manual values
+		$filter_opt = array(
+			'label' => '<label class="vbo-report-ross1000-manualsave" style="display: none;">' . JText::translate('VBOGUESTSDETAILS') . '</label>',
+			'html' => '<button type="button" class="btn vbo-config-btn vbo-report-ross1000-manualsave" style="display: none;" onclick="vboRoss1000SaveData();"><i class="' . VikBookingIcons::i('save') . '"></i> ' . JText::translate('VBSAVE') . '</button>',
+		);
+		array_push($this->reportFilters, $filter_opt);
+
+		// jQuery code for the datepicker calendars, select2 and triggers for the dropdown menus
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$ptodate = VikRequest::getString('todate', '', 'request');
+
+		$js_ajax_base  = VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=invoke_report&report=' . $this->reportFile);
+		$js_save_icn   = VikBookingIcons::i('save');
+		$js_saving_icn = VikBookingIcons::i('circle-notch', 'fa-spin fa-fw');
+		$js_saved_icn  = VikBookingIcons::i('check-circle');
+
 		$js = 'var reportActiveCell = null, reportObj = {};
-		jQuery(document).ready(function() {
-			//prepare main filters
+		var vbo_report_js_ajax_base = "' . $js_ajax_base . '";
+		var vbo_ross1000_save_icn = "' . $js_save_icn . '";
+		var vbo_ross1000_saving_icn = "' . $js_saving_icn . '";
+		var vbo_ross1000_saved_icn = "' . $js_saved_icn . '";
+		jQuery(function() {
+			// prepare main filters
 			jQuery(".vbo-report-datepicker:input").datepicker({
 				maxDate: "+1m",
 				dateFormat: "'.$this->getDateFormat('jui').'",
@@ -282,7 +324,7 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 			});
 			'.(!empty($pfromdate) ? 'jQuery(".vbo-report-datepicker-from").datepicker("setDate", "'.$pfromdate.'");' : '').'
 			'.(!empty($ptodate) ? 'jQuery(".vbo-report-datepicker-to").datepicker("setDate", "'.$ptodate.'");' : '').'
-			//prepare filler helpers
+			// prepare filler helpers
 			jQuery("#vbo-report-alloggiati-hidden").children().detach().appendTo(".vbo-info-overlay-report");
 			jQuery("#choose-comune").select2({placeholder: "- Seleziona un Comune -", width: "200px"});
 			jQuery("#choose-provincia").select2({placeholder: "- Seleziona una Provincia -", width: "200px"});
@@ -298,7 +340,7 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				changeYear: true,
 				yearRange: "'.(date('Y') - 100).':'.date('Y').'"
 			});
-			//click events
+			// click events
 			jQuery(".vbo-report-load-comune").click(function() {
 				reportActiveCell = this;
 				jQuery(".vbo-report-alloggiati-selcont").hide();
@@ -340,11 +382,11 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				jQuery(".vbo-report-alloggiati-selcont").hide();
 				jQuery("#vbo-report-alloggiati-dbirth").show();
 				vboShowOverlay();
-				//pretend the overlay is off, or navigating in the datepicker will close the modal.
+				// pretend the overlay is off, or navigating in the datepicker will close the modal.
 				setTimeout(function(){vbo_overlay_on = false;}, 800);
-				//
 			});
 		});
+
 		function vboReportCheckDates(selectedDate, inst) {
 			if (selectedDate === null || inst === null) {
 				return;
@@ -356,6 +398,7 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				jQuery(".vbo-report-datepicker-to").datepicker("option", {minDate: nowstartdate});
 			}
 		}
+
 		function vboReportChosenComune(comune) {
 			var c_code = comune.value;
 			var c_val = comune.options[comune.selectedIndex].text;
@@ -364,21 +407,28 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				if (isNaN(nowindex) || parseInt(nowindex) < 0) {
 					alert("Error, cannot find element to update.");
 				} else {
-					jQuery(reportActiveCell).addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_act_cell = jQuery(reportActiveCell);
+					rep_act_cell.addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_guest_bid = rep_act_cell.closest("tr").find("a[data-bid]").attr("data-bid");
 					if (!reportObj.hasOwnProperty(nowindex)) {
-						reportObj[nowindex] = {};
+						reportObj[nowindex] = {
+							bid: rep_guest_bid,
+							bid_index: jQuery(".vbo-reports-output table tbody tr").index(jQuery("a[data-bid=\"" + rep_guest_bid + "\"]").first().closest("tr"))
+						};
 					}
 					if (jQuery(reportActiveCell).hasClass("vbo-report-load-docplace")) {
-						reportObj[nowindex].docplace = c_code;
+						reportObj[nowindex]["docplace"] = c_code;
 					} else {
-						reportObj[nowindex].comres = c_code;
+						reportObj[nowindex]["comune_s"] = c_code;
 					}
 				}
 			}
 			reportActiveCell = null;
 			vboHideOverlay();
 			jQuery("#choose-comune").val("").select2("data", null, false);
+			jQuery(".vbo-report-ross1000-manualsave").show();
 		}
+
 		function vboReportChosenProvincia(prov) {
 			var c_code = prov.value;
 			var c_val = prov.options[prov.selectedIndex].text;
@@ -387,17 +437,24 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				if (isNaN(nowindex) || parseInt(nowindex) < 0) {
 					alert("Error, cannot find element to update.");
 				} else {
-					jQuery(reportActiveCell).addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_act_cell = jQuery(reportActiveCell);
+					rep_act_cell.addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_guest_bid = rep_act_cell.closest("tr").find("a[data-bid]").attr("data-bid");
 					if (!reportObj.hasOwnProperty(nowindex)) {
-						reportObj[nowindex] = {};
+						reportObj[nowindex] = {
+							bid: rep_guest_bid,
+							bid_index: jQuery(".vbo-reports-output table tbody tr").index(jQuery("a[data-bid=\"" + rep_guest_bid + "\"]").first().closest("tr"))
+						};
 					}
-					reportObj[nowindex].prores = c_code;
+					reportObj[nowindex]["comune_s"] = c_code;
 				}
 			}
 			reportActiveCell = null;
 			vboHideOverlay();
 			jQuery("#choose-provincia").val("").select2("data", null, false);
+			jQuery(".vbo-report-ross1000-manualsave").show();
 		}
+
 		function vboReportChosenNazione(naz) {
 			var c_code = naz.value;
 			var c_val = naz.options[naz.selectedIndex].text;
@@ -406,23 +463,30 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				if (isNaN(nowindex) || parseInt(nowindex) < 0) {
 					alert("Error, cannot find element to update.");
 				} else {
-					jQuery(reportActiveCell).addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_act_cell = jQuery(reportActiveCell);
+					rep_act_cell.addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_guest_bid = rep_act_cell.closest("tr").find("a[data-bid]").attr("data-bid");
 					if (!reportObj.hasOwnProperty(nowindex)) {
-						reportObj[nowindex] = {};
+						reportObj[nowindex] = {
+							bid: rep_guest_bid,
+							bid_index: jQuery(".vbo-reports-output table tbody tr").index(jQuery("a[data-bid=\"" + rep_guest_bid + "\"]").first().closest("tr"))
+						};
 					}
 					if (jQuery(reportActiveCell).hasClass("vbo-report-load-nazione")) {
-						reportObj[nowindex].stares = c_code;
+						reportObj[nowindex]["country_s"] = c_code;
 					} else if (jQuery(reportActiveCell).hasClass("vbo-report-load-docplace")) {
-						reportObj[nowindex].docplace = c_code;
+						reportObj[nowindex]["docplace"] = c_code;
 					} else {
-						reportObj[nowindex].citizen = c_code;
+						reportObj[nowindex]["country_c"] = c_code;
 					}
 				}
 			}
 			reportActiveCell = null;
 			vboHideOverlay();
 			jQuery("#choose-nazione").val("").select2("data", null, false);
+			jQuery(".vbo-report-ross1000-manualsave").show();
 		}
+
 		function vboReportChosenSesso(sesso) {
 			var c_code = sesso.value;
 			var c_val = sesso.options[sesso.selectedIndex].text;
@@ -431,17 +495,24 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				if (isNaN(nowindex) || parseInt(nowindex) < 0) {
 					alert("Error, cannot find element to update.");
 				} else {
-					jQuery(reportActiveCell).addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_act_cell = jQuery(reportActiveCell);
+					rep_act_cell.addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_guest_bid = rep_act_cell.closest("tr").find("a[data-bid]").attr("data-bid");
 					if (!reportObj.hasOwnProperty(nowindex)) {
-						reportObj[nowindex] = {};
+						reportObj[nowindex] = {
+							bid: rep_guest_bid,
+							bid_index: jQuery(".vbo-reports-output table tbody tr").index(jQuery("a[data-bid=\"" + rep_guest_bid + "\"]").first().closest("tr"))
+						};
 					}
-					reportObj[nowindex].gender = c_code;
+					reportObj[nowindex]["gender"] = c_code;
 				}
 			}
 			reportActiveCell = null;
 			vboHideOverlay();
 			jQuery("#choose-sesso").val("").select2("data", null, false);
+			jQuery(".vbo-report-ross1000-manualsave").show();
 		}
+
 		function vboReportChosenTrasporto(trasporto) {
 			var c_code = trasporto.value;
 			var c_val = trasporto.options[trasporto.selectedIndex].text;
@@ -450,17 +521,24 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				if (isNaN(nowindex) || parseInt(nowindex) < 0) {
 					alert("Error, cannot find element to update.");
 				} else {
-					jQuery(reportActiveCell).addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_act_cell = jQuery(reportActiveCell);
+					rep_act_cell.addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_guest_bid = rep_act_cell.closest("tr").find("a[data-bid]").attr("data-bid");
 					if (!reportObj.hasOwnProperty(nowindex)) {
-						reportObj[nowindex] = {};
+						reportObj[nowindex] = {
+							bid: rep_guest_bid,
+							bid_index: jQuery(".vbo-reports-output table tbody tr").index(jQuery("a[data-bid=\"" + rep_guest_bid + "\"]").first().closest("tr"))
+						};
 					}
-					reportObj[nowindex].mezzo = c_code;
+					reportObj[nowindex]["mezzo"] = c_code;
 				}
 			}
 			reportActiveCell = null;
 			vboHideOverlay();
 			jQuery("#choose-trasporto").val("").select2("data", null, false);
+			jQuery(".vbo-report-ross1000-manualsave").show();
 		}
+
 		function vboReportChosenTurismo(turismo) {
 			var c_code = turismo.value;
 			var c_val = turismo.options[turismo.selectedIndex].text;
@@ -469,17 +547,24 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				if (isNaN(nowindex) || parseInt(nowindex) < 0) {
 					alert("Error, cannot find element to update.");
 				} else {
-					jQuery(reportActiveCell).addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_act_cell = jQuery(reportActiveCell);
+					rep_act_cell.addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_guest_bid = rep_act_cell.closest("tr").find("a[data-bid]").attr("data-bid");
 					if (!reportObj.hasOwnProperty(nowindex)) {
-						reportObj[nowindex] = {};
+						reportObj[nowindex] = {
+							bid: rep_guest_bid,
+							bid_index: jQuery(".vbo-reports-output table tbody tr").index(jQuery("a[data-bid=\"" + rep_guest_bid + "\"]").first().closest("tr"))
+						};
 					}
-					reportObj[nowindex].turismo = c_code;
+					reportObj[nowindex]["turismo"] = c_code;
 				}
 			}
 			reportActiveCell = null;
 			vboHideOverlay();
 			jQuery("#choose-turismo").val("").select2("data", null, false);
+			jQuery(".vbo-report-ross1000-manualsave").show();
 		}
+
 		function vboReportChosenDbirth(val) {
 			var c_code = val, c_val = val;
 			if (reportActiveCell !== null) {
@@ -487,18 +572,25 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				if (isNaN(nowindex) || parseInt(nowindex) < 0) {
 					alert("Error, cannot find element to update.");
 				} else {
-					jQuery(reportActiveCell).addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_act_cell = jQuery(reportActiveCell);
+					rep_act_cell.addClass("vbo-report-load-elem-filled").find("span").text(c_val);
+					var rep_guest_bid = rep_act_cell.closest("tr").find("a[data-bid]").attr("data-bid");
 					if (!reportObj.hasOwnProperty(nowindex)) {
-						reportObj[nowindex] = {};
+						reportObj[nowindex] = {
+							bid: rep_guest_bid,
+							bid_index: jQuery(".vbo-reports-output table tbody tr").index(jQuery("a[data-bid=\"" + rep_guest_bid + "\"]").first().closest("tr"))
+						};
 					}
-					reportObj[nowindex].dbirth = c_code;
+					reportObj[nowindex]["date_birth"] = c_code;
 				}
 			}
 			reportActiveCell = null;
 			vboHideOverlay();
 			jQuery("#choose-dbirth").val("");
+			jQuery(".vbo-report-ross1000-manualsave").show();
 		}
-		//download function
+
+		// download function
 		function vboDownloadSchedaIstat() {
 			if (!confirm("Sei sicuro di aver compilato tutti i dati?")) {
 				return false;
@@ -512,7 +604,30 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				vboSetFilters({exportreport: "0", filler: ""}, false);
 			}, 1000);
 		}
-		';
+
+		// save data after manual fillers
+		function vboRoss1000SaveData() {
+			jQuery("button.vbo-report-ross1000-manualsave").find("i").attr("class", vbo_ross1000_saving_icn);
+			VBOCore.doAjax(
+				vbo_report_js_ajax_base,
+				{
+					call: "updatePaxData",
+					params: reportObj,
+					tmpl: "component"
+				},
+				(response) => {
+					if (!response || !response[0]) {
+						alert("An error occurred.");
+						return false;
+					}
+					jQuery("button.vbo-report-ross1000-manualsave").addClass("btn-success").find("i").attr("class", vbo_ross1000_saved_icn);
+				},
+				(error) => {
+					alert(error.responseText);
+					jQuery("button.vbo-report-ross1000-manualsave").removeClass("btn-success").find("i").attr("class", vbo_ross1000_save_icn);
+				}
+			);
+		}';
 		$this->setScript($js);
 
 		return $this->reportFilters;
@@ -541,13 +656,14 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 		$pkrorder = $pkrorder == 'DESC' ? 'DESC' : 'ASC';
 		$pcodstru = VikRequest::getString('codstru', '', 'request');
 		$papertura = VikRequest::getString('apertura', '', 'request');
-		$records = array();
+
 		$q = "SELECT SUM(`units`) AS `sommaunita`, SUM(`totpeople`) AS `numeropersone`, COUNT(*) AS `numerocamere`  FROM `#__vikbooking_rooms` WHERE `avail`= '1';";
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		if ($this->dbo->getNumRows() > 0) {
-			$records = $this->dbo->loadAssocList();
+		$records = $this->dbo->loadAssocList();
+		if (!$records) {
+			return false;
 		}
+
 		$totalBeds = (int)($records[0]['sommaunita'] * ($records[0]['numeropersone'] / $records[0]['numerocamere']));
 		$pletti = VikRequest::getString('numletti', $totalBeds, 'request');
 		$currency_symb = VikBooking::getCurrencySymb();
@@ -572,7 +688,6 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 			return false;
 		}
 		//Query to obtain the records (all check-ins within the dates filter)
-		$records = array();
 		$q = "SELECT `o`.`id`,`o`.`custdata`,`o`.`ts`,`o`.`days`,`o`.`checkin`,`o`.`checkout`,`o`.`totpaid`,`o`.`roomsnum`,`o`.`total`,`o`.`idorderota`,`o`.`channel`,`o`.`country`,".
 			"`or`.`idorder`,`or`.`idroom`,`or`.`adults`,`or`.`children`,`or`.`t_first_name`,`or`.`t_last_name`,`or`.`cust_cost`,`or`.`cust_idiva`,`or`.`extracosts`,`or`.`room_cost`,".
 			"`co`.`idcustomer`,`co`.`pax_data`,`c`.`first_name`,`c`.`last_name`,`c`.`country` AS `customer_country`,`c`.`doctype`,`c`.`docnum`,`c`.`gender`,`c`.`bdate`,`c`.`pbirth` ".
@@ -581,15 +696,13 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 			"WHERE `o`.`status`='confirmed' AND `o`.`closure`=0 AND ((`o`.`checkin`>=".$from_ts." AND `o`.`checkin`<=".$to_ts.") OR (`o`.`checkout`>=".$from_ts." AND `o`.`checkout`<=".$to_ts.")) ".
 			"ORDER BY `o`.`checkin` ASC, `o`.`id` ASC;";
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		if ($this->dbo->getNumRows() > 0) {
-			$records = $this->dbo->loadAssocList();
-		}
-		if (!count($records)) {
+		$records = $this->dbo->loadAssocList();
+		if (!$records) {
 			$this->setError(JText::translate('VBOREPORTSERRNORESERV'));
 			$this->setError('Nessun check-in nelle date selezionate.');
 			return false;
 		}
+
 		//nest records with multiple rooms booked inside sub-array
 		$bookings = array();
 		foreach ($records as $v) {
@@ -780,7 +893,8 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 						'class="center"'
 					),
 					'callback' => function ($val) {
-						return '<a href="index.php?option=com_vikbooking&task=editorder&cid[]='.$val.'" target="_blank"><i class="'.VikBookingIcons::i('external-link').'"></i> '.$val.'</a>';
+						// make sure to keep the data-bid attribute as it's used by JS to identify the booking ID
+						return '<a data-bid="' . $val . '" href="index.php?option=com_vikbooking&task=editorder&cid[]=' . $val . '" target="_blank"><i class="' . VikBookingIcons::i('external-link') . '"></i> ' . $val . '</a>';
 					},
 					'callback_export' => function ($val) {
 						return $val;
@@ -886,18 +1000,19 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				if (!empty($citizen) && $guest_ind < 2) {
 					$citizenval = $this->checkCountry($citizen);
 				}
+
 				// check nationality field from pre-checkin
 				$pax_citizen = $this->getGuestPaxDataValue($pax_data, $room_guests, $guest_ind, 'nationality');
 				$citizen = !empty($pax_citizen) ? $pax_citizen : $citizen;
 				$citizen = !empty($pax_country_c) ? $pax_country_c : $citizen;
-				$citizenval = !empty($pax_country_c) ? $pax_country_c : $this->checkCountry($citizen);
+				$citizenval = $this->checkCountry((!empty($pax_country_c) ? $pax_country_c : $citizen));
 				array_push($insert_row, array(
 					'key' => 'citizen',
 					'attr' => array(
 						'class="center'.(empty($citizen) ? ' vbo-report-load-cittadinanza' : '').'"'
 					),
 					'callback' => function ($val) {
-						return !empty($val) ? $this->nazioni[$val]['name'] : '?';
+						return !empty($val) && isset($this->nazioni[$val]) ? $this->nazioni[$val]['name'] : '?';
 					},
 					'no_export_callback' => 1,
 					'value' => !empty($citizenval) ? $citizenval : ''
@@ -905,7 +1020,7 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 
 				// stato di residenza
 				$provstay = '';
-				$pax_provstay = $this->getGuestPaxDataValue($pax_data, $room_guests, $guest_ind, 'country_s');
+				$pax_provstay = $this->getGuestPaxDataValue($pax_data, $room_guests, $guest_ind, ($guest_ind < 2 ? 'country_s' : 'country_b'));
 				$provstay = !empty($pax_provstay) ? $pax_provstay : $provstay;
 				array_push($insert_row, array(
 					'key' => 'stares',
@@ -969,21 +1084,23 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				));
 
 				// mezzo di trasporto
+				$pax_mezzo = $this->getGuestPaxDataValue($pax_data, $room_guests, $guest_ind, 'mezzo');
 				array_push($insert_row, array(
 					'key' => 'mezzo',
 					'attr' => array(
-						'class="center vbo-report-load-trasporto"'
+						'class="center' . (empty($pax_mezzo) ? ' vbo-report-load-trasporto' : '') . '"'
 					),
-					'value' => '?'
+					'value' => ($pax_mezzo ? $pax_mezzo : '?')
 				));
 
 				// tipo di turismo
+				$pax_turismo = $this->getGuestPaxDataValue($pax_data, $room_guests, $guest_ind, 'turismo');
 				array_push($insert_row, array(
 					'key' => 'turismo',
 					'attr' => array(
-						'class="center vbo-report-load-turismo"'
+						'class="center' . (empty($pax_turismo) ? ' vbo-report-load-turismo' : '') . '"'
 					),
-					'value' => '?'
+					'value' => ($pax_turismo ? $pax_turismo : '?')
 				));
 
 				// numero persone in prenotazione
@@ -1073,17 +1190,16 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 		if (!$this->getReportData()) {
 			return false;
 		}
+
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$ptodate = VikRequest::getString('todate', '', 'request');
 		$pcodstru = VikRequest::getString('codstru', '', 'request');
 		$papertura = VikRequest::getString('apertura', '', 'request');
-		$records = array();
+
 		$q = "SELECT SUM(`units`) AS `sommaunita`, SUM(`totpeople`) AS `numeropersone`, COUNT(*) AS `numerocamere`  FROM `#__vikbooking_rooms` WHERE `avail`= '1';";
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		if ($this->dbo->getNumRows() > 0) {
-			$records = $this->dbo->loadAssocList();
-		}
+		$records = $this->dbo->loadAssocList();
+
 		$totalBeds = (int)($records[0]['sommaunita'] * ($records[0]['numeropersone']/$records[0]['numerocamere']));
 		// filtro numero letti
 		$pletti = VikRequest::getString('numletti', $totalBeds, 'request');
@@ -1105,7 +1221,7 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 		$totalRooms = $this->dbo->loadResult();
 
 		// pool of booking IDs to update their history
-		$booking_ids = array();
+		$booking_ids = [];
 		// update the history for all bookings affected
 		foreach ($booking_ids as $bid) {
 			VikBooking::getBookingHistoryInstance()->setBid($bid)->store('RP', $this->reportName);
@@ -1119,13 +1235,13 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 		$from_ts = VikBooking::getDateTimestamp($pfromdate, 0, 0);
 		$to_ts = VikBooking::getDateTimestamp($pfromdate, 23, 59, 59);
 
-		$clienti = array(
-			'arrivi' => array(),
-			'partenze' => array(),
-			'prenotazioni' => array(),
-		);
+		$clienti = [
+			'arrivi' => [],
+			'partenze' => [],
+			'prenotazioni' => [],
+		];
 
-		$q = "SELECT COUNT(`o`.`id`),".
+		$q = "SELECT COUNT(`o`.`id`) AS `occ_rooms`,".
 			"(SELECT `h`.`dt` FROM `#__vikbooking_orderhistory` AS `h` WHERE `h`.`idorder`=`o`.`id` AND `h`.`type`='RP' AND `h`.`descr`=".$this->dbo->quote($this->reportName)." ORDER BY `h`.`dt` DESC LIMIT 1) AS `history_last` ".
 			"FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_ordersrooms` AS `or` ON `or`.`idorder`=`o`.`id` ".
 			"LEFT JOIN `#__vikbooking_customers_orders` AS `co` ON `co`.`idorder`=`o`.`id` LEFT JOIN `#__vikbooking_customers` AS `c` ON `c`.`id`=`co`.`idcustomer` LEFT JOIN `#__vikbooking_countries` AS `cy` ON `cy`.`country_3_code`=`c`.`country` ".
@@ -1133,27 +1249,35 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 			"ORDER BY `o`.`checkin` ASC, `o`.`id` ASC;";
 
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		$camereoccupate = $this->dbo->loadResult();
+		$data = $this->dbo->loadAssoc();
+
 		$arrivi = 0;
 		$partenze = 0;
 		$prenotazioni = 0;
 
 		if ($papertura == 'SI') {
-			$xml .= '<struttura>'."\n";
-			$xml .= '<apertura>'.$papertura.'</apertura>'."\n";
-			$xml .= '<camereoccupate>'.$camereoccupate.'</camereoccupate>'."\n";
-			$xml .= '<cameredisponibili>'.$totalRooms.'</cameredisponibili>'."\n";
-			$xml .= '<lettidisponibili>'.$pletti.'</lettidisponibili>'."\n";
-			$xml .= '</struttura>'."\n";
+			$xml .= '<struttura>' . "\n";
+			$xml .= '<apertura>' . $papertura . '</apertura>' . "\n";
+			$xml .= '<camereoccupate>' . $data['occ_rooms'] . '</camereoccupate>' . "\n";
+			$xml .= '<cameredisponibili>' . $totalRooms . '</cameredisponibili>' . "\n";
+			$xml .= '<lettidisponibili>' . $pletti . '</lettidisponibili>' . "\n";
+			$xml .= '</struttura>' . "\n";
+
+			// counter for booking IDs
+			$idswh_map = [];
+
 			foreach ($this->rows as $ind => $row) {
-				$idswh = -1;
 				$timestamp_in = -1;
 				$timestamp_out = -1;
-				$control = -1; // mi serve per non ripetere ogni loop il controllo sul tipo di cliente
-				$type = -1; // se il cliente è in arrivo il tipo è 1, se è in partenza 2, se è una nuova prenotazione 3 
+				$control = -1;
+				// se il cliente è in arrivo il tipo è 1, se è in partenza 2, se è una nuova prenotazione 3
+				$type = -1;
+				$guest_lastname  = '';
+				$guest_firstname = '';
 
-				foreach ($row as $field) {
+				$fields_checkin = '';
+
+				foreach ($row as $fk => $field) {
 					if (isset($field['ignore_export'])) {
 						continue;
 					}
@@ -1176,13 +1300,29 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 
 					if ($field['key'] == 'idbooking') { 
 						$idswh = $export_value;
+
+						if (!isset($idswh_map[$idswh])) {
+							$idswh_map[$idswh] = 0;
+						}
+
+						$idswh_map[$idswh]++;
 					}
+
 					if ($field['key'] == 'checkin') {
+						$fields_checkin = $export_value;
 						$timestamp_in = VikBooking::getDateTimestamp($export_value);
 					}
+
 					if ($field['key'] == 'checkout') {
 						$timestamp_out = VikBooking::getDateTimestamp($export_value);
 					}
+
+					if ($field['key'] == 'cognome') {
+						$guest_lastname = $export_value;
+					} elseif ($field['key'] == 'nome') {
+						$guest_firstname = $export_value;
+					}
+
 					if ($control == -1 && $timestamp_in != -1 && $timestamp_out != -1) {
 						if (date('Y-m-d', $timestamp_in) == date('Y-m-d', $from_ts) && date('Y-m-d', $timestamp_in) <= date('Y-m-d', $to_ts)) {
 							$type = 1;
@@ -1191,8 +1331,9 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 						} else {
 							$type = 3;
 						}
-						$control = true;
+						$control = 0;
 					}
+
 					if ($type == 1) {
 						$clienti['arrivi'][$arrivi]['idswh'] = $idswh;
 						if ($field['key'] == 'tipo') {
@@ -1205,23 +1346,31 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 								$clienti['arrivi'][$arrivi]['idcapo'] = '';
 							}
 						}
+
+						$clienti['arrivi'][$arrivi]['cognome'] = $guest_firstname;
+						$clienti['arrivi'][$arrivi]['nome'] = $guest_lastname;
+
 						if ($field['key'] == 'gender') {
 							$clienti['arrivi'][$arrivi]['sesso'] = $export_value;
 						}
 						if ($field['key'] == 'turismo') {
-							$clienti['arrivi'][$arrivi]['tipoturismo'] = !empty($export_value) ? strtoupper($export_value) : 'Non specificato';
+							$clienti['arrivi'][$arrivi]['tipoturismo'] = !empty($export_value) && $export_value != '?' ? strtoupper($export_value) : 'Non specificato';
 						}
 						if ($field['key'] == 'mezzo') {
-							$clienti['arrivi'][$arrivi]['mezzotrasporto'] = !empty($export_value) ? strtoupper($export_value) : 'Non specificato';
+							$clienti['arrivi'][$arrivi]['mezzotrasporto'] = !empty($export_value) && $export_value != '?' ? strtoupper($export_value) : 'Non specificato';
 						}
 						if ($field['key'] == 'citizen') {
 							$clienti['arrivi'][$arrivi]['cittadinanza'] = (string)$export_value;
 						}
 						if ($field['key'] == 'stares') {
 							$clienti['arrivi'][$arrivi]['statoresidenza'] = (string)$export_value;
+							if (empty($clienti['arrivi'][$arrivi]['statoresidenza']) && !empty($clienti['arrivi'][$arrivi]['cittadinanza'])) {
+								// make sure the value is filled
+								$clienti['arrivi'][$arrivi]['statoresidenza'] = $clienti['arrivi'][$arrivi]['cittadinanza'];
+							}
 						}
 						if ($field['key'] == 'dbirth') {
-							$datanascita = date('Ymd', $export_value);
+							$datanascita = date('Ymd', (is_numeric($export_value) ? $export_value : VikBooking::getDateTimestamp($export_value)));
 							$clienti['arrivi'][$arrivi]['datanascita'] = $datanascita;
 						}
 						if (isset($clienti['arrivi'][$arrivi]['statoresidenza']) && $clienti['arrivi'][$arrivi]['statoresidenza'] == '100000100' && $field['key'] == 'comres') {
@@ -1235,14 +1384,14 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 						if ($field['key'] == 'tipo') {
 							$clienti['partenze'][$partenze]['tipoalloggiato'] = (string)$export_value;
 						}
-						if ($field['key'] == 'checkin') {
-							$arrivo = date('Ymd', VikBooking::getDateTimestamp($export_value));
+						if ($field['key'] == 'checkin' || $fields_checkin) {
+							$arrivo = date('Ymd', VikBooking::getDateTimestamp(($fields_checkin ? $fields_checkin : $export_value)));
 							$clienti['partenze'][$partenze]['arrivo'] = $arrivo;
 						}
 					} elseif ($type == 3) {
 						$clienti['prenotazioni'][$prenotazioni]['idswh'] = $idswh;
-						if ($field['key'] == 'checkin') {
-							$prenotazione = date('Ymd', VikBooking::getDateTimestamp($export_value));
+						if ($field['key'] == 'checkin' || $fields_checkin) {
+							$prenotazione = date('Ymd', VikBooking::getDateTimestamp(($fields_checkin ? $fields_checkin : $export_value)));
 							$clienti['prenotazioni'][$prenotazioni]['arrivo'] = $prenotazione;
 						}
 						if ($field['key'] == 'checkout') {
@@ -1257,6 +1406,7 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 						}
 					}
 				}
+
 				if ($type == 1) {
 					$arrivi++;
 				} elseif ($type == 2) {
@@ -1272,6 +1422,8 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 					'idswh',
 					'tipoalloggiato',
 					'idcapo',
+					'cognome',
+					'nome',
 					'sesso',
 					'cittadinanza',
 					'statoresidenza',
@@ -1298,11 +1450,40 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				$clienti['arrivi'] = $arrivals_sorted;
 			}
 
+			if (count($clienti['partenze'])) {
+				// sort fields accordingly
+				$departures_sort = [
+					'idswh',
+					'tipoalloggiato',
+					'arrivo',
+				];
+				$departures_sorted = [];
+				foreach ($clienti['partenze'] as $k => $departures) {
+					$departures_sorted[$k] = [];
+					foreach ($departures_sort as $depart_key) {
+						if (isset($departures[$depart_key])) {
+							$departures_sorted[$k][$depart_key] = $departures[$depart_key];
+						}
+					}
+				}
+				$clienti['partenze'] = $departures_sorted;
+			}
+
+			$used_idswh = [];
 			$xml .= '<arrivi>'."\n";
 			for ($i = 0; $i < count($clienti['arrivi']); $i++) {
 				$xml .= '<arrivo>'."\n";
 				foreach ($clienti['arrivi'][$i] as $key => $value) {
-					$xml .= '<'.$key.'>'.$value.'</'.$key.'>'."\n";
+					$use_value = $value;
+					if ($key == 'idswh') {
+						if (!isset($used_idswh[$value])) {
+							$used_idswh[$value] = 0;
+						}
+						$used_idswh[$value]++;
+						$guest_idswh_num = $used_idswh[$value];
+						$use_value .= "-{$guest_idswh_num}";
+					}
+					$xml .= "<{$key}>{$use_value}</{$key}>\n";
 				}
 				$xml .= '</arrivo>'."\n";
 			}
@@ -1312,21 +1493,41 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 			for ($i = 0; $i < count($clienti['partenze']); $i++) {
 				$xml .= '<partenza>'."\n";
 				foreach ($clienti['partenze'][$i] as $key => $value) {
-					$xml .= '<'.$key.'>'.$value.'</'.$key.'>'."\n";
+					$use_value = $value;
+					if ($key == 'idswh') {
+						if (!isset($used_idswh[$value])) {
+							$used_idswh[$value] = 0;
+						}
+						$used_idswh[$value]++;
+						$guest_idswh_num = $used_idswh[$value];
+						$use_value .= "-{$guest_idswh_num}";
+					}
+					$xml .= "<{$key}>{$use_value}</{$key}>\n";
 				}
 				$xml .= '</partenza>'."\n";
 			}
 			$xml .= '</partenze>'."\n";
 
-			$xml .= '<prenotazioni>'."\n";
-			for ($i = 0; $i < count($clienti['prenotazioni']); $i++) {
-				$xml .= '<prenotazione>'."\n";
-				foreach ($clienti['prenotazioni'][$i] as $key => $value) {
-					$xml .= '<'.$key.'>'.$value.'</'.$key.'>'."\n";
+			if ($clienti['prenotazioni']) {
+				$xml .= '<prenotazioni>'."\n";
+				for ($i = 0; $i < count($clienti['prenotazioni']); $i++) {
+					$xml .= '<prenotazione>'."\n";
+					foreach ($clienti['prenotazioni'][$i] as $key => $value) {
+						$use_value = $value;
+						if ($key == 'idswh') {
+							if (!isset($used_idswh[$value])) {
+								$used_idswh[$value] = 0;
+							}
+							$used_idswh[$value]++;
+							$guest_idswh_num = $used_idswh[$value];
+							$use_value .= "-{$guest_idswh_num}";
+						}
+						$xml .= "<{$key}>{$use_value}</{$key}>\n";
+					}
+					$xml .= '</prenotazione>'."\n";
 				}
-				$xml .= '</prenotazione>'."\n";
+				$xml .= '</prenotazioni>'."\n";
 			}
-			$xml .= '</prenotazioni>'."\n";
 		} else {
 			$xml .= '<struttura>'."\n";
 			$xml .= '<apertura>'.$papertura.'</apertura>'."\n";
@@ -1338,13 +1539,128 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 		$xml .= '</movimento> '."\n";
 		$xml .= '</movimenti>';
 
-		$filename = str_replace(' ', '_', $this->reportName).'-'.str_replace('/', '_', $pfromdate).'.xml';
+		// format XML document
+		$this->formatXML($xml);
 
-		header('Content-Disposition: attachment; filename='.$filename.'');
+		/**
+		 * Custom export method supports a custom export handler, if previously set.
+		 * 
+		 * @since 	1.16.1 (J) - 1.6.1 (WP)
+		 */
+		if ($this->hasExportHandler()) {
+			// write data onto the custom file handler
+			$fp = $this->getExportCSVHandler();
+			fwrite($fp, $xml);
+			fclose($fp);
+
+			return true;
+		}
+
+		header('Content-Disposition: attachment; filename=' . $this->getExportCSVFileName());
 		header('Content-type: text/xml');
-		echo $this->formatXML($xml);
+		echo $xml;
 
 		exit;
+	}
+
+	/**
+	 * Helper method invoked via AJAX by the controller.
+	 * Needed to save the manual entries for the pax data.
+	 * 
+	 * @param 	array 	$manual_data 	the object representation of the manual entries.
+	 * 
+	 * @return 	array 					one boolean value array with the operation result.
+	 */
+	public function updatePaxData($manual_data = [])
+	{
+		if (!is_array($manual_data) || !$manual_data) {
+			VBOHttpDocument::getInstance()->close(400, 'Nothing to save!');
+		}
+
+		// re-build manual entries object representation
+		$bids_guests = [];
+		foreach ($manual_data as $guest_ind => $guest_data) {
+			if (!is_numeric($guest_ind) || !is_array($guest_data) || empty($guest_data['bid']) || !isset($guest_data['bid_index']) || count($guest_data) < 2) {
+				// empty or invalid manual entries array
+				continue;
+			}
+			// the guest index in the reportObj starts from 0
+			$use_guest_ind = ($guest_ind + 1 - (int)$guest_data['bid_index']);
+			if (!isset($bids_guests[$guest_data['bid']])) {
+				$bids_guests[$guest_data['bid']] = [];
+			}
+			// set manual entries for this guest number
+			$bids_guests[$guest_data['bid']][$use_guest_ind] = $guest_data;
+			// remove the "bid" and "bid_index" keys
+			unset($bids_guests[$guest_data['bid']][$use_guest_ind]['bid'], $bids_guests[$guest_data['bid']][$use_guest_ind]['bid_index']);
+		}
+
+		if (!$bids_guests) {
+			VBOHttpDocument::getInstance()->close(400, 'No manual entries to save found');
+		}
+
+		// loop through all bookings to update the data for the various rooms and guests
+		$bids_updated = 0;
+		foreach ($bids_guests as $bid => $entries) {
+			$b_rooms = VikBooking::loadOrdersRoomsData($bid);
+			if (empty($b_rooms)) {
+				continue;
+			}
+			// count guests per room
+			$room_guests = [];
+			foreach ($b_rooms as $b_room) {
+				$room_guests[] = $b_room['adults'] + $b_room['children'];
+			}
+			// get current booking pax data
+			$pax_data = VBOCheckinPax::getBookingPaxData($bid);
+			$pax_data = empty($pax_data) ? [] : $pax_data;
+			foreach ($entries as $guest_ind => $guest_data) {
+				// find room index for this guest
+				$room_num = 0;
+				$use_guest_ind = $guest_ind;
+				foreach ($room_guests as $room_index => $tot_guests) {
+					// find the proper guest index for the room to which this belongs
+					if ($use_guest_ind <= $tot_guests) {
+						// proper room index found for this guest
+						$room_num = $room_index;
+						break;
+					} else {
+						// it's probably in a next room
+						$use_guest_ind -= $tot_guests;
+					}
+				}
+				// push new pax data for this room and guest
+				if (!isset($pax_data[$room_num])) {
+					$pax_data[$room_num] = [];
+				}
+				if (!isset($pax_data[$room_num][$use_guest_ind])) {
+					$pax_data[$room_num][$use_guest_ind] = $guest_data;
+				} else {
+					$pax_data[$room_num][$use_guest_ind] = array_merge($pax_data[$room_num][$use_guest_ind], $guest_data);
+				}
+			}
+			// update booking pax data
+			if (VBOCheckinPax::setBookingPaxData($bid, $pax_data)) {
+				$bids_updated++;
+			}
+		}
+
+		return $bids_updated ? [true] : [false];
+	}
+
+	/**
+	 * Registers the name to give to the file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	protected function registerExportFileName()
+	{
+		$pfromdate = VikRequest::getString('fromdate', '', 'request');
+		$ptodate = VikRequest::getString('todate', '', 'request');
+
+		$this->setExportCSVFileName(str_replace(' ', '_', $this->reportName) . '-' . str_replace('/', '_', $pfromdate) . '.xml');
 	}
 
 	/**
@@ -1479,9 +1795,15 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 	{
 		$found = false;
 		$staval = '';
-		if (!count($this->nazioni)) {
+
+		if (!$this->nazioni) {
 			$this->nazioni = $this->loadNazioni();
 		}
+
+		if ($country && isset($this->nazioni[$country])) {
+			return $country;
+		}
+
 		foreach ($this->nazioni as $key => $value) {
 			if (trim($value['three_code']) == trim($country)) {
 				$staval = $key;
@@ -1489,9 +1811,11 @@ class VikBookingReportIstatRoss1000 extends VikBookingReport
 				break;
 			}
 		}
+
 		if ($found !== true) {
 			$staval = '';
 		}
+
 		return $staval;
 	}
 

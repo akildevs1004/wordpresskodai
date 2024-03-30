@@ -89,6 +89,9 @@ final class VBONotificationScheduler
 		// get a new notification data object
 		$notification = VBONotificationDataReminder::getInstance();
 
+		// immediately parse the reminder record to check its validity and importance
+		$notification->parseReminderImportance($reminder);
+
 		// set data
 		$notification->setReminderId($reminder->id);
 		$notification->setDateTime($reminder->duedate);
@@ -148,7 +151,7 @@ final class VBONotificationScheduler
 	 */
 	public function buildHistoryDataObjects($events = [])
 	{
-		if (!is_array($events) || !count($events)) {
+		if (!is_array($events) || !$events) {
 			return [];
 		}
 
@@ -214,7 +217,7 @@ final class VBONotificationScheduler
 	 */
 	public function buildReviewDataObjects($reviews = [])
 	{
-		if (!is_array($reviews) || !count($reviews)) {
+		if (!is_array($reviews) || !$reviews) {
 			return [];
 		}
 
@@ -280,7 +283,7 @@ final class VBONotificationScheduler
 	 */
 	public function buildGuestMessageDataObjects($messages = [])
 	{
-		if (!is_array($messages) || !count($messages)) {
+		if (!is_array($messages) || !$messages) {
 			return [];
 		}
 
@@ -306,12 +309,8 @@ final class VBONotificationScheduler
 	 * 
 	 * @return 	void
 	 */
-	public function enqueueReminders($reminders)
+	public function enqueueReminders(array $reminders)
 	{
-		if (!is_array($reminders) || !count($reminders)) {
-			return;
-		}
-
 		// build the queue of reminders to be scheduled
 		$queue = [];
 
@@ -328,7 +327,7 @@ final class VBONotificationScheduler
 			}
 		}
 
-		if (!count($queue)) {
+		if (!$queue) {
 			return;
 		}
 
@@ -355,7 +354,7 @@ JS
 	 */
 	public function registerWatchData($watch_data = [])
 	{
-		if (!is_array($watch_data) || !count($watch_data)) {
+		if (!is_array($watch_data) || !$watch_data) {
 			return;
 		}
 

@@ -33,6 +33,8 @@ final class VBONotificationDisplayHistory extends JObject implements VBONotifica
 	 * the notification in the browser.
 	 * 
 	 * @return 	null|object 	the notification display data payload.
+	 * 
+	 * @throws 	Exception
 	 */
 	public function getData()
 	{
@@ -47,12 +49,18 @@ final class VBONotificationDisplayHistory extends JObject implements VBONotifica
 		// booking source (channel)
 		$channel_source = $this->get('channel', '');
 
+		// customer picture
+		$customer_pic = $this->get('pic', '');
+
 		// the notification icon
 		$notif_icon = '';
 		if (!empty($channel_source)) {
 			$ch_logo_obj = VikBooking::getVcmChannelsLogo($channel_source, true);
 			$notif_icon  = is_object($ch_logo_obj) ? $ch_logo_obj->getSmallLogoURL() : '';
+		} elseif (!empty($customer_pic)) {
+			$notif_icon = strpos($customer_pic, 'http') === 0 ? $customer_pic : VBO_SITE_URI . 'resources/uploads/' . $customer_pic;
 		}
+
 		if (empty($notif_icon)) {
 			$notif_icon = $this->getIconUrl();
 		}
@@ -68,11 +76,18 @@ final class VBONotificationDisplayHistory extends JObject implements VBONotifica
 		$notif_data->title 	 = $notif_title;
 		$notif_data->message = $this->get('descr', '');
 		$notif_data->icon 	 = $notif_icon;
-		$notif_data->onclick = 'VBOCore.handleGoto';
-		$notif_data->gotourl = 'index.php?option=com_vikbooking&task=editorder&cid[]=' . $booking_id;
-		if (defined('ABSPATH')) {
-			$notif_data->gotourl = str_replace('index.php', 'admin.php', $notif_data->gotourl);
-		}
+		$notif_data->onclick = 'VBOCore.handleDisplayWidgetNotification';
+		$notif_data->gotourl = VBOFactory::getPlatform()->getUri()->admin("index.php?option=com_vikbooking&task=editorder&cid[]={$booking_id}", false);
+
+		// set additional properties to the (Web, not Push) notification payload
+		$notif_data->widget_id = 'booking_details';
+		// data options for a Web notification should NOT set a "type" or this will be overridden
+		$notif_data->_options  = [
+			'_web' 	  => 1,
+			'title'   => $notif_data->title,
+			'message' => $notif_data->message,
+			'bid' 	  => $booking_id,
+		];
 
 		return $notif_data;
 	}

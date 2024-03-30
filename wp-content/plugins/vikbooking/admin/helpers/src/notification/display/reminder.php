@@ -31,22 +31,32 @@ final class VBONotificationDisplayReminder extends JObject implements VBONotific
 	/**
 	 * Composes an object with the necessary properties to display
 	 * the notification in the browser. In case of errors while
-	 * retrieving the reminder, the response is closed. Therefore,
-	 * it's assumed that this process will run during an AJAX request.
+	 * retrieving the reminder, an Exception will be thrown.
 	 * 
 	 * @return 	null|object 	the notification display data payload.
+	 * 
+	 * @throws 	Exception
 	 */
 	public function getData()
 	{
 		$reminder_id = $this->get('id');
 		if (empty($reminder_id)) {
-			VBOHttpDocument::getInstance()->close(500, 'Empty notification reminder id to display');
+			throw new Exception('Empty notification reminder id to display', 500);
 		}
 
-		$reminder = VBORemindersHelper::getInstance()->getReminder($reminder_id);
+		$helper = VBORemindersHelper::getInstance();
+
+		$reminder = $helper->getReminder($reminder_id);
 		if (!$reminder) {
-			VBOHttpDocument::getInstance()->close(404, 'Notification reminder id not found');
+			throw new Exception('Notification reminder id not found', 404);
 		}
+
+		/**
+		 * Flag the reminder as displayed.
+		 * 
+		 * @since 	1.16.5 (J) - 1.6.5 (WP)
+		 */
+		$helper->setDisplayed($reminder->id);
 
 		// compose the notification data to display
 		$notif_data = new stdClass;
@@ -58,9 +68,30 @@ final class VBONotificationDisplayReminder extends JObject implements VBONotific
 		if (!empty($reminder->idorder)) {
 			// register click event callback data
 			$notif_data->onclick = 'VBOCore.handleGoto';
-			$notif_data->gotourl = 'index.php?option=com_vikbooking&task=editorder&cid[]=' . $reminder->idorder;
-			if (defined('ABSPATH')) {
-				$notif_data->gotourl = str_replace('index.php', 'admin.php', $notif_data->gotourl);
+			$notif_data->gotourl = VBOFactory::getPlatform()->getUri()->admin("index.php?option=com_vikbooking&task=editorder&cid[]={$reminder->idorder}", false);
+			if (is_object($reminder->payload) && !empty($reminder->payload->airbnb_host_guest_review)) {
+				// append callback to trigger the host-to-guest review
+				$notif_data->gotourl .= '&notif_action=airbnb_host_guest_review';
+				// attempt to get the proper channel logo
+				$vcm_logos = VikBooking::getVcmChannelsLogo('airbnb', $get_istance = true);
+				if ($vcm_logos) {
+					$channel_logo = $vcm_logos->getSmallLogoURL();
+					if (!empty($channel_logo)) {
+						$notif_data->icon = $channel_logo;
+					}
+				}
+			} else {
+				// if no actions, overwrite click handler to display the notification within the booking details modal widget
+				$notif_data->onclick = 'VBOCore.handleDisplayWidgetNotification';
+				// set additional properties to the (Web, not Push) notification payload
+				$notif_data->widget_id = 'booking_details';
+				// data options for a Web notification should NOT set a "type" or this will be overridden
+				$notif_data->_options  = [
+					'_web' 	  => 1,
+					'title'   => $notif_data->title,
+					'message' => $notif_data->message,
+					'bid' 	  => $reminder->idorder,
+				];
 			}
 		} else {
 			$notif_data->onclick = null;

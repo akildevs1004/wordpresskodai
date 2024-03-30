@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.mvc
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -21,6 +21,7 @@ JLoader::import('adapter.mvc.model');
  *
  * @since 10.0
  */
+#[\AllowDynamicProperties]
 abstract class JController
 {
 	/**
@@ -125,8 +126,8 @@ abstract class JController
 			$app   = JFactory::getApplication();
 			$input = $app->input;
 
-			$task = $input->get('task');
-			$cmd  = $input->get('controller');
+			$task = $input->get('task', '');
+			$cmd  = $input->get('controller', '');
 
 			if (strpos($task, '.') !== false)
 			{
@@ -242,6 +243,17 @@ abstract class JController
 				}
 
 				/**
+				 * Inject the layout through the apposite setter instead of passing it
+				 * as argument to the `JView::display()` method.
+				 * 
+				 * @since 10.1.41
+				 */
+				if ($layout)
+				{
+					$view->setLayout($layout);
+				}
+
+				/**
 				 * Fires before the controller displays the view.
 				 *
 				 * @param 	JView  $view  The view instance.
@@ -251,7 +263,7 @@ abstract class JController
 				do_action_ref_array(strtolower($this->prefix) . '_before_display_' . strtolower($action), array(&$view));
 
 				// display the view before to terminate
-				$view->display($layout);
+				$view->display();
 
 				/**
 				 * Fires after the controller displayed the view.
@@ -278,6 +290,8 @@ abstract class JController
 	 */
 	public function execute($task)
 	{
+		$task = (string) $task;
+
 		// get only the string after the dot, if any
 		if (strpos($task, '.') !== false)
 		{
@@ -492,16 +506,6 @@ abstract class JController
 
 		// view found, make sure the entry point exists
 		$path = JPath::clean($path . '/view.html.php');
-
-		/**
-		 * In case the
-		 *
-		 * @since 10.1.35
-		 */
-		if (!is_file($path))
-		{
-			return false;
-		}
 
 		// make sure the file path exists
 		if (!is_file($path))

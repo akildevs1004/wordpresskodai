@@ -59,9 +59,9 @@ class VikBookingViewRefundtn extends JViewVikBooking {
 		$refunds = $history_obj->getEventsWithData('RF', null, false);
 		$refunds = !is_array($refunds) ? array() : $refunds;
 		
-		$this->row = &$row;
-		$this->payment = &$payment;
-		$this->refunds = &$refunds;
+		$this->row = $row;
+		$this->payment = $payment;
+		$this->refunds = $refunds;
 		
 		// Display the template
 		parent::display($tpl);

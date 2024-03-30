@@ -483,7 +483,7 @@ class VikBookingHelperConditionalRules
 			/**
 			 * @wponly 	we need to let WordPress parse the paragraphs in the message.
 			 */
-			if (defined('ABSPATH') && !empty($cond_texts[$token]['msg']) && !$requires_plain_text) {
+			if (VBOPlatformDetection::isWordPress() && !empty($cond_texts[$token]['msg']) && !$requires_plain_text) {
 				$cond_texts[$token]['msg'] = wpautop($cond_texts[$token]['msg']);
 			}
 

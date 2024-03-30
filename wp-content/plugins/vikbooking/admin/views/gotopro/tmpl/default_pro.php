@@ -94,49 +94,55 @@ if (!VikBookingLicense::hasVcm() && !VikBookingLicense::hideVcmAd()) {
 
 <script type="text/javascript">
 var vikwp_running = false;
+
 function vikWpValidateLicenseKey() {
 	if (vikwp_running) {
 		// prevent double submission until request is over
 		return;
 	}
+
 	// start running
 	vikWpStartValidation();
 
 	// request
-	var lickey = document.getElementById('lickey').value;
-	jQuery.ajax({
-		type: "POST",
-		url: "admin.php",
-		data: {
-			option: "com_vikbooking",
-			task: "license.validate",
-			key: lickey
-		}
-	}).done(function(res) {
-		if (res.indexOf('e4j.error') >= 0) {
+	VBOCore.doAjax(
+		"<?php echo VikBooking::ajaxUrl('admin.php?option=com_vikbooking&task=license.validate'); ?>",
+		{
+			key: document.getElementById('lickey').value
+		},
+		(res) => {
+			try {
+				var obj_res = typeof res === 'string' ? JSON.parse(res) : res;
+				document.location.href = 'admin.php?option=com_vikbooking&view=getpro';
+			} catch(err) {
+				console.error(err);
+				// stop the request
+				vikWpStopValidation();
+				// display error
+				alert(err.responseText || 'Request Failed');
+			}
+		},
+		(err) => {
+			console.error(err);
 			// stop the request
 			vikWpStopValidation();
-			alert(res.replace("e4j.error.", ""));
-			return;
+			// display error
+			alert(err.responseText || 'Request Failed');
 		}
-		var obj_res = JSON.parse(res);
-		document.location.href = 'admin.php?option=com_vikbooking&view=getpro';
-	}).fail(function() {
-		// stop the request
-		vikWpStopValidation();
-		alert("Request Failed");
-	});
-
+	);
 }
+
 function vikWpStartValidation() {
 	vikwp_running = true;
 	jQuery('#vikwpvalidate').prepend('<?php VikBookingIcons::e('refresh', 'fa-spin'); ?>');
 }
+
 function vikWpStopValidation() {
 	vikwp_running = false;
 	jQuery('#vikwpvalidate').find('i').remove();
 }
-jQuery(document).ready(function() {
+
+jQuery(function() {
 	jQuery('#lickey').keyup(function() {
 		jQuery(this).val(jQuery(this).val().trim());
 	});

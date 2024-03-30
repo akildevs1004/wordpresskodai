@@ -60,7 +60,7 @@ class VBOBackupImportRuleFolder extends VBOBackupImportRule
 		else
 		{
 			// use a path relative to the system (according to the platform in use)
-			$destination = JPath::clean((defined('ABSPATH') ? ABSPATH : JPATH_SITE) . '/' . $data->destination);
+			$destination = JPath::clean((VBOPlatformDetection::isWordPress() ? ABSPATH : JPATH_SITE) . '/' . $data->destination);
 		}
 
 		if ($fixed)

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     VikBooking
  * @subpackage  com_vikbooking
@@ -13,11 +14,10 @@ defined('ABSPATH') or die('No script kiddies please!');
 $document = JFactory::getDocument();
 // load jQuery lib e jQuery UI
 if (VikBooking::loadJquery()) {
-	// JHtml::fetch('jquery.framework', true, true);
-	JHtml::fetch('script', VBO_SITE_URI.'resources/jquery-1.12.4.min.js');
+	JHtml::fetch('jquery.framework', true, true);
 }
-$document->addStyleSheet(VBO_SITE_URI.'resources/jquery-ui.min.css');
-JHtml::fetch('script', VBO_SITE_URI.'resources/jquery-ui.min.js');
+$document->addStyleSheet(VBO_SITE_URI . 'resources/jquery-ui.min.css');
+JHtml::fetch('script', VBO_SITE_URI . 'resources/jquery-ui.min.js');
 
 $currencysymb = VikBooking::getCurrencySymb();
 $datesep = VikBooking::getDateSeparator();
@@ -67,6 +67,9 @@ foreach ($this->orderrooms as $ind => $or) {
 // countries list
 $all_countries = VikBooking::getCountriesArray();
 
+// access the active back-end driver instance also for pre-checkin
+$pax_fields_obj = VBOCheckinPax::getInstance();
+
 // load langs for JS
 JText::script('VBO_UPLOAD_FAILED');
 JText::script('VBO_REMOVEF_CONFIRM');
@@ -76,7 +79,7 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 <h3 class="vbo-booking-details-intro"><?php echo JText::sprintf('VBOYOURBOOKCONFAT', VikBooking::getFrontTitle()); ?></h3>
 
 <div class="vbo-booking-details-topcontainer vbo-booking-details-precheckin">
-	
+
 	<div class="vbo-booking-details-head vbo-booking-details-head-confirmed">
 		<h4><?php echo JText::translate('VBOPRECHECKIN'); ?></h4>
 	</div>
@@ -86,7 +89,7 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 			<span class="vbvordudatatitle"><?php echo JText::translate('VBORDERDETAILS'); ?></span>
 			<div class="vbo-booking-details-bookinfo">
 				<span class="vbo-booking-details-bookinfo-lbl"><?php echo JText::translate('VBORDEREDON'); ?></span>
-				<span class="vbo-booking-details-bookinfo-val"><?php echo $wdays_map[$ts_info['wday']].', '.date(str_replace("/", $datesep, $df).' H:i', $this->order['ts']); ?></span>
+				<span class="vbo-booking-details-bookinfo-val"><?php echo $wdays_map[$ts_info['wday']] . ', ' . date(str_replace("/", $datesep, $df) . ' H:i', $this->order['ts']); ?></span>
 			</div>
 			<div class="vbo-booking-details-bookinfo">
 				<span class="vbo-booking-details-bookinfo-lbl"><?php echo JText::translate('VBCONFIRMNUMB'); ?></span>
@@ -94,11 +97,11 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 			</div>
 			<div class="vbo-booking-details-bookinfo">
 				<span class="vbo-booking-details-bookinfo-lbl"><?php echo JText::translate('VBDAL'); ?></span>
-				<span class="vbo-booking-details-bookinfo-val"><?php echo $wdays_map[$checkin_info['wday']].', '.date(str_replace("/", $datesep, $df).' H:i', $this->order['checkin']); ?></span>
+				<span class="vbo-booking-details-bookinfo-val"><?php echo $wdays_map[$checkin_info['wday']] . ', ' . date(str_replace("/", $datesep, $df) . ' H:i', $this->order['checkin']); ?></span>
 			</div>
 			<div class="vbo-booking-details-bookinfo">
 				<span class="vbo-booking-details-bookinfo-lbl"><?php echo JText::translate('VBAL'); ?></span>
-				<span class="vbo-booking-details-bookinfo-val"><?php echo $wdays_map[$checkout_info['wday']].', '.date(str_replace("/", $datesep, $df).' H:i', $this->order['checkout']); ?></span>
+				<span class="vbo-booking-details-bookinfo-val"><?php echo $wdays_map[$checkout_info['wday']] . ', ' . date(str_replace("/", $datesep, $df) . ' H:i', $this->order['checkout']); ?></span>
 			</div>
 			<div class="vbo-booking-details-bookinfo">
 				<span class="vbo-booking-details-bookinfo-lbl"><?php echo JText::translate('VBDAYS'); ?></span>
@@ -109,147 +112,194 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 
 	<div class="vbo-precheckin-container">
 		<div class="info vbo-precheckin-disclaimer"><?php echo JText::translate('VBO_PRECHECKIN_DISCLAIMER'); ?></div>
-		<form action="<?php echo JRoute::rewrite('index.php?option=com_vikbooking'.(!empty($pitemid) ? '&Itemid='.$pitemid : '')); ?>" method="post">
+		<form action="<?php echo JRoute::rewrite('index.php?option=com_vikbooking' . (!empty($pitemid) ? '&Itemid=' . $pitemid : '')); ?>" method="post">
 			<input type="hidden" name="option" value="com_vikbooking" />
 			<input type="hidden" name="task" value="storeprecheckin" />
 			<input type="hidden" name="sid" value="<?php echo empty($this->order['sid']) && !empty($this->order['idorderota']) ? $this->order['idorderota'] : $this->order['sid']; ?>" />
 			<input type="hidden" name="ts" value="<?php echo $this->order['ts']; ?>" />
 			<input type="hidden" name="Itemid" value="<?php echo $pitemid; ?>" />
-		<?php
-		foreach ($this->orderrooms as $ind => $or) {
-			$num = $ind + 1;
-			// total guests details available
-			$count_pax_data = $num < 2 ? $count_pax_data : 0;
-			if (isset($pax_data[$ind])) {
-				$count_pax_data = count($pax_data[$ind]);
-			}
-			//
+			<?php
+			foreach ($this->orderrooms as $ind => $or) {
+				$num = $ind + 1;
+				// total guests details available
+				$count_pax_data = $num < 2 ? $count_pax_data : 0;
+				if (isset($pax_data[$ind])) {
+					$count_pax_data = count($pax_data[$ind]);
+				}
+
+				// calculate the number of guests to register depending on current driver settings for pre-checkin (plugin only)
+				$guests_to_register = $pax_fields_obj->registerChildren($precheckin = true) ? ($arrpeople[$num]['adults'] + $arrpeople[$num]['children']) : $arrpeople[$num]['adults'];
 			?>
-			<div class="vbo-precheckin-room-wrapper">
-				<div class="vbo-precheckin-room-wrap <?php echo $count_pax_data >= $arrpeople[$num]['adults'] ? 'vbo-precheckin-guestscount-complete' : 'vbo-precheckin-guestscount-incomplete'; ?>">
-					<div class="vbo-precheckin-room-head">
-						<span><?php echo $or['name']; ?></span>
-					</div>
-					<div class="vbo-precheckin-adults-cont">
-					<?php
-					for ($g = 1; $g <= $arrpeople[$num]['adults']; $g++) {
-						$current_guest = array();
-						if (count($pax_data) && isset($pax_data[$ind]) && isset($pax_data[$ind][$g])) {
-							$current_guest = $pax_data[$ind][$g];
-						} elseif ($ind < 1 && $g == 1) {
-							$current_guest = $this->customer;
-						}
-						?>
-						<div class="vbo-precheckin-adult-wrap">
-							<div class="vbo-precheckin-adult-num">
-								<span><?php echo JText::sprintf('VBOGUESTNUM', $g); ?></span>
-							</div>
-						<?php
-						/**
-						 * Overrides tip: to add and collect custom details from each guest
-						 * it is possible to push more pairs of key-values to $pax_fields.
-						 * For example, a custom value could be pushed like this:
-						 * 
-						 * $pax_fields['custom_field_key'] = 'Custom Field Name';
-						 * $pax_fields_attributes['custom_field_key'] = 'text';
-						 */
-						$pax_field_ind = 1;
-						foreach ($pax_fields as $paxk => $paxv) {
-							?>
-							<div class="vbo-precheckin-guest-detail<?php echo isset($pax_fields_attributes[$paxk]) && $pax_fields_attributes[$paxk] == 'file' ? ' vbo-precheckin-guest-detail-files' : ''; ?>">
-								<label for="pax-field-<?php echo $paxv . '-' . $ind . '-' . $g . '-' . $paxk; ?>"><?php echo $paxv; ?></label>
+				<div class="vbo-precheckin-room-wrapper">
+					<div class="vbo-precheckin-room-wrap <?php echo $count_pax_data >= $guests_to_register ? 'vbo-precheckin-guestscount-complete' : 'vbo-precheckin-guestscount-incomplete'; ?>">
+						<div class="vbo-precheckin-room-head">
+							<span><?php echo $or['name']; ?></span>
+						</div>
+						<div class="vbo-precheckin-adults-cont">
 							<?php
-							if (isset($pax_fields_attributes[$paxk]) && is_array($pax_fields_attributes[$paxk])) {
-								// select with multiple choices
-								?>
-								<select name="guests[<?php echo $ind; ?>][<?php echo $g; ?>][<?php echo $paxk; ?>]">
-									<option></option>
-								<?php
-								$opt_ind = 1;
-								foreach ($pax_fields_attributes[$paxk] as $attrk => $attrv) {
-									$paxv_selected = isset($current_guest[$paxk]) && ($current_guest[$paxk] == $attrv || (!is_numeric($attrk) && $current_guest[$paxk] == $attrk));
-									if (!$paxv_selected && isset($current_guest[$paxk]) && is_numeric($current_guest[$paxk])) {
-										/**
-										 * It is safe to compare such select tags, which usually refer to "gender",
-										 * to even numeric values in order to attempt to pre-select the current value.
-										 */
-										$paxv_selected = ($opt_ind == $current_guest[$paxk]);
+							for ($g = 1; $g <= $guests_to_register; $g++) {
+								$current_guest = array();
+								if (count($pax_data) && isset($pax_data[$ind]) && isset($pax_data[$ind][$g])) {
+									$current_guest = $pax_data[$ind][$g];
+								} elseif ($ind < 1 && $g == 1) {
+									$current_guest = $this->customer;
+								}
+							?>
+								<div class="vbo-precheckin-adult-wrap">
+									<div class="vbo-precheckin-adult-num">
+										<span><?php echo JText::sprintf('VBOGUESTNUM', $g); ?></span>
+									</div>
+									<?php
+									/**
+									 * Overrides tip: to add and collect custom details from each guest it is possible to push more
+									 * pairs of key-values to $pax_fields. For example, a custom value could be pushed like this:
+									 * 
+									 * $pax_fields['custom_field_key'] = 'Custom Field Name';
+									 * $pax_fields_attributes['custom_field_key'] = 'text';
+									 * 
+									 * @see 	the best way to customize the guest fields is to use the apposite plugin hooks/events.
+									 */
+									$pax_field_ind = 1;
+									foreach ($pax_fields as $paxk => $paxv) {
+									?>
+										<div class="vbo-precheckin-guest-detail<?php echo isset($pax_fields_attributes[$paxk]) && $pax_fields_attributes[$paxk] == 'file' ? ' vbo-precheckin-guest-detail-files' : ''; ?>">
+											<label for="pax-field-<?php echo $paxv . '-' . $ind . '-' . $g . '-' . $paxk; ?>"><?php echo $paxv; ?></label>
+											<?php
+											if (isset($pax_fields_attributes[$paxk]) && is_array($pax_fields_attributes[$paxk])) {
+												// select with multiple choices
+											?>
+												<select name="guests[<?php echo $ind; ?>][<?php echo $g; ?>][<?php echo $paxk; ?>]">
+													<option></option>
+													<?php
+													$opt_ind = 1;
+													foreach ($pax_fields_attributes[$paxk] as $attrk => $attrv) {
+														$paxv_selected = isset($current_guest[$paxk]) && ($current_guest[$paxk] == $attrv || (!is_numeric($attrk) && $current_guest[$paxk] == $attrk));
+														if (!$paxv_selected && isset($current_guest[$paxk]) && is_numeric($current_guest[$paxk])) {
+															/**
+															 * It is safe to compare such select tags, which usually refer to "gender",
+															 * to even numeric values in order to attempt to pre-select the current value.
+															 */
+															$paxv_selected = ($opt_ind == $current_guest[$paxk]);
+														}
+													?>
+														<option value="<?php echo !is_numeric($attrk) ? $attrk : $attrv; ?>" <?php echo ($paxv_selected ? ' selected="selected"' : ''); ?>><?php echo $attrv; ?></option>
+													<?php
+														$opt_ind++;
+													}
+													?>
+												</select>
+											<?php
+											} elseif (isset($pax_fields_attributes[$paxk]) && $pax_fields_attributes[$paxk] == 'country') {
+												// field of type country
+												echo VikBooking::getCountriesSelect('guests[' . $ind . '][' . $g . '][' . $paxk . ']', $all_countries, (isset($current_guest[$paxk]) ? $current_guest[$paxk] : ''), $paxv);
+											} elseif (isset($pax_fields_attributes[$paxk]) && $pax_fields_attributes[$paxk] == 'calendar') {
+												// datepicker
+											?>
+												<input type="text" autocomplete="off" data-gind="<?php echo $g; ?>" class="vbo-paxfield vbo-paxfield-datepicker" name="guests[<?php echo $ind; ?>][<?php echo $g; ?>][<?php echo $paxk; ?>]" value="<?php echo (isset($current_guest[$paxk]) ? $this->escape($current_guest[$paxk]) : ''); ?>" />
+											<?php
+											} elseif (isset($pax_fields_attributes[$paxk]) && $pax_fields_attributes[$paxk] == 'file') {
+												// file upload (multiple files allowed)
+											?>
+												<input type="hidden" id="vbo-paxfield-curfiles-<?php echo $ind . '-' . $g . '-' . $paxk; ?>" name="guests[<?php echo $ind; ?>][<?php echo $g; ?>][<?php echo $paxk; ?>]" value="<?php echo (isset($current_guest[$paxk]) ? $this->escape($current_guest[$paxk]) : ''); ?>" />
+
+												<div class="vbo-paxfield-upload-container">
+													<button type="button" class="btn vbo-pref-color-btn-secondary vbo-precheckin-uploadfile" data-roomi="<?php echo $ind; ?>" data-guesti="<?php echo $g; ?>" data-paxk="<?php echo $paxk; ?>"><?php VikBookingIcons::e('camera'); ?> <?php echo JText::translate('VBOUPSELLADD'); ?></button>
+													<div class="vbo-paxfield-upload-progress-wrap" id="vbo-paxfield-upload-progress-<?php echo $ind . '-' . $g . '-' . $paxk; ?>" style="display: none;">
+														<div class="vbo-paxfield-upload-progress">&nbsp;</div>
+													</div>
+												</div>
+
+												<div class="vbo-paxfield vbo-paxfield-files" id="vbo-paxfield-files-<?php echo $ind . '-' . $g . '-' . $paxk; ?>" data-gselector="<?php echo $ind . '-' . $g . '-' . $paxk; ?>">
+													<?php
+													if (isset($current_guest[$paxk]) && !empty($current_guest[$paxk])) {
+														$guest_files = explode('|', $current_guest[$paxk]);
+														foreach ($guest_files as $gfk => $guest_file) {
+															if (empty($guest_file) || strpos($guest_file, 'http') !== 0) {
+																continue;
+															}
+															$furl_segments = explode('/', $guest_file);
+															$guest_fname = $furl_segments[(count($furl_segments) - 1)];
+															$read_fname = substr($guest_fname, (strpos($guest_fname, '_') + 1));
+													?>
+															<div class="vbo-paxfield-file-uploaded">
+																<span class="vbo-paxfield-file-uploaded-rm"><?php VikBookingIcons::e('times-circle'); ?></span>
+																<a href="<?php echo $guest_file; ?>" target="_blank">
+																	<?php VikBookingIcons::e('image'); ?>
+																	<span><?php echo $read_fname; ?></span>
+																</a>
+															</div>
+													<?php
+														}
+													}
+													?>
+												</div>
+											<?php
+											} elseif (isset($pax_fields_attributes[$paxk]) && $pax_fields_attributes[$paxk] == 'text') {
+												// text
+											?>
+												<input type="text" autocomplete="off" data-gind="<?php echo $g; ?>" class="vbo-paxfield" name="guests[<?php echo $ind; ?>][<?php echo $g; ?>][<?php echo $paxk; ?>]" value="<?php echo (isset($current_guest[$paxk]) ? $this->escape($current_guest[$paxk]) : ''); ?>" />
+											<?php
+											} else {
+												/**
+												 * Attempt to render a custom field previously installed through a third party plugin.
+												 * If no such field type is found, the object will default to the "text" type.
+												 * 
+												 * @since 	1.16.3 (J) - 1.6.3 (WP)
+												 */
+
+												// get an instance of the VBOCheckinPaxfield object
+												$pax_field_obj = $pax_fields_obj->getField($paxk);
+
+												// detect the current type of guest
+												$guest_type = $g > $arrpeople[$num]['adults'] ? 'child' : 'adult';
+
+												// set object data
+												$pax_field_obj->setGuestType($guest_type)
+													->setFieldNumber($pax_field_ind)
+													->setGuestNumber($g)
+													->setGuestData($current_guest)
+													->setRoomIndex($ind)
+													->setRoomGuests($arrpeople[$num]['adults'], $arrpeople[$num]['children'])
+													->setTotalRooms(count($arrpeople));
+
+												// render input field
+												$pax_field_html = $pax_fields_obj->render($pax_field_obj);
+												if (empty($pax_field_html)) {
+													// nothing to display, increase the counter and continue
+													$pax_field_ind++;
+													continue;
+												}
+
+												// access the implementor object
+												$implementor = $pax_fields_obj->getFieldTypeImplementor($pax_field_obj);
+
+												// check if a particular CSS class has been defined
+												$field_container_class = $implementor->getContainerClassAttr();
+												$field_container_class = !empty($field_container_class) ? " $field_container_class" : '';
+
+												// display the custom field type
+											?>
+												<div class="vbo-precheckin-custom-field<?php echo $field_container_class; ?>">
+													<?php echo $pax_field_html; ?>
+												</div>
+											<?php
+											}
+											?>
+										</div>
+									<?php
+										$pax_field_ind++;
 									}
 									?>
-									<option value="<?php echo !is_numeric($attrk) ? $attrk : $attrv; ?>"<?php echo ($paxv_selected ? ' selected="selected"' : ''); ?>><?php echo $attrv; ?></option>
-									<?php
-									$opt_ind++;
-								}
-								?>
-								</select>
-								<?php
-							} elseif (isset($pax_fields_attributes[$paxk]) && $pax_fields_attributes[$paxk] == 'country') {
-								// field of type country
-								echo VikBooking::getCountriesSelect('guests['.$ind.']['.$g.']['.$paxk.']', $all_countries, (isset($current_guest[$paxk]) ? $current_guest[$paxk] : ''), $paxv);
-							} elseif (isset($pax_fields_attributes[$paxk]) && $pax_fields_attributes[$paxk] == 'calendar') {
-								// datepicker
-								?>
-								<input type="text" autocomplete="off" data-gind="<?php echo $g; ?>" class="vbo-paxfield vbo-paxfield-datepicker" name="guests[<?php echo $ind; ?>][<?php echo $g; ?>][<?php echo $paxk; ?>]" value="<?php echo (isset($current_guest[$paxk]) ? $this->escape($current_guest[$paxk]) : ''); ?>" />
-								<?php
-							} elseif (isset($pax_fields_attributes[$paxk]) && $pax_fields_attributes[$paxk] == 'file') {
-								// file upload (multiple files allowed)
-								?>
-								<input type="hidden" id="vbo-paxfield-curfiles-<?php echo $ind . '-' . $g . '-' . $paxk; ?>" name="guests[<?php echo $ind; ?>][<?php echo $g; ?>][<?php echo $paxk; ?>]" value="<?php echo (isset($current_guest[$paxk]) ? $this->escape($current_guest[$paxk]) : ''); ?>" />
-
-								<div class="vbo-paxfield-upload-container">
-									<button type="button" class="btn vbo-pref-color-btn-secondary vbo-precheckin-uploadfile" data-roomi="<?php echo $ind; ?>" data-guesti="<?php echo $g; ?>" data-paxk="<?php echo $paxk; ?>"><?php VikBookingIcons::e('camera'); ?> <?php echo JText::translate('VBOUPSELLADD'); ?></button>
-									<div class="vbo-paxfield-upload-progress-wrap" id="vbo-paxfield-upload-progress-<?php echo $ind . '-' . $g . '-' . $paxk; ?>" style="display: none;">
-										<div class="vbo-paxfield-upload-progress">&nbsp;</div>
-									</div>
 								</div>
-								
-								<div class="vbo-paxfield vbo-paxfield-files" id="vbo-paxfield-files-<?php echo $ind . '-' . $g . '-' . $paxk; ?>" data-gselector="<?php echo $ind . '-' . $g . '-' . $paxk; ?>">
-								<?php
-								if (isset($current_guest[$paxk]) && !empty($current_guest[$paxk])) {
-									$guest_files = explode('|', $current_guest[$paxk]);
-									foreach ($guest_files as $gfk => $guest_file) {
-										if (empty($guest_file) || strpos($guest_file, 'http') !== 0) {
-											continue;
-										}
-										$furl_segments = explode('/', $guest_file);
-										$guest_fname = $furl_segments[(count($furl_segments) - 1)];
-										$read_fname = substr($guest_fname, (strpos($guest_fname, '_') + 1));
-										?>
-									<div class="vbo-paxfield-file-uploaded">
-										<span class="vbo-paxfield-file-uploaded-rm"><?php VikBookingIcons::e('times-circle'); ?></span>
-										<a href="<?php echo $guest_file; ?>" target="_blank">
-											<?php VikBookingIcons::e('image'); ?>
-											<span><?php echo $read_fname; ?></span>
-										</a>
-									</div>
-										<?php
-									}
-								}
-								?>
-								</div>
-								<?php
-							} else {
-								// text
-								?>
-								<input type="text" autocomplete="off" data-gind="<?php echo $g; ?>" class="vbo-paxfield" name="guests[<?php echo $ind; ?>][<?php echo $g; ?>][<?php echo $paxk; ?>]" value="<?php echo (isset($current_guest[$paxk]) ? $this->escape($current_guest[$paxk]) : ''); ?>" />
-								<?php
+							<?php
 							}
 							?>
-							</div>
-							<?php
-							$pax_field_ind++;
-						}
-						?>
 						</div>
-						<?php
-					}
-					?>
 					</div>
 				</div>
-			</div>
 			<?php
-		}
-		?>
+			}
+			?>
 			<div class="vbo-precheckin-submit">
 				<button type="submit" class="btn btn-large vbo-pref-color-btn"><?php echo JText::translate('VBOSUBMITPRECHECKIN'); ?></button>
 			</div>
@@ -264,11 +314,11 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 	/**
 	 * Declare global score variables
 	 */
-	var vbo_prechin_current_room  = null,
+	var vbo_prechin_current_room = null,
 		vbo_prechin_current_guest = null,
-		vbo_prechin_current_paxk  = null,
+		vbo_prechin_current_paxk = null,
 		vbo_typingtoast_displayed = false,
-		vbo_typingtoast_changes   = 0;
+		vbo_typingtoast_changes = 0;
 
 	/**
 	 * Displays a toast message
@@ -336,10 +386,10 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 		}
 
 		return (
-			err.statusText == 'error'
-			&& err.status == 0
-			&& (err.readyState == 0 || err.readyState == 4)
-			&& (!err.hasOwnProperty('responseText') || err.responseText == '')
+			err.statusText == 'error' &&
+			err.status == 0 &&
+			(err.readyState == 0 || err.readyState == 4) &&
+			(!err.hasOwnProperty('responseText') || err.responseText == '')
 		);
 	}
 
@@ -355,10 +405,10 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 		}
 
 		var settings = {
-			type: 		 'post',
+			type: 'post',
 			contentType: false,
 			processData: false,
-			cache: 		 false,
+			cache: false,
 		};
 
 		// register event for upload progress
@@ -368,9 +418,9 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 				// attach progress event
 				xhrobj.upload.addEventListener('progress', function(event) {
 					// calculate percentage
-					var percent  = 0;
+					var percent = 0;
 					var position = event.loaded || event.position;
-					var total 	 = event.total;
+					var total = event.total;
 					if (event.lengthComputable) {
 						percent = Math.ceil(position / total * 100);
 					}
@@ -386,7 +436,7 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 			Object.assign(settings, url);
 		} else {
 			// use the default settings
-			settings.url  = url;
+			settings.url = url;
 		}
 
 		// set request data
@@ -465,7 +515,7 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 		// AJAX request to upload the files selected
 		vboDoAjaxUpload(
 			// url
-			'<?php echo VikBooking::ajaxUrl(JRoute::rewrite('index.php?option=com_vikbooking&task=precheckin_upload_docs&tmpl=component'.(!empty($pitemid) ? '&Itemid='.$pitemid : ''), false)); ?>',
+			'<?php echo VikBooking::ajaxUrl(JRoute::rewrite('index.php?option=com_vikbooking&task=precheckin_upload_docs&tmpl=component' . (!empty($pitemid) ? '&Itemid=' . $pitemid : ''), false)); ?>',
 			// form data
 			formData,
 			// success callback
@@ -520,9 +570,13 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 
 					// display toast message
 					vboPresentToast(Joomla.JText._('VBO_PRECHECKIN_TOAST_HELP'), 4000, function() {
-						jQuery('html,body').animate({scrollTop: jQuery('.vbo-precheckin-submit').offset().top - 100}, {duration: 400});
+						jQuery('html,body').animate({
+							scrollTop: jQuery('.vbo-precheckin-submit').offset().top - 100
+						}, {
+							duration: 400
+						});
 					});
-				} catch(err) {
+				} catch (err) {
 					console.error('could not parse JSON response for uploading documents', err, response);
 				}
 			},
@@ -547,7 +601,7 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 	/**
 	 * Declare functions for DOM ready
 	 */
-	jQuery(document).ready(function() {
+	jQuery(function() {
 
 		/**
 		 * Datepicker for birth date
@@ -565,9 +619,9 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 		jQuery('.vbo-precheckin-uploadfile').click(function() {
 			var elem = jQuery(this);
 
-			var room_index 	= elem.data('roomi'),
+			var room_index = elem.data('roomi'),
 				guest_index = elem.data('guesti'),
-				pax_index 	= elem.data('paxk');
+				pax_index = elem.data('paxk');
 
 			// check if device supports file upload
 			if (!vboIsUploadSupported()) {
@@ -576,9 +630,9 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 			}
 
 			// update global vars
-			vbo_prechin_current_room  = room_index;
+			vbo_prechin_current_room = room_index;
 			vbo_prechin_current_guest = guest_index;
-			vbo_prechin_current_paxk  = pax_index;
+			vbo_prechin_current_paxk = pax_index;
 
 			// trigger the click event on the hidden input field for the files upload
 			jQuery('#vbo-precheckin-upload-field').trigger('click');
@@ -629,7 +683,11 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 				file_container.remove();
 				// display toast message
 				vboPresentToast(Joomla.JText._('VBO_PRECHECKIN_TOAST_HELP'), 4000, function() {
-					jQuery('html,body').animate({scrollTop: jQuery('.vbo-precheckin-submit').offset().top - 100}, {duration: 400});
+					jQuery('html,body').animate({
+						scrollTop: jQuery('.vbo-precheckin-submit').offset().top - 100
+					}, {
+						duration: 400
+					});
 				});
 			}
 		});
@@ -649,7 +707,11 @@ JText::script('VBO_PRECHECKIN_TOAST_HELP');
 				vbo_typingtoast_changes = 0;
 				// display toast message
 				vboPresentToast(Joomla.JText._('VBO_PRECHECKIN_TOAST_HELP'), 4000, function() {
-					jQuery('html,body').animate({scrollTop: jQuery('.vbo-precheckin-submit').offset().top - 100}, {duration: 400});
+					jQuery('html,body').animate({
+						scrollTop: jQuery('.vbo-precheckin-submit').offset().top - 100
+					}, {
+						duration: 400
+					});
 					// if toast is clicked, we never display it again
 					vbo_typingtoast_displayed = true;
 				});

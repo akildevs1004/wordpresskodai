@@ -423,7 +423,7 @@ class VikBookingAdminWidgetRatesFlow extends VikBookingAdminWidget
 		<div id="<?php echo $wrapper_id; ?>" class="vbo-admin-widget-wrapper" data-instance="<?php echo $wrapper_instance; ?>" data-offset="0" data-nowoffset="0" data-prevoffset="-1" data-length="<?php echo $this->alterations_per_page; ?>">
 			<div class="vbo-admin-widget-head">
 				<div class="vbo-admin-widget-head-inline">
-					<h4><?php VikBookingIcons::e('chart-line'); ?> <?php echo JText::translate('VBOREPORTRATESFLOW'); ?></h4>
+					<h4><?php echo $this->widgetIcon; ?> <span><?php echo $this->widgetName; ?></span></h4>
 					<div class="vbo-admin-widget-head-commands">
 
 						<div class="vbo-reportwidget-commands">
@@ -578,7 +578,7 @@ class VikBookingAdminWidgetRatesFlow extends VikBookingAdminWidget
 					},
 					function(response) {
 						try {
-							var obj_res = JSON.parse(response);
+							var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 							if (!obj_res.hasOwnProperty(call_method)) {
 								console.error('Unexpected JSON response', obj_res);
 								return false;
@@ -610,6 +610,12 @@ class VikBookingAdminWidgetRatesFlow extends VikBookingAdminWidget
 									var dfrom_parts = obj_res[call_method]['fromdate'].split('-');
 									var dfrom_obj 	= new Date(parseInt(dfrom_parts[0]), (parseInt(dfrom_parts[1]) - 1), parseInt(dfrom_parts[2]), 0, 0, 0);
 									widget_instance.find('.vbo-ratesflow-dtpicker-from').datepicker('setDate', dfrom_obj);
+
+									// restore the original minimum and maximum dates for the "to date" calendar to avoid issues setting a date
+									widget_instance.find('.vbo-ratesflow-dtpicker-to').datepicker('option', {
+										minDate: "<?php echo date($df, $mindate); ?>",
+										maxDate: "<?php echo date($df, $maxdate); ?>",
+									});
 
 									// do the same for the to date by using a precise date object instance
 									var dto_parts 	= obj_res[call_method]['todate'].split('-');

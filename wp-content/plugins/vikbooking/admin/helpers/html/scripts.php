@@ -19,7 +19,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 abstract class VBOHtmlScripts
 {
 	/**
-	 * Auto set CSRF token to ajaxSetup so all jQuery ajax call will contains CSRF token.
+	 * Auto set CSRF token to ajaxSetup so all jQuery ajax call will contain CSRF token.
 	 *
 	 * @return  void
 	 *

@@ -10,26 +10,49 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
+/**
+ * Helper class to invoke the Channel Manager update requests.
+ */
 class VboVcmInvoker
 {
-	public $oids;
-	public $orig_statuses;
-	public $sync_type;
+	/**
+	 * @var  array
+	 */
+	public $oids = [];
+
+	/**
+	 * @var  array
+	 */
+	public $orig_statuses = [];
+
+	/**
+	 * @var  string
+	 */
+	public $sync_type = 'new';
+
+	/**
+	 * @var  array
+	 */
 	public $orig_booking;
-	private $error;
-	private $result;
-	
+
+	/**
+	 * @var  string
+	 */
+	private $error = '';
+
+	/**
+	 * @var  bool
+	 */
+	private $result = false;
+
+	/**
+	 * Class constructor will attempt to require a class from VCM.
+	 */
 	public function __construct()
 	{
-		$this->oids = array();
-		$this->orig_statuses = array();
-		$this->sync_type = 'new';
-		$this->orig_booking = '';
 		if (!class_exists('synchVikBooking')) {
 			require_once(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php");
 		}
-		$this->error = '';
-		$this->result = false;
 	}
 
 	/**
@@ -79,7 +102,7 @@ class VboVcmInvoker
 		}
 
 		if (is_scalar($orig_statuses)) {
-			$orig_statuses = array($orig_statuses);
+			$orig_statuses = [$orig_statuses];
 		}
 
 		if (!is_array($orig_statuses)) {
@@ -101,7 +124,7 @@ class VboVcmInvoker
 	{
 		if (!empty($obooking)) {
 			$original_booking = $decode === true ? json_decode(urldecode($obooking), true) : $obooking;
-			if (is_array($original_booking) && @count($original_booking) > 0) {
+			if (is_array($original_booking) && $original_booking) {
 				$this->orig_booking = $original_booking;
 			}
 		}
@@ -113,7 +136,7 @@ class VboVcmInvoker
 	 */
 	public function doSync()
 	{
-		if (!is_array($this->oids) || !count($this->oids)) {
+		if (!is_array($this->oids) || !$this->oids) {
 			$this->setError('oids is empty.');
 			return $this->result;
 		}
@@ -138,14 +161,13 @@ class VboVcmInvoker
 				if (!empty($this->orig_statuses[$okey]) && method_exists($vcm, 'setBookingPreviousStatus')) {
 					$vcm->setBookingPreviousStatus($this->orig_statuses[$okey]);
 				}
-				//
 
 				$rq_rs = $vcm->sendRequest();
 				$this->result = $this->result || $rq_rs ? true : $this->result;
 			}
 		} elseif ($this->sync_type == 'modify') {
 			// only one Booking ID per request as the original booking is transmitted in JSON format or as an array if called via PHP execution.
-			if (is_array($this->orig_booking) && count($this->orig_booking)) {
+			if (is_array($this->orig_booking) && $this->orig_booking) {
 				foreach ($this->oids as $okey => $oid) {
 					if (empty($oid)) {
 						continue;
@@ -166,13 +188,13 @@ class VboVcmInvoker
 				}
 				$vcm = new SynchVikBooking($oid);
 				$vcm->setSkipCheckAutoSync();
-				$vcm->setFromCancellation(array('id' => $oid));
+				$vcm->setFromCancellation(['id' => $oid]);
 				$rq_rs = $vcm->sendRequest();
 				$this->result = $this->result || $rq_rs ? true : $this->result;
 			}
 		}
 
-		if ($this->result !== true && !(strlen($this->getError()) > 0)) {
+		if ($this->result !== true && !$this->getError()) {
 			$this->setError('VCM returned errors');
 		}
 
@@ -186,7 +208,7 @@ class VboVcmInvoker
 	 */
 	private function setError($err_str)
 	{
-		$this->error .= $err_str;
+		$this->error .= (string)$err_str;
 	}
 
 	/**
@@ -196,5 +218,4 @@ class VboVcmInvoker
 	{
 		return $this->error;
 	}
-	
 }

@@ -1,4 +1,12 @@
 <?php
+/**
+ * @package     VikBooking
+ * @subpackage  com_vikbooking
+ * @author      Alessio Gaggii - E4J srl
+ * @copyright   Copyright (C) 2023 E4J srl. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE
+ * @link        https://vikwp.com
+ */
 
 // No direct access
 defined('ABSPATH') or die('No script kiddies please!');

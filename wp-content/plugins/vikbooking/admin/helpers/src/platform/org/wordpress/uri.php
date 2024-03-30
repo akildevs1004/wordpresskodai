@@ -138,8 +138,12 @@ class VBOPlatformOrgWordpressUri extends VBOPlatformUriAware
 
 		// replace initial index.php with admin.php
 		$query = preg_replace("/^index\.php/", 'admin.php', $query);
+
 		// replace option=com_vikbooking with page=vikbooking
 		$query = preg_replace("/(&|\?)option=com_vikbooking/", '$1page=vikbooking', $query);
+
+		// replace option=com_vikchannelmanager with page=vikchannelmanager
+		$query = preg_replace("/(&|\?)option=com_vikchannelmanager/", '$1page=vikchannelmanager', $query);
 
 		// finalise admin URI
 		$uri = admin_url($query);

@@ -131,13 +131,13 @@ class VikbookingViewRoomslist extends JViewVikBooking {
 			jimport('joomla.html.pagination');
 			$pageNav = new JPagination(count($rooms), $lim0, $lim);
 			$navig = $pageNav->getPagesLinks();
-			$this->navig = &$navig;
+			$this->navig = $navig;
 			$rooms = array_slice($rooms, $lim0, $lim, true);
 			//
 			
-			$this->rooms = &$rooms;
-			$this->category = &$category;
-			$this->vbo_tn = &$vbo_tn;
+			$this->rooms = $rooms;
+			$this->category = $category;
+			$this->vbo_tn = $vbo_tn;
 			//theme
 			$theme = VikBooking::getTheme();
 			if($theme != 'default') {

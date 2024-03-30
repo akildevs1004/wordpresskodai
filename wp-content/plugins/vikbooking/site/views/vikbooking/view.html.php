@@ -22,7 +22,7 @@ class VikbookingViewVikbooking extends JViewVikBooking {
 		$pmodify_sid = VikRequest::getString('modify_sid', '', 'request');
 		$pmodify_id = VikRequest::getInt('modify_id', '', 'request');
 		if (!empty($pmodify_sid) && !empty($pmodify_id)) {
-			$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=".intval($pmodify_id)." AND `sid`=".$dbo->quote($pmodify_sid)." AND `status`='confirmed';";
+			$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=".intval($pmodify_id)." AND `sid`=".$dbo->quote($pmodify_sid)." AND `status`='confirmed' AND `split_stay`=0;";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() == 1) {
@@ -60,7 +60,7 @@ class VikbookingViewVikbooking extends JViewVikBooking {
 				$mod_booking = $cur_mod;
 			}
 		}
-		$this->mod_booking = &$mod_booking;
+		$this->mod_booking = $mod_booking;
 		//theme
 		$theme = VikBooking::getTheme();
 		if ($theme != 'default') {

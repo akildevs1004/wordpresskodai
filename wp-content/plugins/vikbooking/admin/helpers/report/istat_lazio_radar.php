@@ -495,6 +495,8 @@ class VikBookingReportIstatLazioRadar extends VikBookingReport
 
 		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
 
+		$this->registerExportFileName();
+
 		parent::__construct();
 	}
 
@@ -1181,6 +1183,7 @@ class VikBookingReportIstatLazioRadar extends VikBookingReport
 		if (!$this->getReportData()) {
 			return false;
 		}
+
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$ptodate = VikRequest::getString('todate', '', 'request');
 		$pcodstru = VikRequest::getString('codstru', '', 'request');
@@ -1379,13 +1382,42 @@ class VikBookingReportIstatLazioRadar extends VikBookingReport
 		
 		$xml .= '</report>'."\n".'</messaggio-otlazio>';
 
-		$filename = str_replace(' ', '_', $this->reportName).'-'.str_replace('/', '_', $pfromdate).'-'.str_replace('/', '_', $ptodate).'.xml';
-		header('Content-Disposition: attachment; filename='.$filename.'');
+		// format XML document
+		$this->formatXML($xml);
+
+		/**
+		 * Custom export method supports a custom export handler, if previously set.
+		 * 
+		 * @since 	1.16.1 (J) - 1.6.1 (WP)
+		 */
+		if ($this->hasExportHandler()) {
+			// write data onto the custom file handler
+			$fp = $this->getExportCSVHandler();
+			fwrite($fp, $xml);
+			fclose($fp);
+
+			return true;
+		}
+
+		header('Content-Disposition: attachment; filename=' . $this->getExportCSVFileName());
 		header('Content-type: text/xml');
-		echo $this->formatXML($xml);
-		//echo $xml;
-		
+		echo $xml;
+
 		exit;
 	}
 
+	/**
+	 * Registers the name to give to the file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	protected function registerExportFileName()
+	{
+		$pfromdate = VikRequest::getString('fromdate', '', 'request');
+		$ptodate = VikRequest::getString('todate', '', 'request');
+
+		$this->setExportCSVFileName(str_replace(' ', '_', $this->reportName) . '-' . str_replace('/', '_', $pfromdate) . '-' . str_replace('/', '_', $ptodate) . '.xml');
+	}
 }

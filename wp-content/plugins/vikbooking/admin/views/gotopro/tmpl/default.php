@@ -212,7 +212,7 @@ $datesep = VikBooking::getDateSeparator();
 			<form>
 				<div class="vikwppro-licenceform-inner">
 					<h4><?php echo JText::translate('VBOPROALREADYHAVEKEY'); ?></h4>
-					<span class="vikwppro-inputspan"><?php VikBookingIcons::e('key'); ?><input type="text" name="key" id="lickey" value="" class="licence-input" autocomplete="off" /></span>
+					<span class="vikwppro-inputspan"><?php VikBookingIcons::e('key'); ?><input type="text" name="key" id="lickey" value="<?php echo htmlspecialchars($lic_key); ?>" class="licence-input" autocomplete="off" /></span>
 					<button type="button" class="btn vikwp-btn-green" id="vikwpvalidate" onclick="vikWpValidateLicenseKey();"><?php echo JText::translate('VBOPROVALNINST'); ?></button>
 				</div>
 			</form>
@@ -226,7 +226,7 @@ $datesep = VikBooking::getDateSeparator();
 				<h4><?php echo JText::translate('VBOPROSYNCHNEWBOOKINGS'); ?></h4>
 				<h5><?php echo JText::translate('VBOPROVCMSYNCHEVERYTHING'); ?></h5>
 				<p><?php echo JText::translate('VBOPROVCMADDESCR'); ?></p>
-				<p class="vikpro-e4jc-badgeimg"><img src="<?php echo VBO_ADMIN_URI; ?>resources/images/pro/vbo_bookingpremier_2021.png" title="e4jConnect Premier Partner 2021" /> <img src="<?php echo VBO_ADMIN_URI; ?>resources/images/pro/vbo_bookingpremier_2020.png" title="e4jConnect Premier Partner 2020" /> <img src="<?php echo VBO_ADMIN_URI; ?>resources/images/pro/bookingcom-premier-badge_2019.png" title="e4jConnect Premier Partner 2019" /> <img src="<?php echo VBO_ADMIN_URI; ?>resources/images/pro/bookingcom-premier-badge.png" title="e4jConnect Premier Partner 2018" /></p>
+				<p class="vikpro-e4jc-badgeimg"><img src="<?php echo VBO_ADMIN_URI; ?>resources/images/pro/vbo_bookingpremier_2022.png" title="e4jConnect Premier Partner 2022" /> <img src="<?php echo VBO_ADMIN_URI; ?>resources/images/pro/vbo_bookingpremier_2021.png" title="e4jConnect Premier Partner 2021" /> <img src="<?php echo VBO_ADMIN_URI; ?>resources/images/pro/vbo_bookingpremier_2020.png" title="e4jConnect Premier Partner 2020" /> <img src="<?php echo VBO_ADMIN_URI; ?>resources/images/pro/bookingcom-premier-badge_2019.png" title="e4jConnect Premier Partner 2019" /> <img src="<?php echo VBO_ADMIN_URI; ?>resources/images/pro/bookingcom-premier-badge.png" title="e4jConnect Premier Partner 2018" /></p>
 				<a href="https://vikwp.com/plugin/vikchannelmanager?utm_source=free_version&utm_medium=vbo&utm_campaign=gotopro" class="vikwp-pro-discover btn btn-primary" target="_blank"><?php echo JText::translate('VBOPROVCMADMOREINFO'); ?></a>
 			</div>
 			<div class="viwpro-e4jc-img"><img src="<?php echo VBO_ADMIN_URI; ?>resources/images/pro/vcm-synch-img.jpg" title="e4jConnect Vik Channel Manager" /></div>
@@ -251,49 +251,55 @@ $datesep = VikBooking::getDateSeparator();
 
 <script type="text/javascript">
 var vikwp_running = false;
+
 function vikWpValidateLicenseKey() {
 	if (vikwp_running) {
 		// prevent double submission until request is over
 		return;
 	}
+
 	// start running
 	vikWpStartValidation();
 
 	// request
-	var lickey = document.getElementById('lickey').value;
-	jQuery.ajax({
-		type: "POST",
-		url: "admin.php",
-		data: {
-			option: "com_vikbooking",
-			task: "license.validate",
-			key: lickey
-		}
-	}).done(function(res) {
-		if (res.indexOf('e4j.error') >= 0) {
+	VBOCore.doAjax(
+		"<?php echo VikBooking::ajaxUrl('admin.php?option=com_vikbooking&task=license.validate'); ?>",
+		{
+			key: document.getElementById('lickey').value
+		},
+		(res) => {
+			try {
+				var obj_res = typeof res === 'string' ? JSON.parse(res) : res;
+				document.location.href = 'admin.php?option=com_vikbooking&view=getpro';
+			} catch(err) {
+				console.error(err);
+				// stop the request
+				vikWpStopValidation();
+				// display error
+				alert(err.responseText || 'Request Failed');
+			}
+		},
+		(err) => {
+			console.error(err);
 			// stop the request
 			vikWpStopValidation();
-			alert(res.replace("e4j.error.", ""));
-			return;
+			// display error
+			alert(err.responseText || 'Request Failed');
 		}
-		var obj_res = JSON.parse(res);
-		document.location.href = 'admin.php?option=com_vikbooking&view=getpro';
-	}).fail(function() {
-		// stop the request
-		vikWpStopValidation();
-		alert("Request Failed");
-	});
-
+	);
 }
+
 function vikWpStartValidation() {
 	vikwp_running = true;
 	jQuery('#vikwpvalidate').prepend('<?php VikBookingIcons::e('refresh', 'fa-spin'); ?>');
 }
+
 function vikWpStopValidation() {
 	vikwp_running = false;
 	jQuery('#vikwpvalidate').find('i').remove();
 }
-jQuery(document).ready(function() {
+
+jQuery(function() {
 	jQuery('.vikwp-alreadypro a').click(function(e) {
 		e.preventDefault();
 		jQuery('html,body').animate({ scrollTop: (jQuery('.vikwppro-licencecnt').offset().top - 50) }, { duration: 'fast' });

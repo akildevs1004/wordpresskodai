@@ -106,7 +106,7 @@ class VikBookingAdminWidgetVisitorsCounter extends VikBookingAdminWidget
 		?>
 		<div class="vbo-admin-widget-wrapper">
 			<div class="vbo-admin-widget-head">
-				<h4><?php VikBookingIcons::e('binoculars'); ?> <?php echo JText::translate('VBO_W_VISITCOUNT_TITLE'); ?></h4>
+				<h4><?php echo $this->widgetIcon; ?> <span><?php echo $this->widgetName; ?></span></h4>
 			</div>
 			<div id="<?php echo $wrapper_id; ?>" class="vbo-widget-visitscounter-wrap">
 				<div class="vbo-widget-visitscounter-number">
@@ -179,7 +179,7 @@ class VikBookingAdminWidgetVisitorsCounter extends VikBookingAdminWidget
 					},
 					function(response) {
 						try {
-							var obj_res = JSON.parse(response);
+							var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 							if (!obj_res.hasOwnProperty(call_method)) {
 								console.error('Unexpected JSON response', obj_res);
 								return;

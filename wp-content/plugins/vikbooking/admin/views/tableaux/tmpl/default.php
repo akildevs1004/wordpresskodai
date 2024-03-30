@@ -255,7 +255,8 @@ foreach ($months_labels as $i => $v) {
 							unset($rooms_features_map[$rid]);
 						}
 					}
-					//
+					// extra class for single-unit rooms
+					$room_extra_class = $rdata['units'] == 1 ? 'vbo-tableaux-booking-singleunit ' : '';
 					?>
 					<tr class="vbo-tableaux-roomrow">
 						<td class="vbo-tableaux-roomname" data-roomid="<?php echo $rdata['id']; ?>"><?php echo $rdata['name']; ?></td>
@@ -349,7 +350,7 @@ foreach ($months_labels as $i => $v) {
 							/**
 							 * By default, we attempt to sort the bookings for this day by room index.
 							 * 
-							 * @since 	1.3.5
+							 * @since 	1.13.5 (J) - 1.3.5 (WP)
 							 */
 							if (count($room_bookings)) {
 								$rindexes_map = array();
@@ -408,7 +409,7 @@ foreach ($months_labels as $i => $v) {
 								for ($i = 0; $i < $looplim; $i++) { 
 									$indexpos++;
 									?>
-							<div class="vbo-tableaux-booking vbo-tableaux-booking-empty">
+							<div class="<?php echo $room_extra_class; ?>vbo-tableaux-booking vbo-tableaux-booking-empty">
 								<span>&nbsp;</span>
 							</div>
 									<?php
@@ -433,6 +434,68 @@ foreach ($months_labels as $i => $v) {
 							if (!in_array($rbook['idorder'], $prevbuffer)) {
 								// first time we print the details for this booking - compose the content of the element
 								$cellcont = '';
+
+								// customer details
+								if (!empty($rbook['first_name']) || !empty($rbook['last_name'])) {
+									/**
+									 * Check if we need to display a profile picture or a channel logo.
+									 * 
+									 * @since 	1.16.0 (J) - 1.6.0 (WP)
+									 */
+									$booking_avatar_src = null;
+									$booking_avatar_alt = null;
+									if (!empty($rbook['pic'])) {
+										// customer profile picture
+										$booking_avatar_src = strpos($rbook['pic'], 'http') === 0 ? $rbook['pic'] : VBO_SITE_URI . 'resources/uploads/' . $rbook['pic'];
+										$booking_avatar_alt = basename($booking_avatar_src);
+									} elseif (!empty($rbook['channel'])) {
+										// channel logo
+										$logo_helper = VikBooking::getVcmChannelsLogo($rbook['channel'], $get_istance = true);
+										if ($logo_helper !== false) {
+											$booking_avatar_src = $logo_helper->getSmallLogoURL();
+											$booking_avatar_alt = $logo_helper->provenience;
+										}
+									}
+
+									if (!empty($booking_avatar_src)) {
+										// make sure the alt attribute is not too long in case of broken images
+										$booking_avatar_alt = !empty($booking_avatar_alt) && strlen($booking_avatar_alt) > 15 ? '...' . substr($booking_avatar_alt, -12) : $booking_avatar_alt;
+										// append booking avatar image
+										$cellcont .= '<span class="vbo-tableaux-booking-avatar"><img src="' . $booking_avatar_src . '" class="vbo-tableaux-booking-avatar-img" ' . (!empty($booking_avatar_alt) ? 'alt="' . htmlspecialchars($booking_avatar_alt) . '" ' : '') . '/></span>';
+									}
+
+									// customer record
+									$cellcont .= '<span class="vbo-tableaux-guest-name">' . $rbook['first_name'] . ' ' . $rbook['last_name'] . '</span>';
+								} else {
+									// parse the customer data string
+									$custdata_parts = explode("\n", $rbook['custdata']);
+									$enoughinfo = false;
+									if (count($custdata_parts) > 2 && strpos($custdata_parts[0], ':') !== false && strpos($custdata_parts[1], ':') !== false) {
+										// get the first two fields
+										$custvalues = array();
+										foreach ($custdata_parts as $custdet) {
+											if (strlen($custdet) < 1) {
+												continue;
+											}
+											$custdet_parts = explode(':', $custdet);
+											if (count($custdet_parts) >= 2) {
+												unset($custdet_parts[0]);
+												array_push($custvalues, trim(implode(':', $custdet_parts)));
+											}
+											if (count($custvalues) > 1) {
+												break;
+											}
+										}
+										if (count($custvalues) > 1) {
+											$enoughinfo = true;
+											$cellcont .= '<span class="vbo-tableaux-guest-name">' . implode(' ', $custvalues) . '</span>';;
+										}
+									}
+									if (!$enoughinfo) {
+										$cellcont .= '<span class="vbo-tableaux-guest-name">' . $rbook['idorder'] . '</span>';;
+									}
+								}
+
 								// distinctive features
 								if (!empty($rbook['indexes']) && isset($rooms_features_map[$rid])) {
 									$bookindexes = explode(';', $rbook['indexes']);
@@ -457,42 +520,9 @@ foreach ($months_labels as $i => $v) {
 										}
 									}
 									$nowfeatindex = isset($bookindexes[$room_pos]) ? $room_pos : null;
-									if (!is_null($room_pos) && isset($rooms_features_map[$rid][$bookindexes[$nowfeatindex]])) {
+									if (!is_null($room_pos) && isset($bookindexes[$nowfeatindex]) && isset($rooms_features_map[$rid][$bookindexes[$nowfeatindex]])) {
 										// get this room feature
 										$cellcont .= '<span class="vbo-tableaux-roomindex">' . $rooms_features_map[$rid][$bookindexes[$nowfeatindex]] . '</span> ';
-									}
-								}
-								// customer details
-								if (!empty($rbook['first_name']) || !empty($rbook['last_name'])) {
-									// customer record
-									$cellcont .= $rbook['first_name'].' '.$rbook['last_name'];
-								} else {
-									// parse the customer data string
-									$custdata_parts = explode("\n", $rbook['custdata']);
-									$enoughinfo = false;
-									if (count($custdata_parts) > 2 && strpos($custdata_parts[0], ':') !== false && strpos($custdata_parts[1], ':') !== false) {
-										// get the first two fields
-										$custvalues = array();
-										foreach ($custdata_parts as $custdet) {
-											if (strlen($custdet) < 1) {
-												continue;
-											}
-											$custdet_parts = explode(':', $custdet);
-											if (count($custdet_parts) >= 2) {
-												unset($custdet_parts[0]);
-												array_push($custvalues, trim(implode(':', $custdet_parts)));
-											}
-											if (count($custvalues) > 1) {
-												break;
-											}
-										}
-										if (count($custvalues) > 1) {
-											$enoughinfo = true;
-											$cellcont .= implode(' ', $custvalues);
-										}
-									}
-									if (!$enoughinfo) {
-										$cellcont .= $rbook['idorder'];
 									}
 								}
 
@@ -519,8 +549,14 @@ foreach ($months_labels as $i => $v) {
 									$span_styles[] = 'color: '.$colortags_map[$rbook['idorder']]['fontcolor'].';';
 								}
 							}
+
+							// try to guess if this will be the last element of the day (single-unit rooms, check-out day with wider space because of no check-ins on the same day)
+							$last_checkout_class = '';
+							if ($rdata['units'] == 1 && strpos($contclass, 'checkout') !== false && !isset($room_bookings[($k + 1)])) {
+								$last_checkout_class = 'vbo-tableaux-booking-checkout-last ';
+							}
 							?>
-							<div class="vbo-tableaux-booking vbo-tableaux-booking-<?php echo $contclass.$shortstaycls.' vbo-'.$pos; ?>"<?php echo count($cont_styles) ? ' style="'.implode('', $cont_styles).'"' : ''; ?> data-bid="<?php echo $rbook['idorder']; ?>">
+							<div class="<?php echo $room_extra_class . $last_checkout_class; ?>vbo-tableaux-booking vbo-tableaux-booking-<?php echo $contclass . $shortstaycls . ' vbo-' . $pos; ?>"<?php echo count($cont_styles) ? ' style="'.implode('', $cont_styles).'"' : ''; ?> data-bid="<?php echo $rbook['idorder']; ?>">
 								<span<?php echo count($span_styles) ? ' style="'.implode('', $span_styles).'"' : ''; ?>><?php echo $cellcont; ?></span>
 							</div>
 							<?php
@@ -723,6 +759,9 @@ $jsrooms .= "</select>";
 	</div>
 </div>
 
+<a class="vbo-basenavuri-details" href="index.php?option=com_vikbooking&task=editorder&goto=tableaux&cid[]=%d" style="display: none;"></a>
+<a class="vbo-basenavuri-edit" href="index.php?option=com_vikbooking&task=editbusy&goto=tableaux&cid[]=%d" style="display: none;"></a>
+
 <script type="text/javascript">
 var vboFests = <?php echo json_encode($this->festivities); ?>;
 var vboRdayNotes = <?php echo json_encode($this->rdaynotes); ?>;
@@ -774,7 +813,6 @@ function vboAddPermission() {
 	newperm += '	</div>';
 	newperm += '	<div class="vbo-pmsperm-entry-cont">';
 	newperm += '		<div class="vbo-pmsperm-entry-lbl"><?php echo addslashes(JText::translate('VBPEDITBUSYEXTRACOSTS')); ?></div>';
-	newperm += '		<div class="vbo-pmsperm-entry-val"><input type="checkbox" name="oper_roomextras['+opindex+']" value="1" /></div>';
 	newperm += '		<div class="vbo-pmsperm-entry-val">';
 	newperm += '			<select name="oper_roomextras['+opindex+']">';
 	newperm += '				<option value="1"><?php echo JText::translate('VBYES'); ?></option>';
@@ -832,16 +870,16 @@ function hideVboDialogRdaynotes() {
 var hovtimer;
 var hovtip = false;
 var vboMessages = {
-	"loadingTip": "<?php echo addslashes(JText::translate('VIKLOADING')); ?>",
-	"numRooms": "<?php echo addslashes(JText::translate('VBEDITORDERROOMSNUM')); ?>",
-	"numAdults": "<?php echo addslashes(JText::translate('VBEDITORDERADULTS')); ?>",
-	"numNights": "<?php echo addslashes(JText::translate('VBDAYS')); ?>",
-	"checkinLbl": "<?php echo addslashes(JText::translate('VBPICKUPAT')); ?>",
-	"checkoutLbl": "<?php echo addslashes(JText::translate('VBRELEASEAT')); ?>",
-	"numChildren": "<?php echo addslashes(JText::translate('VBEDITORDERCHILDREN')); ?>",
-	"totalAmount": "<?php echo addslashes(JText::translate('VBEDITORDERNINE')); ?>",
-	"totalPaid": "<?php echo addslashes(JText::translate('VBPEDITBUSYTOTPAID')); ?>",
-	"currencySymb": "<?php echo $currencysymb; ?>"
+	loadingTip: "<?php echo addslashes(JText::translate('VIKLOADING')); ?>",
+	numRooms: "<?php echo addslashes(JText::translate('VBEDITORDERROOMSNUM')); ?>",
+	numAdults: "<?php echo addslashes(JText::translate('VBEDITORDERADULTS')); ?>",
+	numNights: "<?php echo addslashes(JText::translate('VBDAYS')); ?>",
+	checkinLbl: "<?php echo addslashes(JText::translate('VBPICKUPAT')); ?>",
+	checkoutLbl: "<?php echo addslashes(JText::translate('VBRELEASEAT')); ?>",
+	numChildren: "<?php echo addslashes(JText::translate('VBEDITORDERCHILDREN')); ?>",
+	totalAmount: "<?php echo addslashes(JText::translate('VBEDITORDERNINE')); ?>",
+	totalPaid: "<?php echo addslashes(JText::translate('VBPEDITBUSYTOTPAID')); ?>",
+	currencySymb: "<?php echo $currencysymb; ?>"
 };
 
 function registerHoveringTooltip(that) {
@@ -909,7 +947,7 @@ function loadTooltipBookings(bid) {
 		hideVboTooltip();
 		return false;
 	}
-	//ajax request
+	// ajax request
 	var jqxhr = jQuery.ajax({
 		type: "POST",
 		url: "<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=getbookingsinfo'); ?>",
@@ -918,22 +956,21 @@ function loadTooltipBookings(bid) {
 			idorders: bid
 		}
 	}).done(function(res) {
-		if (res.indexOf('e4j.error') >= 0 ) {
-			console.log(res);
-			alert(res.replace("e4j.error.", ""));
-			//restore
-			hideVboTooltip();
-			//
-		} else {
-			var obj_res = JSON.parse(res);
+		try {
+			var obj_res = typeof res === 'string' ? JSON.parse(res) : res;
 			jQuery('.vbo-overview-tiploading').remove();
 			var container = jQuery('.vbo-overview-tipinner');
 			jQuery(obj_res).each(function(k, v) {
+				// get base navigation URIs
+				var base_uri_details = jQuery('.vbo-basenavuri-details').attr('href');
+				var base_uri_edit = jQuery('.vbo-basenavuri-edit').attr('href');
+
+				// build content
 				var bcont = "<div class=\"vbo-overview-tip-bookingcont\">";
 				bcont += "<div class=\"vbo-overview-tip-bookingcont-left\">";
-				bcont += "<div class=\"vbo-overview-tip-bid\"><span class=\"vbo-overview-tip-lbl\">ID</span><span class=\"vbo-overview-tip-cnt\">"+v.id+"</span></div>";
+				bcont += "<div class=\"vbo-overview-tip-bid\"><span class=\"vbo-overview-tip-lbl\">ID <span class=\"vbo-overview-tip-lbl-innerleft\"><a href=\"" + base_uri_edit.replace('%d', v.id) + "\" target=\"_blank\"><i class=\"<?php echo VikBookingIcons::i('edit'); ?>\"></i></a></span></span><span class=\"vbo-overview-tip-cnt\">"+v.id+"</span></div>";
 				bcont += "<div class=\"vbo-overview-tip-bstatus\"><span class=\"vbo-overview-tip-lbl\"><?php echo addslashes(JText::translate('VBPVIEWORDERSEIGHT')); ?></span><span class=\"vbo-overview-tip-cnt\"><div class=\"label "+(v.status == 'confirmed' ? 'label-success' : 'label-warning')+"\">"+v.status_lbl+"</div></span></div>";
-				bcont += "<div class=\"vbo-overview-tip-bdate\"><span class=\"vbo-overview-tip-lbl\"><?php echo addslashes(JText::translate('VBPVIEWORDERSONE')); ?></span><span class=\"vbo-overview-tip-cnt\"><a href=\"index.php?option=com_vikbooking&task=editbusy&goto=tableaux&cid[]="+v.id+"\" target=\"_blank\">"+v.ts+"</a></span></div>";
+				bcont += "<div class=\"vbo-overview-tip-bdate\"><span class=\"vbo-overview-tip-lbl\"><?php echo addslashes(JText::translate('VBPVIEWORDERSONE')); ?></span><span class=\"vbo-overview-tip-cnt\"><a href=\"" + base_uri_details.replace('%d', v.id) + "\" target=\"_blank\">"+v.ts+"</a></span></div>";
 				bcont += "</div>";
 				bcont += "<div class=\"vbo-overview-tip-bookingcont-right\">";
 				bcont += "<div class=\"vbo-overview-tip-bcustomer\"><span class=\"vbo-overview-tip-lbl\"><?php echo addslashes(JText::translate('VBOCUSTOMER')); ?></span><span class=\"vbo-overview-tip-cnt\">"+v.cinfo+"</span></div>";
@@ -969,14 +1006,20 @@ function loadTooltipBookings(bid) {
 			// adjust the position so that it won't go under other contents
 			adjustHoveringTooltip()
 			//
+		} catch(err) {
+			// restore
+			hideVboTooltip();
+			// display error
+			console.error('could not parse JSON response', err, res);
+			alert('Could not parse JSON response');
 		}
-	}).fail(function() { 
-		console.log("Request Failed");
-		//restore
+	}).fail(function(err) { 
+		// restore
 		hideVboTooltip();
-		//
+		// display error
+		console.error(err);
+		alert(err.responseText);
 	});
-	//
 }
 
 function vboSendPrintTableaux() {

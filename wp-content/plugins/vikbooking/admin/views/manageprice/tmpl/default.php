@@ -13,12 +13,14 @@ defined('ABSPATH') or die('No script kiddies please!');
 $row = $this->row;
 
 $vbo_app = VikBooking::getVboApplication();
-$dbo = JFactory::getDBO();
+$vbo_app->loadSelect2();
+
+$dbo = JFactory::getDbo();
+
 $q = "SELECT * FROM `#__vikbooking_iva`;";
 $dbo->setQuery($q);
-$dbo->execute();
-if ($dbo->getNumRows() > 0) {
-	$ivas = $dbo->loadAssocList();
+$ivas = $dbo->loadAssocList();
+if ($ivas) {
 	$wiva = "<select name=\"praliq\">\n";
 	$wiva .= "<option value=\"\">-----</option>\n";
 	foreach ($ivas as $iv) {
@@ -28,17 +30,32 @@ if ($dbo->getNumRows() > 0) {
 } else {
 	$wiva = "<a href=\"index.php?option=com_vikbooking&task=iva\">".JText::translate('NESSUNAIVA')."</a>";
 }
+
+/**
+ * Rate plans support included meal plans.
+ * 
+ * @since 	1.16.1 (J) - 1.6.1 (WP)
+ */
+$meal_plan_manager = VBOMealplanManager::getInstance();
+$meal_plans = $meal_plan_manager->getPlans();
+
 ?>
+
 <script type="text/javascript">
-function toggleFreeCancellation() {
-	if (jQuery('input[name="free_cancellation"]').is(':checked')) {
-		jQuery('#canc_deadline, #canc_policy').fadeIn();
-	} else {
-		jQuery('#canc_deadline, #canc_policy').hide();
+	function toggleFreeCancellation() {
+		if (jQuery('input[name="free_cancellation"]').is(':checked')) {
+			jQuery('#canc_deadline, #canc_policy').fadeIn();
+		} else {
+			jQuery('#canc_deadline, #canc_policy').hide();
+		}
+		return true;
 	}
-	return true;
-}
+
+	jQuery(function() {
+		jQuery('#vbo-meal-plans').select2();
+	});
 </script>
+
 <form name="adminForm" id="adminForm" action="index.php" method="post">
 	<div class="vbo-admin-container">
 		<div class="vbo-config-maintab-left">
@@ -52,7 +69,7 @@ function toggleFreeCancellation() {
 						</div>
 						<div class="vbo-param-container">
 							<div class="vbo-param-label"><?php echo $vbo_app->createPopover(array('title' => JText::translate('VBNEWPRICETWO'), 'content' => JText::translate('VBOPRICEATTRHELP'))); ?> <?php echo JText::translate('VBNEWPRICETWO'); ?></div>
-							<div class="vbo-param-setting"><input type="text" name="attr" value="<?php echo count($row) ? htmlspecialchars($row['attr']) : ''; ?>" size="40"/></div>
+							<div class="vbo-param-setting"><input type="text" name="attr" value="<?php echo count($row) ? htmlspecialchars((string)$row['attr']) : ''; ?>" size="40"/></div>
 						</div>
 						<div class="vbo-param-container">
 							<div class="vbo-param-label"><?php echo JText::translate('VBNEWPRICETHREE'); ?></div>
@@ -76,15 +93,26 @@ function toggleFreeCancellation() {
 							<div class="vbo-param-setting"><input type="number" name="minhadv" min="0" value="<?php echo count($row) ? $row['minhadv'] : '0'; ?>" /></div>
 						</div>
 						<div class="vbo-param-container">
-							<div class="vbo-param-label"><?php echo JText::translate('VBNEWPRICEBREAKFAST'); ?></div>
+							<div class="vbo-param-label"><?php echo JText::translate('VBO_MEAL_PLANS_INCL'); ?></div>
 							<div class="vbo-param-setting">
-								<?php echo $vbo_app->printYesNoButtons('breakfast_included', JText::translate('VBYES'), JText::translate('VBNO'), (count($row) && $row['breakfast_included'] == 1 ? 1 : 0), 1, 0); ?>
+								<select name="meal_plans[]" id="vbo-meal-plans" multiple="multiple">
+								<?php
+								foreach ($meal_plans as $meal_enum => $meal_name) {
+									$meal_included = false;
+									if ($row && $meal_plan_manager->ratePlanMealIncluded($row, $meal_enum)) {
+										$meal_included = true;
+									}
+									?>
+									<option value="<?php echo $meal_enum; ?>"<?php echo $meal_included ? ' selected="selected"' : ''; ?>><?php echo $meal_name; ?></option>
+									<?php
+								}
+								?>
+								</select>
 							</div>
 						</div>
 						<div class="vbo-param-container">
 							<div class="vbo-param-label"><?php echo JText::translate('VBNEWPRICEFREECANC'); ?></div>
 							<div class="vbo-param-setting">
-								
 								<?php echo $vbo_app->printYesNoButtons('free_cancellation', JText::translate('VBYES'), JText::translate('VBNO'), (count($row) && $row['free_cancellation'] == 1 ? 1 : 0), 1, 0, 'toggleFreeCancellation();'); ?>
 							</div>
 						</div>
@@ -97,7 +125,7 @@ function toggleFreeCancellation() {
 						<div class="vbo-param-container vbo-param-nested" id="canc_policy" style="display: <?php echo count($row) && $row['free_cancellation'] == 1 ? 'flex' : 'none'; ?>;">
 							<div class="vbo-param-label"><?php echo $vbo_app->createPopover(array('title' => JText::translate('VBNEWPRICECANCPOLICY'), 'content' => JText::translate('VBNEWPRICECANCPOLICYHELP'))); ?> <?php echo JText::translate('VBNEWPRICECANCPOLICY'); ?></div>
 							<div class="vbo-param-setting">
-								<textarea name="canc_policy" rows="5" cols="200" style="width: 350px; height: 130px;"><?php echo count($row) ? htmlspecialchars($row['canc_policy']) : ''; ?></textarea>
+								<textarea name="canc_policy" rows="5" cols="200" style="width: 350px; height: 130px;"><?php echo count($row) ? htmlspecialchars((string)$row['canc_policy']) : ''; ?></textarea>
 							</div>
 						</div>
 					</div>

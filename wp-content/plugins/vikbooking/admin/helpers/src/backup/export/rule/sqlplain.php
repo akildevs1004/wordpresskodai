@@ -15,8 +15,9 @@ defined('ABSPATH') or die('No script kiddies please!');
  * Plain SQL Backup export rule.
  * 
  * @since 1.5
+ * @since 1.6  The rule now directly extends `VBOBackupExportRuleSql` for a better reusability.
  */
-class VBOBackupExportRuleSqlplain extends VBOBackupExportRule
+class VBOBackupExportRuleSqlplain extends VBOBackupExportRuleSql
 {
 	/**
 	 * An array of SQL statements.
@@ -55,6 +56,19 @@ class VBOBackupExportRuleSqlplain extends VBOBackupExportRule
 	 */
 	protected function setup($data)
 	{
-		$this->queries = (array) $data;
+		// reset all the registered query
+		$this->queries = [];
+		
+		foreach ((array) $data as $query)
+		{
+			/**
+			 * Register query through the apposite helper provided by the parent class.
+			 * This way we can prevent the issue that occurs on WordPress while exporting SQL queries
+			 * without executing them, namely that a "%" is always escaped with a random hash.
+			 * 
+			 * @since 1.6
+			 */
+			$this->registerQuery($query);
+		}
 	}
 }

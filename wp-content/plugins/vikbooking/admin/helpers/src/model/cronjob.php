@@ -82,7 +82,7 @@ class VBOModelCronjob extends VBOMvcModel
 		if (isset($data['logs']))
 		{
 			// make sure the logs length does not exceed the maximum number of allowed characters (65535)
-			$data['logs'] = mb_substr($data['logs'], 0, pow(2, 16) - 1, 'UTF-8');
+			$data['logs'] = substr($data['logs'], 0, pow(2, 16) - 1);
 		}
 
 		return parent::preflight($data);

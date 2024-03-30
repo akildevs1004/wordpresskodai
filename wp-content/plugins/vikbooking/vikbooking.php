@@ -3,7 +3,7 @@
 Plugin Name:  VikBooking
 Plugin URI:   https://vikwp.com/plugin/vikbooking
 Description:  Certified Booking Engine for Hotels and Accommodations.
-Version:      1.5.11
+Version:      1.6.6
 Author:       E4J s.r.l.
 Author URI:   https://vikwp.com
 License:      GPL2
@@ -72,6 +72,9 @@ VikBookingBuilder::setupHtmlHelpers();
 VikBookingBuilder::configurePaymentFramework();
 // setup hooks to extend the backup functionalities
 VikBookingBuilder::setupBackupSystem();
+
+// setup plugin overrides management
+add_action('plugins_loaded', array('VikBookingBuilder', 'setupOverridesManager'));
 
 // setup lite system
 add_action('plugins_loaded', array('VikBookingLiteManager', 'setup'));
@@ -306,7 +309,7 @@ add_action('vikbooking_before_dispatch', function()
 
 	if ($app->isAdmin())
 	{
-		require_once VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'helper.php';
+		require_once VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'vikbooking.php';
 		require_once VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'jv_helper.php';
 	}
 	else
@@ -552,8 +555,10 @@ add_action('deleted_blog', function($blog_id, $drop)
  * or in case a user is visiting the website.
  * 
  * @since 	1.5.10  Schedules a different hook for each cron.
+ * @since 	1.6.5 	Added priority to PHP_INT_MAX - 1 to allow Vik Channel Manager
+ * 					to have all the intervals scheduled by Vik Booking.
  */
-add_action('plugins_loaded', array('VikBookingCron', 'setup'));
+add_action('plugins_loaded', array('VikBookingCron', 'setup'), (PHP_INT_MAX - 1));
 
 /**
  * Filters the action links displayed for each plugin in the Plugins list table.
@@ -602,6 +607,37 @@ add_action('vik_widget_after_dispatch_site', function($id, &$html)
 {
 	// restore standard timezone
 	date_default_timezone_set(JDate::getDefaultTimezone());	
+}, 10, 2);
+
+/**
+ * Added support for Loco Translate.
+ * In case some translations have been edited by using this plugin,
+ * we should look within the Loco Translate folder to check whether
+ * the requested translation is available.
+ *
+ * @param 	boolean  $loaded  True if the translation has been already loaded.
+ * @param 	string 	 $domain  The plugin text domain to load.
+ *
+ * @return 	boolean  True if a new translation is loaded.
+ *
+ * @since 	1.6.0
+ */
+add_filter('vik_plugin_load_language', function($loaded, $domain)
+{
+	// proceed only in case the translation hasn't been loaded
+	// and Loco Translate plugin is installed
+	if (!$loaded && is_dir(WP_LANG_DIR . DIRECTORY_SEPARATOR . 'loco'))
+	{
+		// Build LOCO path.
+		// Since load_plugin_textdomain accepts only relative paths, 
+		// we should go back to the /wp-contents/ folder first.
+		$loco = implode(DIRECTORY_SEPARATOR, array('..', 'languages', 'loco', 'plugins'));
+
+		// try to load the plugin translation from Loco folder
+		$loaded = load_plugin_textdomain($domain, false, $loco);
+	}
+
+	return $loaded;
 }, 10, 2);
 
 /**
@@ -765,16 +801,14 @@ add_filter('vikbooking_fetch_rss_channels', array('VikBookingRssFeeds', 'getChan
 add_action('vikbooking_before_use_rss', array('VikBookingRssFeeds', 'ready'));
 
 /**
- * Hook used to support browser (web push) notifications on any
- * wp-admin page that doesn't belong to Vik Booking. Note that the
- * hook should be 'admin_footer' and not 'admin_print_footer_scripts'.
+ * Hook used to support browser notifications on any /wp-admin
+ * page that doesn't belong to Vik Booking. Note that the hook
+ * should be 'admin_footer' and not 'admin_print_footer_scripts'.
  * 
  * @since 	1.5.0
  */
 add_action('admin_footer', function()
 {
-	global $pagenow;
-
 	$app   = JFactory::getApplication();
 	$input = $app->input;
 
@@ -784,6 +818,63 @@ add_action('admin_footer', function()
 		return;
 	}
 
+	/**
+	 * Let third party plugins stop Vik Booking from loading assets on other wp-admin pages.
+	 * 
+	 * @since 	1.6.1
+	 */
+	$allowed = apply_filters('vikbooking_load_external_assets', true);
+	if (!$allowed)
+	{
+		return;
+	}
+
+	// initialize timezone handler
+	JDate::getDefaultTimezone();
+	date_default_timezone_set($app->get('offset', 'UTC'));
+
 	// load the necessary assets for external pages
 	VikBookingAssets::loadForExternal();
+
+	// restore standard timezone
+	date_default_timezone_set(JDate::getDefaultTimezone());
+
+	/**
+	 * Reload system configuration scripts to allow
+	 * Vik Booking to preload texts also on VCM.
+	 * 
+	 * @since 	1.6.0
+	 */
+	JHtml::fetch('behavior.core');
 });
+
+/**
+ * Fixed issue with wptexturize() function, which might convert special characters contained
+ * within <script> tags into their corresponding HTML entities (e.g. "&" became "&#038;").
+ * 
+ * @since 	1.6.3
+ */
+add_filter('the_content', function($content)
+{
+	// look for any script tags
+	if (preg_match_all("/<script(?:.*?)>(?:.*?)<\/script>/s", $content, $matches))
+	{
+		// scan all the scripts
+		foreach ($matches[0] as $script)
+		{
+			// make sure the script contains "&#038;"
+			if (strpos($script, '&#038;') === false)
+			{
+				continue;
+			}
+
+			// fix the script by reverting the plain "&"
+			$fixedScript = str_replace('&#038;', '&', $script);
+
+			// replace the bugged script from the content with the fixed one
+			$content = str_replace($script, $fixedScript, $content);
+		}
+	}
+
+	return $content;
+}, PHP_INT_MAX);

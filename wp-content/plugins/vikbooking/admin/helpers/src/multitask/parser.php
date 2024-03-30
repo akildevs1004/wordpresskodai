@@ -14,7 +14,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 /**
  * Multitask data extraction for admin widgets.
  * 
- * @since 	1.5.0
+ * @since 	1.15.0 (J) - 1.5.0 (WP)
  */
 final class VBOMultitaskParser
 {
@@ -65,6 +65,65 @@ final class VBOMultitaskParser
 	}
 
 	/**
+	 * Those pages capable of receiving data for a clicked Push notification through
+	 * query string can use this method to quickly validate and parse the admin widget
+	 * to load and the multitask data + options to set for rendering the information.
+	 * 
+	 * @param 	array 	$data 		associative list of multitask data.
+	 * @param 	mixed 	$payload 	JSON-encoded string or decoded object payload.
+	 * 
+	 * @return 	array 				numeric list of widget ID, data and options.
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public static function queryPushData(array $data, $payload)
+	{
+		$parsed = [
+			'widget_id' 		=> '',
+			'multitask_data' 	=> $data,
+			'multitask_options' => [],
+		];
+
+		if (empty($payload)) {
+			// do not proceed
+			return array_values($parsed);
+		}
+
+		if (is_string($payload)) {
+			// attempt to JSON-decode the payload encoded string
+			$decoded_payload = json_decode($payload);
+
+			/**
+			 * Payloads may have been previously encoded in base64, which expects binary data as its input.
+			 * In case of titles or messages in the Push notification payload with multi-byte characters,
+			 * JSON-decoding the string that was base64-decoded, may result into malformed UTF-8 characters.
+			 * In this case, we will try to convert any character to ASCII by ignoring what's not UTF-8.
+			 */
+			if (json_last_error() && json_last_error() === JSON_ERROR_UTF8) {
+				// try to convert the encoding from UTF-8 to any ASCII
+				$payload = json_decode(@iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", $payload));
+			} else {
+				// assign the properly decoded value
+				$payload = $decoded_payload;
+			}
+		}
+
+		if (is_object($payload) && isset($payload->type) && (isset($payload->title) || isset($payload->message))) {
+			// determine the type of widget that should handle the notification data
+			$parsed['widget_id'] = $payload->type == 'Chat' ? 'guest_messages' : 'booking_details';
+
+			// extract and remove raw content from payload
+			$raw_content = isset($payload->content) ? (array)$payload->content : [];
+			unset($payload->content);
+
+			// build multitask options
+			$parsed['multitask_options'] = array_merge(['_push' => 1], (array)$payload, $raw_content);
+		}
+
+		return array_values($parsed);
+	}
+
+	/**
 	 * Class constructor.
 	 * 
 	 * @param 	string 	$page 	the name of the view/task.
@@ -87,8 +146,25 @@ final class VBOMultitaskParser
 	 */
 	public function getData()
 	{
+		/**
+		 * Rendering an admin widget does support injected request values.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$injected_data = JFactory::getApplication()->input->get('multitask_data', [], 'array');
+
+		// extra the options for multitask data, if any
+		$data_options = [];
+		if (isset($injected_data['_options'])) {
+			// access the options received
+			$data_options = (array)$injected_data['_options'];
+
+			// separate options layer from regular data
+			unset($injected_data['_options']);
+		}
+
 		// get a new multitask data object instance
-		$multitask_data = new VBOMultitaskData;
+		$multitask_data = new VBOMultitaskData($injected_data);
 
 		// inject current page values
 		$multitask_data->setPage($this->getPageName());
@@ -101,8 +177,27 @@ final class VBOMultitaskParser
 			$multitask_data->setBookingId($page_booking_id);
 		}
 
+		/**
+		 * Register a separate layer of data that will serve as multitask options.
+		 * 
+		 * @since 	1.16.5 (J) - 1.6.5 (WP)
+		 */
+		$multitask_data->registerDataOptions($data_options);
+
 		// return the data object for the admin widget
 		return $multitask_data;
+	}
+
+	/**
+	 * Binds data to the multitask options object and returns it.
+	 * 
+	 * @return 	VBOMultitaskOptions
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function getOptions()
+	{
+		return VBOMultitaskOptions::getInstance(JFactory::getApplication()->input->get('_options', [], 'array'));
 	}
 
 	/**

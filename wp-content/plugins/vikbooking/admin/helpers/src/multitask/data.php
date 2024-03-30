@@ -20,6 +20,13 @@ defined('ABSPATH') or die('No script kiddies please!');
 final class VBOMultitaskData extends JObject
 {
 	/**
+	 * @var 	array 	multitask data options list.
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	protected $data_options = [];
+
+	/**
 	 * Gets the current name of the view/task.
 	 * 
 	 * @return 	string
@@ -98,7 +105,13 @@ final class VBOMultitaskData extends JObject
 	 */
 	public function getBookingId()
 	{
-		return $this->get('booking_id', 0);
+		$bid = $this->get('booking_id', 0);
+
+		if ($bid) {
+			return $bid;
+		}
+
+		return $this->get('id_order', 0);
 	}
 
 	/**
@@ -113,5 +126,61 @@ final class VBOMultitaskData extends JObject
 		$this->set('booking_id', (int)$bid);
 
 		return $this;
+	}
+
+	/**
+	 * Tells whether the admin widget is being rendered within a modal.
+	 * 
+	 * @return 	bool
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function isModalRendering()
+	{
+		return (bool)$this->get('_modalRendering', false);
+	}
+
+	/**
+	 * If the admin widget is being rendered within a modal, some
+	 * additional data for the JS events may be attached to an ID.
+	 * Useful for the admin widget to clear intervals through JS.
+	 * 
+	 * @return 	string
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function getModalJsIdentifier()
+	{
+		return $this->get('_modalJsId', '');
+	}
+
+	/**
+	 * Registers custom multitask options for rendering an admin widget.
+	 * Options are usually set when rendering a widget within a modal.
+	 * 
+	 * @param 	array 	$options 	associative list of options.
+	 * 
+	 * @return 	self
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function registerDataOptions(array $options = [])
+	{
+		$this->data_options = $options;
+
+		return $this;
+	}
+
+	/**
+	 * Returns the available custom options for rendering an admin widget.
+	 * Useful to have a top-layer set of options that differs from regular data.
+	 * 
+	 * @return 	array
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function getDataOptions()
+	{
+		return $this->data_options;
 	}
 }

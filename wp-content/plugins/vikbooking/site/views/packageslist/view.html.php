@@ -67,9 +67,9 @@ class VikbookingViewPackageslist extends JViewVikBooking {
 				}
 			}
 		}
-		$this->packages = &$packages;
-		$this->navig = &$navig;
-		$this->vbo_tn = &$vbo_tn;
+		$this->packages = $packages;
+		$this->navig = $navig;
+		$this->vbo_tn = $vbo_tn;
 		//theme
 		$theme = VikBooking::getTheme();
 		if ($theme != 'default') {
@@ -82,4 +82,3 @@ class VikbookingViewPackageslist extends JViewVikBooking {
 		parent::display($tpl);
 	}
 }
-?>

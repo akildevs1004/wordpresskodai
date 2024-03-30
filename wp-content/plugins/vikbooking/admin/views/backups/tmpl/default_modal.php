@@ -146,6 +146,14 @@ defined('ABSPATH') or die('No script kiddies please!');
 			});
 		}
 
+		const openLoadingOverlay = () => {
+			$('body').append('<div class="vbo-info-overlay-block" style="display:block;"><div class="vbo-info-overlay-loading" style="display:block;"><?php VikBookingIcons::e('circle-notch', 'fa-spin fa-fw fa-3x'); ?></div></div>');
+		}
+
+		const closeLoadingOverlay = () => {
+			$('.vbo-info-overlay-block').remove();
+		}
+
 		const saveBackup = (btn) => {
 			const formData = new FormData();
 
@@ -167,6 +175,16 @@ defined('ABSPATH') or die('No script kiddies please!');
 			fileUpload(formData, (progress) => {
 				// update progress
 				progressBox.find('progress').val(progress).text(progress + '%');
+
+				if (progress >= 100) {
+					// Open loading overlay when reaching the 100% progress.
+					// In case of export, the overlay should immediately appear.
+					// In case of import, the overlay should appear after completing the upload
+					// of the backup file, meaning that the system still have to decompress the
+					// archive and perform all the registered rules. It's ok for us because the
+					// upload status is already tracked by the apposite progress bar.
+					openLoadingOverlay();
+				}
 			}).then((data) => {
 				// auto-close the modal
 				vboCloseJModal('newbackup');
@@ -176,10 +194,17 @@ defined('ABSPATH') or die('No script kiddies please!');
 					document.adminForm.submit();
 				}, 1000);
 			}).catch((error) => {
-				alert(error.responseText || 'Error');
 				$(btn).prop('disabled', false);
 
 				progressBox.css('visibility', 'hidden');
+
+				// delay alert to properly close the overlay first
+				setTimeout(() => {
+					alert(error.responseText || 'Error');
+				}, 128);
+			}).finally(() => {
+				// close overlay at the end of the process
+				closeLoadingOverlay();
 			});
 		}
 

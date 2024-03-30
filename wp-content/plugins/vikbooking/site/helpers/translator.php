@@ -10,96 +10,303 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
+/**
+ * Global translator class for VikBooking contents.
+ */
 class VikBookingTranslator
 {
-	public $current_lang = null;
-	public $default_lang = null;
-	public $lim;
-	public $lim0;
-	public $navigation;
-	public $error;
-	private $xml;
-	private $all_langs;
-	private $dbo;
-	private $translations_path_file;
-	private $translations_buffer;
+	/**
+	 * @var string
+	 */
+	public $current_lang;
 
+	/**
+	 * @var string
+	 */
+	public $default_lang;
+
+	/**
+	 * @var int
+	 */
+	public $lim = 5;
+
+	/**
+	 * @var int
+	 */
+	public $lim0 = 0;
+
+	/**
+	 * @var string
+	 */
+	public $navigation = '';
+
+	/**
+	 * @var string
+	 */
+	public $error = '';
+
+	/**
+	 * @var string
+	 */
+	private $xml = '';
+
+	/**
+	 * @var array
+	 */
+	private $all_langs = [];
+
+	/**
+	 * @var object
+	 */
+	private $dbo;
+
+	/**
+	 * @var string
+	 */
+	private $translations_path_file;
+
+	/**
+	 * @var array
+	 */
+	private $translations_buffer = [];
+
+	/**
+	 * @var 	string
+	 * 
+	 * @since 	1.16.6 (J) - 1.6.6 (WP)
+	 */
+	private $keysearch = '';
+
+	/**
+	 * @var 	array
+	 * 
+	 * @since 	1.16.6 (J) - 1.6.6 (WP)
+	 */
+	private $cached_cols = [];
+
+	/**
+	 * @var string
+	 */
 	public static $force_tolang = null;
-	
+
+	/**
+	 * Class constructor.
+	 */
 	public function __construct()
 	{
 		$app = JFactory::getApplication();
+
 		$this->current_lang = $this->getCurrentLang();
 		$this->default_lang = $this->getDefaultLang();
 		$this->lim = $app->input->getInt('limit', 5);
 		$this->lim0 = $app->input->getInt('limitstart', 0);
-		$this->navigation = '';
-		$this->error = '';
-		$this->xml = '';
-		$this->all_langs = array();
 		$this->dbo = JFactory::getDbo();
 		$this->translations_path_file = VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'fields' . DIRECTORY_SEPARATOR . 'translations.xml';
-		$this->translations_buffer = array();
 	}
-	
+
+	/**
+	 * Gets the language for the current execution.
+	 * 
+	 * @return 	string
+	 */
 	public function getCurrentLang()
 	{
-		return !is_null($this->current_lang) ? $this->current_lang : JFactory::getLanguage()->getTag();
+		if (!$this->current_lang) {
+			$this->current_lang = JFactory::getLanguage()->getTag();
+		}
+
+		return $this->current_lang;
 	}
 
+	/**
+	 * Gets the default language for the requested section.
+	 * 
+	 * @param 	string 	$section 	either site or administrator.
+	 * 
+	 * @return 	string
+	 */
 	public function getDefaultLang($section = 'site')
 	{
-		/**
-		 * @wponly 	import the JComponentHelper class
-		 */
-		jimport('joomla.application.component.helper');
+		if (VBOPlatformDetection::isWordPress()) {
+			/**
+			 * @wponly 	import the JComponentHelper class
+			 */
+			jimport('joomla.application.component.helper');
+		}
 
-		return !is_null($this->default_lang) && $section == 'site' ? $this->default_lang : JComponentHelper::getParams('com_languages')->get($section);
+		if (!$this->default_lang && $section == 'site') {
+			$this->default_lang = JComponentHelper::getParams('com_languages')->get($section);
+		}
+
+		if ($section == 'site') {
+			return $this->default_lang;
+		}
+
+		return JComponentHelper::getParams('com_languages')->get($section);
 	}
 
+	/**
+	 * Returns a list of translation INI files.
+	 * 
+	 * @return 	array
+	 */
 	public function getIniFiles()
 	{
-		//Keys = Lang Def composed as VBINIEXPL.strtoupper(Key)
-		//Values = Paths to INI Files
-		return array();
+		// Keys = Lang Def composed as VBINIEXPL.strtoupper(Key)
+		// Values = Paths to INI Files
+
+		if (VBOPlatformDetection::isWordPress()) {
+			/**
+			 * @wponly 	nothing to return
+			 */
+			return [];
+		}
+
+		return [
+			'com_vikbooking_front' 			  => ['path' => JPATH_SITE . DIRECTORY_SEPARATOR . 'language' . DIRECTORY_SEPARATOR . 'en-GB' . DIRECTORY_SEPARATOR . 'en-GB.com_vikbooking.ini'],
+			'com_vikbooking_admin' 			  => ['path' => JPATH_ADMINISTRATOR . DIRECTORY_SEPARATOR . 'language' . DIRECTORY_SEPARATOR . 'en-GB' . DIRECTORY_SEPARATOR . 'en-GB.com_vikbooking.ini'],
+			'com_vikbooking_admin_sys' 		  => ['path' => JPATH_ADMINISTRATOR . DIRECTORY_SEPARATOR . 'language' . DIRECTORY_SEPARATOR . 'en-GB' . DIRECTORY_SEPARATOR . 'en-GB.com_vikbooking.sys.ini'],
+			'mod_vikbooking_search' 		  => ['path' => JPATH_SITE . DIRECTORY_SEPARATOR . 'language' . DIRECTORY_SEPARATOR . 'en-GB' . DIRECTORY_SEPARATOR . 'en-GB.mod_vikbooking_search.ini'],
+			'mod_vikbooking_horizontalsearch' => ['path' => JPATH_SITE . DIRECTORY_SEPARATOR . 'language' . DIRECTORY_SEPARATOR . 'en-GB' . DIRECTORY_SEPARATOR . 'en-GB.mod_vikbooking_horizontalsearch.ini'],
+		];
 	}
 
+	/**
+	 * Builds a list of known languages.
+	 * 
+	 * @return 	array
+	 */
 	public function getLanguagesList()
 	{
+		$langs = [];
 		$known_langs = VikBooking::getVboApplication()->getKnownLanguages();
-		$langs = array();
+
 		foreach ($known_langs as $ltag => $ldet) {
 			if ($ltag == $this->default_lang) {
-				$langs = array($ltag => $ldet) + $langs;
+				$langs = [$ltag => $ldet] + $langs;
 			} else {
 				$langs[$ltag] = $ldet;
 			}
 		}
+
 		$this->all_langs = $langs;
+
 		return $this->all_langs;
 	}
 
+	/**
+	 * Returns a list of known language tags.
+	 * 
+	 * @return 	array
+	 */
 	public function getLanguagesTags()
 	{
 		return array_keys($this->all_langs);
 	}
 
+	/**
+	 * Replaces the prefix from a given table name.
+	 * 
+	 * @param 	string 	$str 	the prefixed name.
+	 * 
+	 * @return 	string
+	 */
 	public function replacePrefix($str)
 	{
 		return $this->dbo->replacePrefix($str);
 	}
 
+	/**
+	 * Helper method that makes sure the table name starts with the prefix placeholder.
+	 * In order to avoid issues with queries containing the prefix placeholder ("#__"),
+	 * the name of the table for the translated record is removed from the placeholder prefix.
+	 * 
+	 * @param 	string 	$table_name 	the table name to adjust.
+	 * 
+	 * @return 	string 	the adjust table name with the prefix placeholder.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function adjustTablePrefix($table_name)
+	{
+		if (empty($table_name) || !is_string($table_name)) {
+			// nothing to do with the given value
+			return $table_name;
+		}
+
+		if (preg_match("/^#__/", $table_name)) {
+			// default prefix placeholder found at the beginning of the string
+			return $table_name;
+		}
+
+		if (strpos($table_name, 'vikbooking_') === false) {
+			// nothing to do with this table name
+			return $table_name;
+		}
+
+		// make the table name start with the prefix placeholder
+		$table_nm_parts = explode('vikbooking_', $table_name);
+		$table_nm_parts[0] = '#__';
+
+		return implode('vikbooking_', $table_nm_parts);
+	}
+
+	/**
+	 * Fixer method for BC. The old structure was storing the table names for
+	 * the translated records without the default prefix placeholder ('#__'),
+	 * but this is invalid for the backup features. This method converts all
+	 * table names for the translated records so that they will contain the
+	 * default prefix placeholder at the beginning of the string.
+	 * 
+	 * @return 	boolean
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function normalizeTnTableNames()
+	{
+		$query = $this->dbo->getQuery(true);
+
+		$query->select($this->dbo->qn('t.id'));
+		$query->select($this->dbo->qn('t.table'));
+
+		$query->from($this->dbo->qn('#__vikbooking_translations', 't'));
+
+		$this->dbo->setQuery($query);
+		$translations = $this->dbo->loadObjectList();
+
+		if (!$translations) {
+			// no translation records found
+			return false;
+		}
+
+		foreach ($translations as $tn_record) {
+			// normalize table name with prefix
+			$tn_record->table = $this->adjustTablePrefix($tn_record->table);
+
+			// update record on db
+			$this->dbo->updateObject('#__vikbooking_translations', $tn_record, 'id');
+		}
+
+		return true;
+	}
+
+	/**
+	 * Builds an associative list of translation tables.
+	 * 
+	 * @return 	mixed 	array or false.
+	 */
 	public function getTranslationTables()
 	{
 		$xml = $this->getTranslationsXML();
 		if ($xml === false) {
 			return false;
 		}
-		$tables = array();
+		$tables = [];
 		foreach ($xml->Translation as $translation) {
 			$attr = $translation->attributes();
 			$tables[(string)$attr->table] = JText::translate((string)$attr->name);
 		}
+
 		return $tables;
 	}
 
@@ -125,11 +332,17 @@ class VikBookingTranslator
 	 * Returns an array with the XML Columns of the given table
 	 * 
 	 * @param 	string 	$table
+	 * 
+	 * @return 	array
 	 */
 	public function getTableColumns($table)
 	{
-		$xml = $this->getTranslationsXML();
-		$cols = array();
+		if (isset($this->cached_cols[$table])) {
+			return $this->cached_cols[$table];
+		}
+
+		$xml  = $this->getTranslationsXML();
+		$cols = [];
 		foreach ($xml->Translation as $translation) {
 			$attr = $translation->attributes();
 			if ((string)$attr->table == $table) {
@@ -146,7 +359,31 @@ class VikBookingTranslator
 				}
 			}
 		}
+
+		// cache table columns
+		$this->cached_cols[$table] = $cols;
+
 		return $cols;
+	}
+
+	/**
+	 * Gets the name of the reference column for the given table.
+	 * 
+	 * @param 	string 	$table 	the name of the table.
+	 * 
+	 * @return 	string
+	 * 
+	 * @since 	1.16.6 (J) - 1.6.6 (WP)
+	 */
+	public function getTableReferenceColumn($table)
+	{
+		foreach ($this->getTableColumns($table) as $col_name => $col_values) {
+			if (isset($col_values['reference'])) {
+				return $col_name;
+			}
+		}
+
+		return '';
 	}
 
 	/**
@@ -164,7 +401,7 @@ class VikBookingTranslator
 				}
 			}
 		}
-		//if not found, not present or empty, return first value of the record
+		// if not found, not present or empty, return first value of the record
 		return $record[key($record)];
 	}
 
@@ -172,23 +409,41 @@ class VikBookingTranslator
 	 * Returns the current records for the default language and this table
 	 * 
 	 * @param 	string 	$table 	the name of the table.
-	 * @param 	array 	$cols 	array containing the db fields to fetch, result of array_keys($this->getTableColumns()).
+	 * @param 	array 	$cols 	array containing the db fields to fetch,
+	 * 							result of array_keys($this->getTableColumns()).
+	 * 
+	 * @return 	array
 	 */
-	public function getTableDefaultDbValues($table, $cols = array())
+	public function getTableDefaultDbValues($table, $cols = [])
 	{
-		$def_vals = array();
-		if (!(count($cols) > 0)) {
+		$def_vals = [];
+
+		if (!$cols) {
 			$cols = array_keys($this->getTableColumns($table));
-			if (!(count($cols) > 0)) {
+			if (!$cols) {
 				$this->setError("Table $table has no Columns.");
 			}
 		}
-		if (count($cols) > 0) {
-			$q = "SELECT SQL_CALC_FOUND_ROWS `id`,".implode(',', $cols)." FROM ".$table." ORDER BY `".$table."`.`id` ASC";
+
+		if ($cols) {
+			$cols = array_map([$this->dbo, 'qn'], $cols);
+
+			$reference_column = $this->getTableReferenceColumn($table);
+
+			$q = $this->dbo->getQuery(true)
+				->select('SQL_CALC_FOUND_ROWS ' . $this->dbo->qn('id'))
+				->select($cols)
+				->from($this->dbo->qn($table))
+				->order($this->dbo->qn(($reference_column ?: 'id')) . ' ASC');
+
+			if (!empty($this->keysearch) && $reference_column) {
+				$q->where($this->dbo->qn($reference_column) . ' LIKE ' . $this->dbo->q("%{$this->keysearch}%"));
+			}
+
 			$this->dbo->setQuery($q, $this->lim0, $this->lim);
-			$this->dbo->execute();
-			if ($this->dbo->getNumRows() > 0) {
-				$records = $this->dbo->loadAssocList();
+			$records = $this->dbo->loadAssocList();
+
+			if ($records) {
 				$this->dbo->setQuery('SELECT FOUND_ROWS();');
 				$this->setPagination($this->dbo->loadResult());
 				foreach ($records as $record) {
@@ -197,9 +452,10 @@ class VikBookingTranslator
 					$def_vals[$ref_id] = $record;
 				}
 			} else {
-				$this->setError("Table ".$this->getTranslationTableName($table)." has no Records.");
+				$this->setError("Table " . $this->getTranslationTableName($table) . " has no Records.");
 			}
 		}
+
 		return $def_vals;
 	}
 
@@ -229,20 +485,28 @@ class VikBookingTranslator
 	 * 
 	 * @param 	string 	$table
 	 * @param 	string 	$lang
+	 * 
+	 * @return 	array
 	 */
 	public function getTranslatedTable($table, $lang)
 	{
-		$translated = array();
-		$q = "SELECT * FROM `#__vikbooking_translations` WHERE `table`=".$this->dbo->quote($this->replacePrefix($table))." AND `lang`=".$this->dbo->quote($lang)." ORDER BY `#__vikbooking_translations`.`reference_id` ASC;";
+		$translated = [];
+
+		$q = $this->dbo->getQuery(true);
+
+		$q->select($this->dbo->qn('t') . '.*')
+			->from($this->dbo->qn('#__vikbooking_translations', 't'))
+			->where($this->dbo->qn('t.table') . ' = ' . $this->dbo->q($this->adjustTablePrefix($table)))
+			->where($this->dbo->qn('t.lang') . ' = ' . $this->dbo->q($lang))
+			->order($this->dbo->qn('t.reference_id') . ' ASC');
+
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		if ($this->dbo->getNumRows() > 0) {
-			$records = $this->dbo->loadAssocList();
-			foreach ($records as $record) {
-				$record['content'] = json_decode($record['content'], true);
-				$translated[$record['reference_id']] = $record;
-			}
+
+		foreach ($this->dbo->loadAssocList() as $record) {
+			$record['content'] = json_decode($record['content'], true);
+			$translated[$record['reference_id']] = $record;
 		}
+
 		return $translated;
 	}
 
@@ -269,7 +533,7 @@ class VikBookingTranslator
 		}
 
 		// check that requested lang is not the default lang
-		if ($to_lang == $this->default_lang) {
+		if ($to_lang == $this->default_lang || !$content) {
 			return $content;
 		}
 
@@ -286,16 +550,13 @@ class VikBookingTranslator
 
 		if (!count($translated)) {
 			// load translations from db
-			$q = "SELECT * FROM `#__vikbooking_translations` WHERE `table`=".$this->dbo->quote($this->replacePrefix($table))." AND `lang`=".$this->dbo->quote($to_lang). (count($ids) > 0 ? " AND `reference_id` IN (".implode(",", $ids).")" : "") .";";
+			$q = "SELECT * FROM `#__vikbooking_translations` WHERE `table`=" . $this->dbo->quote($this->adjustTablePrefix($table)) . " AND `lang`=" . $this->dbo->quote($to_lang) . (count($ids) ? " AND `reference_id` IN (" . implode(",", $ids) . ")" : "") . ";";
 			$this->dbo->setQuery($q);
-			$this->dbo->execute();
-			if ($this->dbo->getNumRows() > 0) {
-				$records = $this->dbo->loadAssocList();
-				foreach ($records as $record) {
-					$record['content'] = json_decode($record['content'], true);
-					if (count($record['content']) > 0) {
-						$translated[$record['reference_id']] = $record['content'];
-					}
+			$records = $this->dbo->loadAssocList();
+			foreach ($records as $record) {
+				$record['content'] = json_decode($record['content'], true);
+				if (is_array($record['content']) && $record['content']) {
+					$translated[$record['reference_id']] = $record['content'];
 				}
 			}
 		}
@@ -399,9 +660,11 @@ class VikBookingTranslator
 		if (empty($reference_id)) {
 			return $content;
 		}
+
 		if (!array_key_exists($reference_id, $translated)) {
 			return $content;
 		}
+
 		foreach ($content as $key => $value) {
 			$native_key = $key;
 			if (count($alias_keys) > 0 && array_key_exists($key, $alias_keys) && $key != 'id') {
@@ -413,11 +676,11 @@ class VikBookingTranslator
 			if (array_key_exists($key, $translated[$reference_id]) && strlen($translated[$reference_id][$key]) > 0) {
 				$type = $cols[$key]['type'];
 				if ($type == 'json') {
-					//only the translated and not empty keys will be taken from the translation 
+					// only the translated and not empty keys will be taken from the translation 
 					$tn_json = json_decode($translated[$reference_id][$key], true);
 					$content_json = json_decode($value, true);
 					$jkeys = !empty($cols[$key]['keys']) ? explode(',', $cols[$key]['keys']) : array();
-					if (count($content_json) > 0 && count($tn_json) > 0) {
+					if (is_array($tn_json) && $tn_json && is_array($content_json) && $content_json) {
 						foreach ($content_json as $jk => $jv) {
 							if (array_key_exists($jk, $tn_json) && strlen($tn_json[$jk]) > 0) {
 								$content_json[$jk] = $tn_json[$jk];
@@ -426,11 +689,12 @@ class VikBookingTranslator
 						$content[$native_key] = json_encode($content_json);
 					}
 				} else {
-					//Field is a text type or a text-derived one
+					// field is a text type or a text-derived one
 					$content[$native_key] = $translated[$reference_id][$key];
 				}
 			}
 		}
+
 		return $content;
 	}
 
@@ -439,8 +703,8 @@ class VikBookingTranslator
 	 */
 	public function getTranslationsXML()
 	{
-		if (!file_exists($this->translations_path_file)) {
-			$this->setError($this->translations_path_file.' does not exist or is not readable');
+		if (!is_file($this->translations_path_file)) {
+			$this->setError($this->translations_path_file . ' does not exist or is not readable');
 			return false;
 		}
 		if (!function_exists('simplexml_load_file')) {
@@ -459,12 +723,14 @@ class VikBookingTranslator
 		return $xml;
 	}
 
-	private function allowMultiLanguage($skipsession = false)
+	/**
+	 * Tells if the multi-language environment is enabled.
+	 * 
+	 * @return 	bool
+	 */
+	private function allowMultiLanguage()
 	{
-		if (!class_exists('VikBooking')) {
-			require_once(VBO_SITE_PATH . DS . "helpers" . DS ."lib.vikbooking.php");
-		}
-		return VikBooking::allowMultiLanguage($skipsession);
+		return VikBooking::allowMultiLanguage();
 	}
 
 	/**
@@ -508,14 +774,39 @@ class VikBookingTranslator
 		return $errorstr;
 	}
 
+	/**
+	 * Concatenates an error to the errors string.
+	 * 
+	 * @param 	string 	$str 	the error string to add.
+	 * 
+	 * @return 	void
+	 */
 	private function setError($str)
 	{
 		$this->error .= $str."\n";
 	}
 
+	/**
+	 * Returns the current error string in HTML format.
+	 * 
+	 * @return 	string
+	 */
 	public function getError()
 	{
 		return nl2br(rtrim($this->error, "\n"));
 	}
-	
+
+	/**
+	 * Sets a key value to search/filter translations for.
+	 * 
+	 * @param 	string 	$key 	the term to search/filter.
+	 * 
+	 * @return 	self
+	 */
+	public function setKeySearch($key)
+	{
+		$this->keysearch = (string) $key;
+
+		return $this;
+	}
 }

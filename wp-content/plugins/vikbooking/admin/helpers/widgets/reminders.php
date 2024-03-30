@@ -33,6 +33,13 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 	protected $reminders_per_page = 6;
 
 	/**
+	 * Tells whether VCM is installed.
+	 * 
+	 * @var 	bool
+	 */
+	protected $vcm_exists = false;
+
+	/**
 	 * Class constructor will define the widget name and identifier.
 	 */
 	public function __construct()
@@ -47,6 +54,69 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 		// define widget and icon and style name
 		$this->widgetIcon = '<i class="' . VikBookingIcons::i('bell') . '"></i>';
 		$this->widgetStyleName = 'green';
+
+		// load widget's settings
+		$this->widgetSettings = $this->loadSettings();
+		if (!is_object($this->widgetSettings)) {
+			$this->widgetSettings = new stdClass;
+		}
+
+		// check if VCM is available
+		if (is_file(VCM_SITE_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'lib.vikchannelmanager.php')) {
+			$this->vcm_exists = true;
+		}
+	}
+
+	/**
+	 * This widget does not actually need to preload data to be watched for
+	 * dispatching notifications, and the reminders due are automatically
+	 * scheduled for being dispatched as a browser notification. However,
+	 * we make use of this method to periodically check if some reminders
+	 * should be automatically created for specific reasons, such as the
+	 * Airbnb host-to-guest reviews to remind the host to review the guest.
+	 * We also preload the necessary CSS/JS assets and schedule the imminent
+	 * reminders for notifications, if any.
+	 * 
+	 * @return 	void
+	 */
+	public function preload()
+	{
+		// declare JS lang vars
+		JText::script('VBO_PLEASE_FILL_FIELDS');
+		JText::script('VBDELCONFIRM');
+		JText::script('VBCONFIGCLOSINGDATEADD');
+		JText::script('VBADMINNOTESUPD');
+
+		// load assets
+		$this->vbo_app->loadDatePicker();
+
+		// check if VCM is available
+		if ($this->vcm_exists) {
+			$today_dt 	  = date('Y-m-d');
+			$yesterday_dt = date('Y-m-d', strtotime('yesterday'));
+
+			// check the last time this check was made
+			$last_check_dt = isset($this->widgetSettings->last_check_dt) ? $this->widgetSettings->last_check_dt : $yesterday_dt;
+
+			if ($last_check_dt != $today_dt) {
+				// update last check date
+				$this->widgetSettings->last_check_dt = $today_dt;
+				$this->updateSettings(json_encode($this->widgetSettings));
+
+				// check for any Channel Manager reservation that requires an auto-reminder
+				$this->scheduleChannelManagerReminders();
+			}
+		}
+
+		// load the 10 next (imminent) reminders
+		$overdue = VBORemindersHelper::getInstance()->getImminents(10);
+		if ($overdue) {
+			// schedule browser notifications for the next reminders
+			VBONotificationScheduler::getInstance()->enqueueReminders($overdue);
+		}
+
+		// nothing should be actually watched, ever
+		return null;
 	}
 
 	/**
@@ -89,18 +159,20 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 		$has_next_page = (count($reminders) >= $length);
 
 		// compose bookings base URI
-		$bookings_base_uri = 'index.php?option=com_vikbooking&task=editorder&cid[]=%d';
-		if (defined('ABSPATH')) {
-			$bookings_base_uri = str_replace('index.php', 'admin.php', $bookings_base_uri);
-		}
+		$bookings_base_uri = VBOFactory::getPlatform()->getUri()->admin('index.php?option=com_vikbooking&task=editorder&cid[]=%d', $xhtml = false);
 
 		// start output buffering
 		ob_start();
 
-		if (!count($reminders)) {
+		if (!$reminders) {
 			?>
 		<p class="info"><?php echo JText::translate('VBONORESULTS'); ?></p>
 			<?php
+		} else {
+			// update widget's settings with the lastly used filters
+			$this->widgetSettings->show_completed = $completed;
+			$this->widgetSettings->show_expired   = $expired;
+			$this->updateSettings(json_encode($this->widgetSettings));
 		}
 
 		foreach ($reminders as $reminder) {
@@ -141,6 +213,15 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 		<div class="vbo-widget-reminders-record <?php echo implode(' ', $extra_classes); ?>" data-reminderid="<?php echo $reminder->id; ?>">
 			<div class="vbo-widget-reminders-record-status">
 				<button type="button" class="vbo-reminder-status-dot" onclick="vboWidgetRemindersComplete('<?php echo $wrapper; ?>', '<?php echo $reminder->id; ?>');"><?php VikBookingIcons::e($use_icn_status); ?></button>
+			<?php
+			if ($reminder->important) {
+				?>
+				<div class="vbo-widget-reminders-record-important">
+					<?php VikBookingIcons::e('exclamation-triangle'); ?>
+				</div>
+				<?php
+			}
+			?>
 			</div>
 			<div class="vbo-widget-reminders-record-info">
 				<div class="vbo-widget-reminders-record-txt">
@@ -240,12 +321,13 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 	 */
 	public function saveReminder()
 	{
-		$title 	 = VikRequest::getString('title', '', 'request');
-		$descr 	 = VikRequest::getString('descr', '', 'request');
-		$date 	 = VikRequest::getString('date', '', 'request');
-		$hours 	 = VikRequest::getInt('hours', 0, 'request');
-		$minutes = VikRequest::getInt('minutes', 0, 'request');
-		$bid 	 = VikRequest::getInt('bid', 0, 'request');
+		$title 	   = VikRequest::getString('title', '', 'request');
+		$descr 	   = VikRequest::getString('descr', '', 'request');
+		$date 	   = VikRequest::getString('date', '', 'request');
+		$hours 	   = VikRequest::getInt('hours', 0, 'request');
+		$minutes   = VikRequest::getInt('minutes', 0, 'request');
+		$bid 	   = VikRequest::getInt('bid', 0, 'request');
+		$important = VikRequest::getInt('important', 0, 'request');
 
 		// create reminder object
 		$reminder = new stdClass;
@@ -266,12 +348,13 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 		if (!empty($bid)) {
 			$reminder->idorder = $bid;
 		}
+		$reminder->important = $important;
 
 		if (!VBORemindersHelper::getInstance()->saveReminder($reminder)) {
 			VBOHttpDocument::getInstance()->close(400, 'Could not create the reminder');
 		}
 
-		// compose the notification paylod for the newly created reminder
+		// compose the notification payload for the newly created reminder
 		$notif_data = VBONotificationScheduler::getInstance()->getReminderDataObject($reminder, $max_future_hours = 12);
 
 		return [
@@ -289,13 +372,14 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 	 */
 	public function updateReminder()
 	{
-		$rid 	 = VikRequest::getInt('rid', 0, 'request');
-		$title 	 = VikRequest::getString('title', '', 'request');
-		$descr 	 = VikRequest::getString('descr', '', 'request');
-		$date 	 = VikRequest::getString('date', '', 'request');
-		$hours 	 = VikRequest::getInt('hours', 0, 'request');
-		$minutes = VikRequest::getInt('minutes', 0, 'request');
-		$bid 	 = VikRequest::getInt('bid', 0, 'request');
+		$rid 	   = VikRequest::getInt('rid', 0, 'request');
+		$title 	   = VikRequest::getString('title', '', 'request');
+		$descr 	   = VikRequest::getString('descr', '', 'request');
+		$date 	   = VikRequest::getString('date', '', 'request');
+		$hours 	   = VikRequest::getInt('hours', 0, 'request');
+		$minutes   = VikRequest::getInt('minutes', 0, 'request');
+		$bid 	   = VikRequest::getInt('bid', 0, 'request');
+		$important = VikRequest::getInt('important', 0, 'request');
 
 		if (empty($rid)) {
 			VBOHttpDocument::getInstance()->close(400, 'Missing reminder ID to update');
@@ -400,31 +484,6 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 	}
 
 	/**
-	 * Preload the necessary CSS/JS assets and schedule
-	 * the imminent reminders for notifications, if any.
-	 * 
-	 * @return 	void
-	 */
-	public function preload()
-	{
-		// declare JS lang vars
-		JText::script('VBO_PLEASE_FILL_FIELDS');
-		JText::script('VBDELCONFIRM');
-		JText::script('VBCONFIGCLOSINGDATEADD');
-		JText::script('VBADMINNOTESUPD');
-
-		// load assets
-		$this->vbo_app->loadDatePicker();
-
-		// load the 10 next (imminent) reminders
-		$overdue = VBORemindersHelper::getInstance()->getImminents(10);
-		if (count($overdue)) {
-			// schedule browser notifications for the next reminders
-			VBONotificationScheduler::getInstance()->enqueueReminders($overdue);
-		}
-	}
-
-	/**
 	 * Main method to invoke the widget. Contents will be loaded
 	 * through AJAX requests, not via PHP when the page loads.
 	 * 
@@ -444,17 +503,60 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 		$wrapper_instance = !$is_ajax ? static::$instance_counter : rand();
 		$wrapper_id = 'vbo-widget-reminders-' . $wrapper_instance;
 
+		// default filters
+		$def_completed = 0;
+		$def_expired   = 0;
+		$def_duedate   = time();
+		$def_duehours  = -1;
+		$def_duemins   = -1;
+
 		// check multitask data
-		$page_bid = '';
-		if ($data !== null) {
+		$page_bid 	 = '';
+		$auto_action = '';
+		$js_modal_id = '';
+		if ($data) {
+			// access Multitask data
 			$page_bid = $data->getBookingID();
+			if ($data->isModalRendering()) {
+				// get modal JS identifier
+				$js_modal_id = $data->getModalJsIdentifier();
+			}
+
+			// we allow the page booking ID to be passed as an option as well
+			$page_bid = !$page_bid ? $this->options()->fetchBookingId() : $page_bid;
+
+			// check for options
+			$auto_action   = $this->getOption('action', '');
+			$def_completed = (int)$this->getOption('completed', $def_completed);
+			$def_expired   = (int)$this->getOption('expired', $def_expired);
+
+			// attempt to define values for this precise booking
+			$booking_info = $page_bid ? VikBooking::getBookingInfoFromID($page_bid) : [];
+			if ($booking_info) {
+				$def_time_info = [];
+				if ($booking_info['checkin'] > $def_duedate) {
+					$def_duedate   = $booking_info['checkin'];
+					$def_time_info = getdate($def_duedate);
+				} elseif ($booking_info['checkout'] > $def_duedate) {
+					$def_duedate   = $booking_info['checkout'];
+					$def_time_info = getdate($def_duedate);
+				}
+				if ($def_time_info) {
+					$def_duehours = (int)$def_time_info['hours'];
+					$def_duemins  = (int)$def_time_info['minutes'];
+				}
+			}
+		} else {
+			// load settings
+			$def_completed = isset($this->widgetSettings->show_completed) ? (int)$this->widgetSettings->show_completed : $def_completed;
+			$def_expired   = isset($this->widgetSettings->show_expired) ? (int)$this->widgetSettings->show_expired : $def_expired;
 		}
 
 		?>
 		<div id="<?php echo $wrapper_id; ?>" class="vbo-admin-widget-wrapper" data-instance="<?php echo $wrapper_instance; ?>" data-offset="0" data-pagebid="<?php echo $page_bid; ?>" data-length="<?php echo $this->reminders_per_page; ?>">
 			<div class="vbo-admin-widget-head">
 				<div class="vbo-admin-widget-head-inline">
-					<h4><?php echo $this->widgetIcon; ?> <?php echo $this->widgetName; ?></h4>
+					<h4><?php echo $this->widgetIcon; ?> <span><?php echo $this->widgetName; ?></span></h4>
 					<div class="vbo-admin-widget-head-commands">
 
 						<div class="vbo-reportwidget-commands">
@@ -469,12 +571,12 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 						</div>
 						<div class="vbo-reportwidget-filters">
 							<div class="vbo-reportwidget-filter">
-								<label for="show_completed-on"><?php echo JText::translate('VBO_SHOW_COMPLETED'); ?></label>
-								<?php echo $this->vbo_app->printYesNoButtons('show_completed', JText::translate('VBYES'), JText::translate('VBNO'), 0, 1, 0); ?>
+								<label for="show_completed<?php echo $wrapper_instance; ?>-on"><?php echo JText::translate('VBO_SHOW_COMPLETED'); ?></label>
+								<?php echo $this->vbo_app->printYesNoButtons('show_completed' . $wrapper_instance, JText::translate('VBYES'), JText::translate('VBNO'), $def_completed, 1, 0); ?>
 							</div>
 							<div class="vbo-reportwidget-filter">
-								<label for="show_expired-on"><?php echo JText::translate('VBO_SHOW_EXPIRED'); ?></label>
-								<?php echo $this->vbo_app->printYesNoButtons('show_expired', JText::translate('VBYES'), JText::translate('VBNO'), 0, 1, 0); ?>
+								<label for="show_expired<?php echo $wrapper_instance; ?>-on"><?php echo JText::translate('VBO_SHOW_EXPIRED'); ?></label>
+								<?php echo $this->vbo_app->printYesNoButtons('show_expired' . $wrapper_instance, JText::translate('VBYES'), JText::translate('VBNO'), $def_expired, 1, 0); ?>
 							</div>
 							<div class="vbo-reportwidget-filter vbo-reportwidget-filter-confirm">
 								<button type="button" class="btn vbo-config-btn" onclick="vboWidgetRemindersChangeParams('<?php echo $wrapper_id; ?>');"><?php echo JText::translate('VBADMINNOTESUPD'); ?></button>
@@ -499,15 +601,21 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 							<div class="vbo-widget-reminders-filter vbo-widget-reminders-filter-descr">
 								<textarea class="vbo-widget-reminders-fdescr" placeholder="<?php echo htmlspecialchars(JText::translate('VBPVIEWOPTIONALSTWO')); ?>" maxlength="2000"></textarea>
 							</div>
-							<div class="vbo-widget-reminders-filter vbo-widget-reminders-filter-booking" style="<?php echo empty($page_bid) ? 'display: none;' : ''; ?>">
-								<label for="assign_booking-on"><span class="label label-info vbo-widget-reminders-filter-booking-id"><?php echo $page_bid; ?></span> <?php echo JText::translate('VBO_ASSIGN_TO_BOOKING'); ?></label>
-								<?php echo $this->vbo_app->printYesNoButtons('assign_booking', JText::translate('VBYES'), JText::translate('VBNO'), (!empty($page_bid) ? 1 : 0), 1, 0); ?>
+							<div class="vbo-widget-reminders-filter vbo-widget-reminders-filter-booking vbo-toggle-small" style="<?php echo empty($page_bid) ? 'display: none;' : ''; ?>">
+								<span class="vbo-widget-reminders-filter-tobooking">
+									<label for="assign_booking<?php echo $wrapper_instance; ?>-on"><span class="label label-info vbo-widget-reminders-filter-booking-id"><?php echo $page_bid; ?></span> <?php echo JText::translate('VBO_ASSIGN_TO_BOOKING'); ?></label>
+									<?php echo $this->vbo_app->printYesNoButtons('assign_booking' . $wrapper_instance, JText::translate('VBYES'), JText::translate('VBNO'), (!empty($page_bid) ? 1 : 0), 1, 0); ?>
+								</span>
+								<span class="vbo-widget-reminders-filter-importance">
+									<label for="is_important<?php echo $wrapper_instance; ?>-on"><?php VikBookingIcons::e('exclamation-triangle'); ?> <?php echo JText::translate('VBO_IMPORTANT'); ?></label>
+									<?php echo $this->vbo_app->printYesNoButtons('is_important' . $wrapper_instance, JText::translate('VBYES'), JText::translate('VBNO'), 0, 1, 0); ?>
+								</span>
 							</div>
 							<div class="vbo-widget-reminders-filter-datetime">
 								<div class="vbo-widget-reminders-filter vbo-widget-reminders-filter-date">
 									<div class="vbo-field-calendar">
 										<div class="input-append">
-											<input type="text" class="vbo-reminders-dtpicker" value="<?php echo date($this->df); ?>" placeholder="<?php echo htmlspecialchars(JText::translate('VBO_REMINDER_DUE_DATE')); ?>" />
+											<input type="text" class="vbo-reminders-dtpicker" value="<?php echo date($this->df, $def_duedate); ?>" placeholder="<?php echo htmlspecialchars(JText::translate('VBO_REMINDER_DUE_DATE')); ?>" />
 											<button type="button" class="btn btn-secondary vbo-widget-reminders-caltrigger"><?php VikBookingIcons::e('calendar'); ?></button>
 										</div>
 									</div>
@@ -518,7 +626,7 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 									<?php
 									for ($i = 0; $i < 24; $i++) { 
 										?>
-										<option value="<?php echo $i; ?>"><?php echo $i < 10 ? "0{$i}" : $i; ?></option>
+										<option value="<?php echo $i; ?>"<?php echo $i == $def_duehours ? ' selected="selected"' : ''; ?>><?php echo $i < 10 ? "0{$i}" : $i; ?></option>
 										<?php
 									}
 									?>
@@ -528,7 +636,7 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 									<?php
 									for ($i = 0; $i < 60; $i++) { 
 										?>
-										<option value="<?php echo $i; ?>"><?php echo $i < 10 ? "0{$i}" : $i; ?></option>
+										<option value="<?php echo $i; ?>"<?php echo $i == $def_duemins ? ' selected="selected"' : ''; ?>><?php echo $i < 10 ? "0{$i}" : $i; ?></option>
 										<?php
 									}
 									?>
@@ -676,22 +784,26 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 				// check if we need to hide the assign-to-booking option
 				var page_bid = widget_instance.attr('data-pagebid');
 				if (page_bid.length && page_bid > 0) {
-					// show assign-to-booking option
+					// show assign-to-booking option and important reminder
 					widget_instance.find('.vbo-widget-reminders-filter-booking-id').text(page_bid);
-					widget_instance.find('input[name="assign_booking"]').prop('checked', true);
+					widget_instance.find('input[name^="assign_booking"]').prop('checked', true);
+					widget_instance.find('input[name^="is_important"]').prop('checked', false);
 					widget_instance.find('.vbo-widget-reminders-filter-booking').show();
 				} else {
-					// hide assign-to-booking option
-					widget_instance.find('input[name="assign_booking"]').prop('checked', false);
+					// hide assign-to-booking option and important reminder
+					widget_instance.find('input[name^="assign_booking"]').prop('checked', false);
+					widget_instance.find('input[name^="is_important"]').prop('checked', false);
 					widget_instance.find('.vbo-widget-reminders-filter-booking').hide();
 				}
 
 				// reset the rest of the fields in case of previous editing
-				widget_instance.find('.vbo-widget-reminders-ftitle').val('');
-				widget_instance.find('.vbo-widget-reminders-fdescr').val('');
-				widget_instance.find('.vbo-reminders-dtpicker').val('');
-				widget_instance.find('.vbo-widget-reminders-fh').val('');
-				widget_instance.find('.vbo-widget-reminders-fm').val('');
+				if (widget_instance.find('.vbo-widget-reminders-ftitle').val() || widget_instance.find('.vbo-widget-reminders-fdescr').val()) {
+					widget_instance.find('.vbo-widget-reminders-ftitle').val('');
+					widget_instance.find('.vbo-widget-reminders-fdescr').val('');
+					widget_instance.find('.vbo-reminders-dtpicker').val('');
+					widget_instance.find('.vbo-widget-reminders-fh').val('');
+					widget_instance.find('.vbo-widget-reminders-fm').val('');
+				}
 
 				// toggle edit mode
 				vboWidgetRemindersToggleManage(wrapper);
@@ -728,12 +840,19 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 				if (booking_assigned) {
 					// show assign-to-booking option
 					widget_instance.find('.vbo-widget-reminders-filter-booking-id').text(booking_assigned);
-					widget_instance.find('input[name="assign_booking"]').prop('checked', true);
+					widget_instance.find('input[name^="assign_booking"]').prop('checked', true);
 					widget_instance.find('.vbo-widget-reminders-filter-booking').show();
 				} else {
 					// hide assign-to-booking option
-					widget_instance.find('input[name="assign_booking"]').prop('checked', false);
+					widget_instance.find('input[name^="assign_booking"]').prop('checked', false);
 					widget_instance.find('.vbo-widget-reminders-filter-booking').hide();
+				}
+
+				// handle important reminder flag
+				if (booking_assigned && reminder_instance.find('.vbo-widget-reminders-record-important').length) {
+					widget_instance.find('input[name^="is_important"]').prop('checked', true);
+				} else {
+					widget_instance.find('input[name^="is_important"]').prop('checked', false);
 				}
 
 				// enter edit mode
@@ -782,7 +901,7 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 									.addClass('vbo-reminder-ok')
 									.find('.vbo-reminder-status-dot').html('<?php VikBookingIcons::e('dot-circle'); ?>');
 								// check current params
-								var show_completed = widget_instance.find('input[name="show_completed"]').prop('checked');
+								var show_completed = widget_instance.find('input[name^="show_completed"]').prop('checked');
 								if (!show_completed) {
 									reminder_instance.fadeOut();
 								}
@@ -858,6 +977,9 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 								return false;
 							}
 
+							// turn flag on
+							vbo_reminders_changed = true;
+
 							// toggle edit mode
 							vboWidgetRemindersToggleManage(wrapper);
 
@@ -904,8 +1026,8 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 				// get vars for making the request
 				var current_offset  = parseInt(widget_instance.attr('data-offset'));
 				var length_per_page = parseInt(widget_instance.attr('data-length'));
-				var show_completed = widget_instance.find('input[name="show_completed"]').prop('checked');
-				var show_expired = widget_instance.find('input[name="show_expired"]').prop('checked');
+				var show_completed = widget_instance.find('input[name^="show_completed"]').prop('checked');
+				var show_expired = widget_instance.find('input[name^="show_expired"]').prop('checked');
 				show_completed = show_completed ? 1 : 0;
 				show_expired = show_expired ? 1 : 0;
 				var page_bid = widget_instance.attr('data-pagebid');
@@ -928,7 +1050,7 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 						wrapper: wrapper,
 						tmpl: "component"
 					},
-					function(response) {
+					(response) => {
 						try {
 							var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 							if (!obj_res.hasOwnProperty(call_method)) {
@@ -956,7 +1078,7 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 							console.error('could not parse JSON response', err, response);
 						}
 					},
-					function(error) {
+					(error) => {
 						// remove the skeleton loading
 						widget_instance.find('.vbo-widget-reminders-list').find('.vbo-dashboard-guest-activity-skeleton').remove();
 						console.error(error);
@@ -1002,7 +1124,7 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 
 				// check if we are saving/updating a reminder for a booking ID
 				var r_bid = null;
-				var assign_to_bid = widget_instance.find('input[name="assign_booking"]').prop('checked');
+				var assign_to_bid = widget_instance.find('input[name^="assign_booking"]').prop('checked');
 				if (assign_to_bid) {
 					// validate the booking id depending on save/update mode
 					if (mode == 'saveReminder') {
@@ -1023,6 +1145,12 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 							}
 						}
 					}
+				}
+
+				// check importance
+				var is_important = 0;
+				if (r_bid && widget_instance.find('input[name^="is_important"]').prop('checked')) {
+					is_important = 1;
 				}
 
 				// disable save button
@@ -1046,16 +1174,21 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 						date: r_date,
 						hours: r_hours,
 						minutes: r_mins,
+						important: is_important,
 						wrapper: wrapper,
 						tmpl: "component"
 					},
-					function(response) {
+					(response) => {
 						try {
 							var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 							if (!obj_res.hasOwnProperty(call_method) || !obj_res[call_method]['status']) {
 								console.error('Unexpected or invalid JSON response', obj_res);
 								return false;
 							}
+
+							// turn flag on & store booking involved, if any
+							vbo_reminders_changed = true;
+							vbo_reminders_changed_bid = r_bid;
 
 							// toggle edit mode
 							vboWidgetRemindersToggleManage(wrapper);
@@ -1101,7 +1234,7 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 							console.error('could not parse JSON response', err, response);
 						}
 					},
-					function(error) {
+					(error) => {
 						// log the error and display the message
 						console.error(error);
 						alert(error.responseText);
@@ -1151,6 +1284,12 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 
 		<script type="text/javascript">
 
+			// keep track of any changes related to reminders
+			var vbo_reminders_changed = false;
+
+			// keep track of changes to reminders related to a bookind ID
+			var vbo_reminders_changed_bid = null;
+
 			jQuery(function() {
 
 				// render datepicker calendar
@@ -1160,7 +1299,8 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 					yearRange: "<?php echo date('Y'); ?>:<?php echo (date('Y') + 5); ?>",
 					changeMonth: true,
 					changeYear: true,
-					dateFormat: "<?php echo $this->getDateFormat('jui'); ?>"
+					dateFormat: "<?php echo $this->getDateFormat('jui'); ?>",
+					defaultDate: "<?php echo date($this->df, $def_duedate); ?>"
 				});
 
 				// triggering for datepicker calendar icons
@@ -1174,10 +1314,101 @@ class VikBookingAdminWidgetReminders extends VikBookingAdminWidget
 				// when document is ready, load reminders for this widget's instance
 				vboWidgetRemindersLoad('<?php echo $wrapper_id; ?>');
 
+				// subscribe to the multitask-panel-close event to emit the event for the reminders changed
+				document.addEventListener(VBOCore.multitask_close_event, function() {
+					if (vbo_reminders_changed) {
+						// emit the event with data for anyone who is listening to it
+						VBOCore.emitEvent('vbo_reminders_changed', {
+							bid: vbo_reminders_changed_bid
+						});
+					}
+				});
+
+			<?php
+			if ($js_modal_id) {
+				// widget can be dismissed through the modal
+				?>
+				// subscribe to the modal-dismissed event to emit the event for the reminders changed
+				document.addEventListener(VBOCore.widget_modal_dismissed + '<?php echo $js_modal_id; ?>', function() {
+					if (vbo_reminders_changed) {
+						// emit the event with data for anyone who is listening to it
+						VBOCore.emitEvent('vbo_reminders_changed', {
+							bid: vbo_reminders_changed_bid
+						});
+					}
+				});
+				<?php
+			}
+
+			if ($auto_action == 'add_new') {
+				// injected optinos require to add a new reminder
+				?>
+				setTimeout(() => {
+					vboWidgetRemindersAdd('<?php echo $wrapper_id; ?>');
+				}, 300);
+				<?php
+			}
+			?>
+
 			});
 			
 		</script>
 
 		<?php
+	}
+
+	/**
+	 * Checks if any reminders should be automatically scheduled due to
+	 * important events related to reservations downloaded through VCM.
+	 * 
+	 * @return 	int 	number of reminders that were automatically scheduled.
+	 * 
+	 * @since 	1.16.3 (J) - 1.6.3 (WP)
+	 */
+	protected function scheduleChannelManagerReminders()
+	{
+		$scheduled = 0;
+
+		if (!method_exists('VikChannelManager', 'hostToGuestReviewSupported')) {
+			// prevent server errors
+			return $scheduled;
+		}
+
+		// get the reminders helper object
+		$helper = VBORemindersHelper::getInstance();
+
+		// get a list of Airbnb reservations with a proper checkout date
+		$airbnb_checkouts = $helper->gatherAirbnbReservationsCheckedOut();
+
+		// default due-date for the newly added reminders
+		$def_due_date = date('Y-m-d H:i:s', strtotime("+1 minute"));
+
+		// default reminder payload
+		$payload = [
+			'airbnb_host_guest_review' => 1,
+		];
+
+		// parse all eligible reservations
+		foreach ($airbnb_checkouts as $airbnb_res) {
+			// make sure this airbnb reservation requires a host-to-guest review
+			if (!$helper->bookingHasReminder($airbnb_res['id'], $payload) && VikChannelManager::hostToGuestReviewSupported($airbnb_res)) {
+				// build and schedule an automatic reminder
+				$reminder = new stdClass;
+				$reminder->title 	 = JText::translate('VBO_REVIEW_YOUR_GUEST');
+				$reminder->descr 	 = 'Airbnb - ' . JText::translate('VBDASHBOOKINGID') . ' ' . $airbnb_res['id'];
+				$reminder->duedate 	 = $def_due_date;
+				$reminder->usetime 	 = 1;
+				$reminder->idorder 	 = $airbnb_res['id'];
+				$reminder->payload 	 = $payload;
+				$reminder->important = 1;
+
+				if ($helper->saveReminder($reminder)) {
+					// increase counter
+					$scheduled++;
+				}
+			}
+		}
+
+		return $scheduled;
 	}
 }

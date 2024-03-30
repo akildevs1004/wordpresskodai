@@ -10,9 +10,13 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-$mainframe = JFactory::getApplication();
-$vbo_app = new VboApplication();
+$dbo = JFactory::getDbo();
+$app = JFactory::getApplication();
+
+$vbo_app = VikBooking::getVboApplication();
 $vbo_app->loadSelect2();
+
+$config = VBOFactory::getConfig();
 
 $rows = $this->rows;
 $lim0 = $this->lim0;
@@ -20,8 +24,8 @@ $navbut = $this->navbut;
 $orderby = $this->orderby;
 $ordersort = $this->ordersort;
 
-$prname = $mainframe->getUserStateFromRequest("vbo.rooms.rname", 'rname', '', 'string');
-$pidcat = $mainframe->getUserStateFromRequest("vbo.rooms.idcat", 'idcat', 0, 'int');
+$prname = $app->getUserStateFromRequest("vbo.rooms.rname", 'rname', '', 'string');
+$pidcat = $app->getUserStateFromRequest("vbo.rooms.idcat", 'idcat', 0, 'int');
 ?>
 <div class="vbo-list-form-filters vbo-btn-toolbar">
 	<form action="index.php?option=com_vikbooking&amp;task=rooms" method="post" name="roomsform">
@@ -51,7 +55,7 @@ $pidcat = $mainframe->getUserStateFromRequest("vbo.rooms.idcat", 'idcat', 0, 'in
 	</form>
 </div>
 <script type="text/javascript">
-jQuery(document).ready(function() {
+jQuery(function() {
 	jQuery('#idcat').select2();
 });
 </script>
@@ -107,7 +111,6 @@ if (empty($rows)) {
 		</tr>
 		</thead>
 	<?php
-	$dbo = JFactory::getDBO();
 	$vcm_logos = VikBooking::getVcmChannelsLogo('', true);
 	$website_source_lbl = JText::translate('VBORDFROMSITE');
 	$kk = 0;
@@ -115,7 +118,7 @@ if (empty($rows)) {
 	for ($i = 0, $n = count($rows); $i < $n; $i++) {
 		$row = $rows[$i];
 		$categories = "";
-		if (strlen(trim(str_replace(";", "", $row['idcat']))) > 0) {
+		if (strlen(trim(str_replace(";", "", (string)$row['idcat']))) > 0) {
 			$cat = explode(";", $row['idcat']);
 			$catsfound = false;
 			$q = "SELECT `name` FROM `#__vikbooking_categories` WHERE ";
@@ -131,9 +134,8 @@ if (empty($rows)) {
 			$q .= ";";
 			if ($catsfound) {
 				$dbo->setQuery($q);
-				$dbo->execute();
-				if ($dbo->getNumRows() > 0) {
-					$lines = $dbo->loadAssocList();
+				$lines = $dbo->loadAssocList();
+				if ($lines) {
 					$categories = array();
 					foreach($lines as $ll) {
 						$categories[] = $ll['name'];
@@ -143,19 +145,18 @@ if (empty($rows)) {
 			}
 		}
 		
+		$caratteristiche = '<span class="label">0</span>';
 		if (!empty($row['idcarat'])) {
-			$tmpcarat=explode(";", $row['idcarat']);
-			$caratteristiche=VikBooking::totElements($tmpcarat);
-		} else {
-			$caratteristiche="";
+			$tmpcarat = explode(";", $row['idcarat']);
+			$caratteristiche = '<span class="label">' . VikBooking::totElements($tmpcarat) . '</span>';
 		}
 		
+		$optionals = '<span class="label">0</span>';
 		if (!empty($row['idopt'])) {
-			$tmpopt=explode(";", $row['idopt']);
-			$optionals=VikBooking::totElements($tmpopt);
-		} else {
-			$optionals="";
+			$tmpopt = explode(";", $row['idopt']);
+			$optionals = '<span class="label">' . VikBooking::totElements($tmpopt) . '</span>';
 		}
+
 		if ($row['fromadult'] == $row['toadult']) {
 			$stradult = $row['fromadult'];
 		} else {
@@ -170,9 +171,9 @@ if (empty($rows)) {
 		// shared calendar icon
 		$sharedcal = '';
 		if (!empty($row['sharedcals'])) {
-			$sharedcal = '<span class="vbo-room-sharedcalendar" title="' . addslashes(JText::translate('VBOROOMCALENDARSHARED')) . '"><i class="' . VikBookingIcons::i('calendar-check') . '"></i></span> ';
+			$sharedcal = '<span class="vbo-room-sharedcalendar" title="' . $this->escape(JText::translate('VBOROOMCALENDARSHARED')) . '"><i class="' . VikBookingIcons::i('calendar-check') . '"></i></span> ';
 		}
-		
+
 		// VCM room's channels mapped
 		$website_source_lbl_short = substr($website_source_lbl, 0, 1);
 		if (function_exists('mb_substr')) {
@@ -182,7 +183,10 @@ if (empty($rows)) {
 		$otachannels  = is_object($vcm_logos) && method_exists($vcm_logos, 'getVboRoomLogosMapped') ? $vcm_logos->getVboRoomLogosMapped($row['id']) : array();
 		$roomchannels = count($otachannels) ? array() : $roomchannels;
 		$roomchannels = array_merge($roomchannels, $otachannels);
-		//
+
+		// room upgrade option
+		$room_upgrade_options = $config->getArray('room_upgrade_options_' . $row['id'], []);
+		$room_upgrade_enabled = (!empty($room_upgrade_options['rooms']) && $room_upgrade_options['rooms']);
 		?>
 		<tr class="row<?php echo $kk; ?>">
 			<td><input type="checkbox" id="cb<?php echo $i;?>" name="cid[]" value="<?php echo $row['id']; ?>" onclick="Joomla.isChecked(this.checked);"></td>
@@ -190,12 +194,17 @@ if (empty($rows)) {
 			<td class="center"><?php echo $stradult; ?></td>
 			<td class="center"><?php echo $strchild; ?></td>
 			<td class="center"><?php echo $row['mintotpeople'].' - '.$row['totpeople']; ?></td>
-			<td class="center"><?php echo $categories; ?></td>
+			<td class="center"><?php echo $categories ?: '----' ; ?></td>
 			<td class="center">
 				<?php
-				if (strpos($row['params'], 'geo":{"enabled":1') !== false) {
+				if (strpos((string)$row['params'], 'geo":{"enabled":1') !== false) {
 					?>
 					<span class="vbo-room-sharedcalendar" title="<?php echo $this->escape(JText::translate('VBO_GEO_INFO')); ?>"><?php VikBookingIcons::e('map-marked-alt'); ?></span> 
+					<?php
+				}
+				if ($room_upgrade_enabled) {
+					?>
+					<span class="vbo-room-sharedcalendar" title="<?php echo $this->escape(JText::translate('VBO_ROOM_UPGRADE')); ?>"><?php VikBookingIcons::e('gem'); ?></span> 
 					<?php
 				}
 				echo $caratteristiche;
@@ -207,9 +216,14 @@ if (empty($rows)) {
 				<?php
 				foreach ($roomchannels as $source => $churi) {
 					$is_img = (strpos($churi, 'http') !== false);
+					// build readable channel name
+					$raw_ch_name  = $source;
+					$lower_name   = strtolower($raw_ch_name);
+					$lower_name   = preg_replace("/hotel$/", ' hotel', $lower_name);
+					$channel_name = ucwords(preg_replace("/api$/", '', $lower_name));
 					?>
-					<div class="vbo-room-channels-mapped-ch">
-						<span class="vbo-room-channels-mapped-ch-lbl" title="<?php echo ucfirst($source); ?>">
+					<div class="vbo-tooltip vbo-tooltip-top vbo-room-channels-mapped-ch" data-tooltiptext="<?php echo $this->escape($channel_name); ?>">
+						<span class="vbo-room-channels-mapped-ch-lbl">
 						<?php
 						if ($is_img) {
 							?>
@@ -228,8 +242,10 @@ if (empty($rows)) {
 				?>
 				</div>
 			</td>
-			<td class="center"><?php echo $sharedcal . $row['units']; ?></td>
-			<td class="center"><a href="index.php?option=com_vikbooking&amp;task=modavail&amp;cid[]=<?php echo $row['id']; ?>"><?php echo (intval($row['avail'])=="1" ? "<i class=\"".VikBookingIcons::i('check', 'vbo-icn-img')."\" style=\"color: #099909;\" title=\"".JText::translate('VBMAKENOTAVAIL')."\"></i>" : "<i class=\"".VikBookingIcons::i('times-circle', 'vbo-icn-img')."\" style=\"color: #ff0000;\" title=\"".JText::translate('VBMAKEAVAIL')."\"></i>"); ?></a></td>
+			<td class="center"><?php echo $sharedcal . '<span class="label label-info">' . $row['units'] . '</span>'; ?></td>
+			<td class="center">
+				<a href="<?php echo VBOFactory::getPlatform()->getUri()->addCSRF('index.php?option=com_vikbooking&task=modavail&cid[]=' . $row['id'], true); ?>"><?php echo (intval($row['avail'])=="1" ? "<i class=\"".VikBookingIcons::i('check', 'vbo-icn-img')."\" style=\"color: #099909;\" title=\"".JText::translate('VBMAKENOTAVAIL')."\"></i>" : "<i class=\"".VikBookingIcons::i('times-circle', 'vbo-icn-img')."\" style=\"color: #ff0000;\" title=\"".JText::translate('VBMAKEAVAIL')."\"></i>"); ?></a>
+			</td>
 		 </tr>
 		  <?php
 		$kk = 1 - $kk;

@@ -13,9 +13,10 @@ defined('ABSPATH') or die('No script kiddies please!');
 // import Joomla view library
 jimport('joomla.application.component.view');
 
-class VikBookingViewTableaux extends JViewVikBooking {
-	
-	function display($tpl = null) {
+class VikBookingViewTableaux extends JViewVikBooking
+{
+	public function display($tpl = null)
+	{
 		// Set the toolbar
 		$this->addToolBar();
 
@@ -82,9 +83,8 @@ class VikBookingViewTableaux extends JViewVikBooking {
 			}
 			$q = "SELECT `id`,`name`,`units`,`params` FROM `#__vikbooking_rooms` WHERE " . implode(' OR ', $clauses) . " ORDER BY `name` ASC;";
 			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows()) {
-				$catrooms = $dbo->loadAssocList();
+			$catrooms = $dbo->loadAssocList();
+			if ($catrooms) {
 				// push rooms gathered from category ID filter, if not already in filter
 				foreach ($catrooms as $catroom) {
 					if (in_array((string)$catroom['id'], $roomids) || in_array((int)$catroom['id'], $roomids)) {
@@ -101,15 +101,15 @@ class VikBookingViewTableaux extends JViewVikBooking {
 		$maxdate = 0;
 		$q = "SELECT `checkin` FROM `#__vikbooking_orders` WHERE `status`='confirmed' ORDER BY `checkin` ASC LIMIT 1;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$mindate = $dbo->loadResult();
+		$mindate = $dbo->loadResult();
+		if (!$mindate) {
+			$mindate = 0;
 		}
 		$q = "SELECT `checkout` FROM `#__vikbooking_orders` WHERE `status`='confirmed' ORDER BY `checkout` DESC LIMIT 1;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$maxdate = $dbo->loadResult();
+		$maxdate = $dbo->loadResult();
+		if (!$maxdate) {
+			$maxdate = 0;
 		}
 
 		// build months array
@@ -175,29 +175,27 @@ class VikBookingViewTableaux extends JViewVikBooking {
 
 		// get all rooms from filters
 		$rooms = array();
-		$q = "SELECT `id`,`name`,`units`,`params` FROM `#__vikbooking_rooms`".(count($roomids) ? " WHERE `id` IN (".implode(', ', $roomids).")" : "")." ORDER BY `name` ASC;";
+		$q = "SELECT `id`,`name`,`units`,`params` FROM `#__vikbooking_rooms`".($roomids ? " WHERE `id` IN (".implode(', ', $roomids).")" : "")." ORDER BY `name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows()) {
-			$all = $dbo->loadAssocList();
+		$all = $dbo->loadAssocList();
+		if ($all) {
 			foreach ($all as $r) {
 				$rooms[$r['id']] = $r;
 			}
 		}
-		if (!count($rooms)) {
+		if (!$rooms) {
 			JFactory::getApplication()->redirect('index.php?option=com_vikbooking');
 			exit;
 		}
 		// all rooms must always be taken to compose the drop down
 		$allrooms = array();
-		if (!count($roomids)) {
+		if (!$roomids) {
 			$allrooms = $rooms;
 		} else {
 			$q = "SELECT `id`,`name`,`units` FROM `#__vikbooking_rooms` ORDER BY `name` ASC;";
 			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows()) {
-				$all = $dbo->loadAssocList();
+			$all = $dbo->loadAssocList();
+			if ($all) {
 				foreach ($all as $r) {
 					$allrooms[$r['id']] = $r;
 				}
@@ -206,7 +204,7 @@ class VikBookingViewTableaux extends JViewVikBooking {
 
 		// get all occupied dates for these rooms
 		$rooms_busy = array();
-		$q = "SELECT `b`.*,`ob`.`idorder`,`o`.`custdata`,`o`.`status`,`o`.`totpaid`,`o`.`roomsnum`,`o`.`total`,`o`.`country`,`o`.`colortag`,`oc`.`idcustomer`,`c`.`first_name`,`c`.`last_name`,
+		$q = "SELECT `b`.*,`ob`.`idorder`,`o`.`custdata`,`o`.`status`,`o`.`totpaid`,`o`.`roomsnum`,`o`.`total`,`o`.`idorderota`,`o`.`channel`,`o`.`country`,`o`.`colortag`,`oc`.`idcustomer`,`c`.`first_name`,`c`.`last_name`,`c`.`pic`,
 			(SELECT GROUP_CONCAT(`or`.`roomindex` SEPARATOR ';') FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`ob`.`idorder`) AS `indexes`,
 			(SELECT GROUP_CONCAT(`or`.`idroom` SEPARATOR ';') FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`ob`.`idorder`) AS `roomids` 
 			FROM `#__vikbooking_busy` AS `b` 
@@ -217,9 +215,8 @@ class VikBookingViewTableaux extends JViewVikBooking {
 			WHERE `b`.`idroom` IN (".implode(', ', array_keys($rooms)).") AND (`b`.`checkin`>=".$fromts." OR `b`.`checkout`>=".$fromts.") AND (`b`.`checkin`<=".$tots." OR `b`.`checkout`<=".$fromts.") AND `o`.`status`='confirmed' AND `o`.`closure`=0 
 			ORDER BY `b`.`checkin` ASC, `ob`.`idorder` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows()) {
-			$busy = $dbo->loadAssocList();
+		$busy = $dbo->loadAssocList();
+		if ($busy) {
 			foreach ($busy as $b) {
 				if (!isset($rooms_busy[$b['idroom']])) {
 					$rooms_busy[$b['idroom']] = array();
@@ -254,24 +251,24 @@ class VikBookingViewTableaux extends JViewVikBooking {
 		 */
 		$q = "SELECT `id`,`name` FROM `#__vikbooking_categories` ORDER BY `#__vikbooking_categories`.`name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		$categories = $dbo->getNumRows() ? $dbo->loadAssocList() : array();
+		$categories = $dbo->loadAssocList();
+		$categories = $categories ? $categories : [];
 		
-		$this->roomids = &$roomids;
-		$this->rooms = &$rooms;
-		$this->allrooms = &$allrooms;
-		$this->categories = &$categories;
-		$this->reqcats = &$reqcats;
-		$this->mindate = &$mindate;
-		$this->maxdate = &$maxdate;
-		$this->rooms_busy = &$rooms_busy;
-		$this->months = &$months;
-		$this->fromts = &$fromts;
-		$this->tots = &$tots;
-		$this->pbmode = &$pbmode;
-		$this->festivities = &$festivities;
-		$this->rdaynotes = &$rdaynotes;
-		
+		$this->roomids = $roomids;
+		$this->rooms = $rooms;
+		$this->allrooms = $allrooms;
+		$this->categories = $categories;
+		$this->reqcats = $reqcats;
+		$this->mindate = $mindate;
+		$this->maxdate = $maxdate;
+		$this->rooms_busy = $rooms_busy;
+		$this->months = $months;
+		$this->fromts = $fromts;
+		$this->tots = $tots;
+		$this->pbmode = $pbmode;
+		$this->festivities = $festivities;
+		$this->rdaynotes = $rdaynotes;
+
 		// Display the template
 		parent::display($tpl);
 	}
@@ -279,10 +276,10 @@ class VikBookingViewTableaux extends JViewVikBooking {
 	/**
 	 * Sets the toolbar
 	 */
-	protected function addToolBar() {
+	protected function addToolBar()
+	{
 		JToolBarHelper::title(JText::translate('VBMAINTABLEAUXTITLE'), 'vikbooking');
 		JToolBarHelper::cancel( 'canceldash', JText::translate('VBBACK'));
 		JToolBarHelper::spacer();
 	}
-
 }

@@ -54,30 +54,34 @@ function vikwpStartDownload() {
 	if (vikwprunning) {
 		return;
 	}
+
+	// start progress
 	vikwprunning = true;
 	dispatchProgress();
-	
+
 	// request
-	jQuery.ajax({
-		type: "POST",
-		url: "admin.php",
-		data: {
-			option: "com_vikbooking",
-			task: "license.downloadpro",
+	VBOCore.doAjax(
+		"<?php echo VikBooking::ajaxUrl('admin.php?option=com_vikbooking&task=license.downloadpro'); ?>",
+		{
 			key: "<?php echo $lic_key; ?>"
-		}
-	}).done(function(res) {
-		if (res.indexOf('e4j.error') >= 0 || res.indexOf('e4j.OK') < 0) {
+		},
+		(res) => {
+			if (res.indexOf('e4j.error') >= 0 || res.indexOf('e4j.OK') < 0) {
+				vikwpStopMonitoring(false);
+				alert(res.replace("e4j.error.", ""));
+				return;
+			}
+			// request was successful
+			vikwpStopMonitoring(true);
+		},
+		(err) => {
+			console.error(err);
+			// stop the request
 			vikwpStopMonitoring(false);
-			alert(res.replace("e4j.error.", ""));
-			return;
+			// display error
+			alert(err.responseText || 'Request Failed');
 		}
-		// request was successful
-		vikwpStopMonitoring(true);
-	}).fail(function(e) {
-		vikwpStopMonitoring(false);
-		alert(e.responseText || "Request Failed");
-	});
+	);
 }
 
 function vikwpStopMonitoring(result) {
@@ -114,7 +118,7 @@ function dispatchProgress() {
 	}, (Math.floor(Math.random() * 501) + 750));
 }
 
-jQuery(document).ready(function() {
+jQuery(function() {
 	vikwpStartDownload();
 });
 </script>

@@ -39,7 +39,7 @@ class VikbookingViewOrderslist extends JViewVikBooking
 			}
 		}
 		$customer_details = $cpin->loadCustomerDetails();
-		$userorders = '';
+		$userorders = [];
 		$navig = '';
 		if ($islogged || count($customer_details) > 0) {
 			$currentUser = JFactory::getUser();

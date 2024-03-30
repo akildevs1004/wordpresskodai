@@ -16,7 +16,7 @@ defined('ABSPATH') or die('No script kiddies please!');
  * Extends JObject and expects to be constructed with the booking record.
  * Used to convert OTA bookings in foreign currencies into the local currency.
  * 
- * @since 	1.5.0
+ * @since 	1.15.0 (J) - 1.5.0 (WP)
  */
 class VBOCurrencyOta extends JObject
 {
@@ -32,31 +32,31 @@ class VBOCurrencyOta extends JObject
 	 * 
 	 * @var  array
 	 */
-	protected $currency_format = array();
+	protected $currency_format = [];
 
 	/**
 	 * The list of columns that can be converted for the reservation.
 	 * 
 	 * @var  array
 	 */
-	protected $convertable_res_keys = array(
+	protected $convertable_res_keys = [
 		'totpaid',
 		'total',
 		'tot_taxes',
 		'tot_city_taxes',
 		'tot_fees',
 		'cmms',
-	);
+	];
 
 	/**
 	 * The list of columns that can be converted for the rooms booked.
 	 * 
 	 * @var  array
 	 */
-	protected $convertable_room_keys = array(
+	protected $convertable_room_keys = [
 		'cust_cost',
 		'room_cost',
-	);
+	];
 
 	/**
 	 * Tells whether the injected reservation array/object
@@ -84,7 +84,7 @@ class VBOCurrencyOta extends JObject
 		$def_rate = $def_rate <= 0 ? 1 : $def_rate;
 
 		// invoke currency converter
-		$converter = new VboCurrencyConverter($ota_currency, $this->getCurrencyName(), array($def_rate), $this->getFormatData());
+		$converter = new VboCurrencyConverter($ota_currency, $this->getCurrencyName(), [$def_rate], $this->getFormatData());
 
 		// make sure the OTA currency is supported for conversion
 		if (!$converter->currencyExists($ota_currency)) {
@@ -112,7 +112,7 @@ class VBOCurrencyOta extends JObject
 		// get the default rate exchanged
 		$exchanged = $converter->convert(true);
 
-		if (!count($exchanged)) {
+		if (!is_array($exchanged) || !$exchanged) {
 			// something went wrong
 			return false;
 		}
@@ -161,7 +161,7 @@ class VBOCurrencyOta extends JObject
 		$ota_currency = strtoupper($this->get('chcurrency'));
 
 		// build the associative list of the rates to exchange for the reservation
-		$raw_rates = array();
+		$raw_rates = [];
 		foreach ($this->convertable_res_keys as $res_key) {
 			$raw_rates[$res_key] = $reservation->get($res_key, 0);
 		}
@@ -172,7 +172,7 @@ class VBOCurrencyOta extends JObject
 		// get the raw rates exchanged
 		$exchanged = $converter->convert(true);
 
-		if (!count($exchanged) || $exchanged === $raw_rates) {
+		if (!$exchanged || $exchanged === $raw_rates) {
 			// converting was not possible
 			return false;
 		}
@@ -181,7 +181,7 @@ class VBOCurrencyOta extends JObject
 		$res_record = new stdClass;
 		$res_record->id = $vbo_bid;
 		foreach ($exchanged as $key => $excrate) {
-			$res_record->$key = $excrate;
+			$res_record->{$key} = $excrate;
 		}
 		// make sure to update the original OTA currency so that 
 		// this reservation will no longer require conversion
@@ -193,14 +193,14 @@ class VBOCurrencyOta extends JObject
 		// loop through all room records
 		foreach ($reservation_rooms as $order_room) {
 			// build the list of raw rates to exchange for this room
-			$raw_rates = array();
+			$raw_rates = [];
 			foreach ($this->convertable_room_keys as $room_key) {
 				if (!isset($order_room[$room_key])) {
 					continue;
 				}
 				$raw_rates[$room_key] = $order_room[$room_key];
 			}
-			if (!count($raw_rates)) {
+			if (!$raw_rates) {
 				// all null or invalid values that do not need a conversion
 				continue;
 			}
@@ -211,7 +211,7 @@ class VBOCurrencyOta extends JObject
 			// get the raw rates exchanged
 			$exchanged = $converter->convert(true);
 
-			if (!count($exchanged) || $exchanged === $raw_rates) {
+			if (!$exchanged || $exchanged === $raw_rates) {
 				// converting did not produce results
 				continue;
 			}
@@ -220,7 +220,46 @@ class VBOCurrencyOta extends JObject
 			$room_record = new stdClass;
 			$room_record->id = $order_room['id'];
 			foreach ($exchanged as $key => $excrate) {
-				$room_record->$key = $excrate;
+				$room_record->{$key} = $excrate;
+			}
+
+			/**
+			 * We need to statically take care of another room-reservation property
+			 * which requires a JSON structure: "extracosts" for the extra services.
+			 * 
+			 * @since 	1.16.3 (J) - 1.6.3 (WP)
+			 */
+			if (!empty($order_room['extracosts'])) {
+				$room_extra_costs = is_string($order_room['extracosts']) ? json_decode($order_room['extracosts'], true) : $order_room['extracosts'];
+				if (is_array($room_extra_costs) && $room_extra_costs) {
+					// build a map for converting the extra cost amounts
+					$room_extra_costs_assoc = [];
+					foreach ($room_extra_costs as $rec_k => $room_ec) {
+						if (!is_array($room_ec) || empty($room_ec['cost'])) {
+							continue;
+						}
+						$room_extra_costs_assoc[$rec_k] = (float)$room_ec['cost'];
+					}
+
+					// check if some costs need to be converted
+					if ($room_extra_costs_assoc) {
+						// update rates to convert in converter object
+						$converter->setPrices($room_extra_costs_assoc);
+
+						// get the raw rates exchanged
+						$exchanged = $converter->convert(true);
+
+						if ($exchanged) {
+							// apply back the converted costs for the custom extras
+							foreach ($exchanged as $rec_k => $excrate) {
+								$room_extra_costs[$rec_k]['cost'] = $excrate;
+							}
+
+							// set the new object property for this room record for the update
+							$room_record->extracosts = json_encode($room_extra_costs);
+						}
+					}
+				}
 			}
 
 			// update room record with the new information

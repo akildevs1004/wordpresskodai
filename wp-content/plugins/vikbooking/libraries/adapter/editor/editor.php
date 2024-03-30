@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.editor
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -99,11 +99,25 @@ abstract class JEditor
 	 */
 	public function display($name, $html, $width, $height, $col, $row, $buttons = true, $id = null, $params = array())
 	{
+		/**
+		 * Since the Joomla `JEditor` interface supports other 2 arguments between $id and $params ($asset and $author),
+		 * we should assume that the $params array has been provided has last element whenever the total number of
+		 * received arguments is equals or higher than 9.
+		 * 
+		 * @since 10.1.48
+		 */
+		$args = func_get_args();
+
+		if (count($args) >= 9)
+		{
+			$params = end($args);
+		}
+
 		$id = preg_replace("/[^a-zA-Z0-9_]+/", '_', $id ? $id : $name);
 
 		ob_start();
 
-		$this->render($name, $html, $width, $height, $col, $row, $buttons, $id, $params);
+		$this->render($name, (string) $html, $width, $height, $col, $row, $buttons, $id, $params);
 
 		$output = ob_get_contents();
 		ob_end_clean();

@@ -25,7 +25,7 @@ final class VBORemindersHelper extends JObject
 	 * 
 	 * @return 	self
 	 */
-	public static function getInstance($data = array())
+	public static function getInstance($data = [])
 	{
 		return new static($data);
 	}
@@ -38,8 +38,12 @@ final class VBORemindersHelper extends JObject
 	 * @param 	int 	$length 	optional query limit length.
 	 * 
 	 * @return 	array 				list of record objects, if any.
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)	Query refactoring and support added
+	 * 			for reminders not yet displayed. Implemented "important" flag
+	 * 			for future usage in order to always display them until completed.
 	 */
-	public function loadReminders($fetch = [], $offset = 0, $length = 0)
+	public function loadReminders(array $fetch = [], $offset = 0, $length = 0)
 	{
 		$dbo = JFactory::getDbo();
 
@@ -48,47 +52,92 @@ final class VBORemindersHelper extends JObject
 			'after' 	=> 'NOW',
 			'before' 	=> null,
 			'idorder' 	=> 0,
+			'onlyorder' => 0,
 			'completed' => 0,
 			'expired' 	=> 0,
+			'not_shown'	=> 0,
+			'important' => 0,
+			'missed' 	=> 0,
 		];
-		if (is_array($fetch) && count($fetch)) {
-			// merge fetch params
-			$params = array_merge($params, $fetch);
-		}
+
+		// merge fetch params
+		$params = array_merge($params, $fetch);
 
 		// build query
-		$clauses = [];
-		$ordering = ["`duedate` ASC"];
-		if (empty($params['expired']) && !empty($params['after']) && is_string($params['after'])) {
-			if (!strcasecmp($params['after'], 'NOW')) {
-				$clauses[] = "`duedate` >= NOW()";
-			} else {
-				// datetime string is expected
-				$clauses[] = "`duedate` >= " . $dbo->quote($params['after']);
+		$q = $dbo->getQuery(true)
+			->select('*')
+			->from($dbo->qn('#__vikbooking_reminders'));
+
+		if ($params['missed'] && isset($params['after']) && $params['after'] != 'NOW') {
+			/**
+			 * Fetch important reminders missed (expired after a date) or any imminent one.
+			 * (
+			 * 	(`duedate` >= 'Y-m-d' AND `important` = 1)
+			 * 	OR
+			 * 	(`duedate` >= NOW() AND `important` = 0)
+			 * )
+			 */
+			$where_clause = '((%1$s >= %2$s AND %3$s = 1) OR (%1$s >= NOW() AND %3$s = 0))' . "\n";
+			$q->where(sprintf($where_clause, $dbo->qn('duedate'), $dbo->q($params['after']), $dbo->qn('important')));
+		} else {
+			// regular date intervals
+			if (!$params['expired'] && !empty($params['after']) && is_string($params['after'])) {
+				if (!strcasecmp($params['after'], 'NOW')) {
+					$q->where($dbo->qn('duedate') . ' >= NOW()');
+				} else {
+					// datetime string is expected
+					$q->where($dbo->qn('duedate') . ' >= ' . $dbo->q($params['after']));
+				}
 			}
 		}
-		if (!empty($params['before'])) {
+
+		if ($params['before']) {
 			// set clause for max future date
-			$clauses[] = "`duedate` <= " . $dbo->quote($params['before']);
-		}
-		if (empty($params['completed'])) {
-			$clauses[] = "`completed` = 0";
-		}
-		if (!empty($params['idorder'])) {
-			// exclude all reminders not for this booking
-			$params['idorder'] = (int)$params['idorder'];
-			$clauses[] = "`idorder` IN (0, {$params['idorder']})";
-			// set ordering to display reminders for this booking on top
-			array_unshift($ordering, "`idorder` DESC");
+			$q->where($dbo->qn('duedate') . ' <= ' . $dbo->q($params['before']));
 		}
 
-		$q = "SELECT * FROM `#__vikbooking_reminders`" . (count($clauses) ? ' WHERE ' . implode(' AND ', $clauses) : '') . " ORDER BY " . implode(', ', $ordering);
+		if ($params['idorder']) {
+			// exclude all reminders not for this booking
+			$res_filter = [(int)$params['idorder']];
+			if (!$params['onlyorder']) {
+				// take the ones for no bookings or for this booking only
+				array_unshift($res_filter, 0);
+			}
+			$q->where($dbo->qn('idorder') . ' IN (' . implode(', ', $res_filter) . ')');
+
+			// set ordering to display reminders for this booking on top
+			$q->order($dbo->qn('idorder') . ' DESC');
+		}
+
+		if (!$params['completed']) {
+			$q->where($dbo->qn('completed') . ' = 0');
+		}
+
+		if ($params['not_shown']) {
+			// exclude the reminders that were displayed
+			$q->where($dbo->qn('displayed') . ' = 0');
+		}
+
+		if ($params['important']) {
+			// fetch only those reminders with the "important" flag enabled
+			$q->where($dbo->qn('important') . ' = ' . (int)$params['important']);
+		}
+
+		// set general ordering
+		if ($params['expired']) {
+			// order by the time difference from now as an absolute value
+			$q->order('ABS(' . $dbo->qn('duedate') . ' - NOW()) ASC');
+		} else {
+			// due date ascending is useful when before/after date filters are given
+			$q->order($dbo->qn('duedate') . ' ASC');
+		}
+
 		$dbo->setQuery($q, $offset, $length);
-		$dbo->execute();
-		if (!$dbo->getNumRows()) {
+		$reminders = $dbo->loadObjectList();
+
+		if (!$reminders) {
 			return [];
 		}
-		$reminders = $dbo->loadObjectList();
 
 		// decode payload on all records, if needed
 		foreach ($reminders as $k => $reminder) {
@@ -101,7 +150,7 @@ final class VBORemindersHelper extends JObject
 	}
 
 	/**
-	 * Returns a list of imminent reminders.
+	 * Returns a list of imminent reminders that were not displayed yet.
 	 * 
 	 * @param 	int 	$length 	the maximum records to fetch.
 	 * 
@@ -109,16 +158,22 @@ final class VBORemindersHelper extends JObject
 	 */
 	public function getImminents($length = 10)
 	{
-		// imminents reminders are meant to not expire in more than 1 day
+		// imminent reminders are meant to not expire in more than 1 day
 		$now_info = getdate();
 		$lim_max_date = date('Y-m-d H:i:s', mktime(23, 59, 59, $now_info['mon'], ($now_info['mday'] + 1), $now_info['year']));
 
+		// we also grab what was not displayed (missed) of important within the last week
+		$lim_min_date = date('Y-m-d H:i:s', mktime(0, 0, 0, $now_info['mon'], ($now_info['mday'] - 7), $now_info['year']));
+
+		// build fetch instructions
 		$fetch = [
-			'after' 	=> 'NOW',
+			'after' 	=> $lim_min_date,
 			'before' 	=> $lim_max_date,
 			'idorder' 	=> 0,
 			'completed' => 0,
 			'expired' 	=> 0,
+			'not_shown' => 1,
+			'missed' 	=> 1,
 		];
 
 		return $this->loadReminders($fetch, 0, $length);
@@ -139,28 +194,62 @@ final class VBORemindersHelper extends JObject
 
 		$dbo = JFactory::getDbo();
 
-		$q = "SELECT * FROM `#__vikbooking_reminders` WHERE `id`=" . (int)$rid;
+		$q = $dbo->getQuery(true)
+			->select('*')
+			->from($dbo->qn('#__vikbooking_reminders'))
+			->where($dbo->qn('id') . ' = ' . (int)$rid);
+
 		$dbo->setQuery($q, 0, 1);
-		$dbo->execute();
-		if (!$dbo->getNumRows()) {
+		$reminder = $dbo->loadObject();
+
+		if (!$reminder) {
 			return null;
 		}
 
-		return $dbo->loadObject();
+		if (!empty($reminder->payload)) {
+			$reminder->payload = json_decode($reminder->payload);
+		}
+
+		return $reminder;
+	}
+
+	/**
+	 * Toggles the "displayed" property for a given reminder ID.
+	 * 
+	 * @param 	int 	$id 		the reminder record ID.
+	 * @param 	bool 	$displayed 	the status to set.
+	 * 
+	 * @return 	bool
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function setDisplayed($id, $displayed = true)
+	{
+		$record = new stdClass;
+
+		$record->id 	   = (int)$id;
+		$record->displayed = (int)$displayed;
+
+		return $this->updateReminder($record);
 	}
 
 	/**
 	 * Inserts a new reminder record object.
 	 * 
-	 * @param 	object 	&$reminder 	the record object to insert.
+	 * @param 	object 	$reminder 	the record object to insert.
 	 * 
 	 * @return 	bool
 	 */
-	public function saveReminder(&$reminder)
+	public function saveReminder($reminder)
 	{
 		if (!is_object($reminder) || !count(get_object_vars($reminder))) {
 			$this->setError('Empty or invalid argument');
 			return false;
+		}
+
+		if (!empty($reminder->payload) && !is_scalar($reminder->payload)) {
+			// make sure to JSON encode the payload property
+			$reminder->payload = json_encode($reminder->payload);
 		}
 
 		$dbo = JFactory::getDbo();
@@ -176,9 +265,9 @@ final class VBORemindersHelper extends JObject
 	}
 
 	/**
-	 * Inserts a new reminder record object.
+	 * Updates an existing reminder record object.
 	 * 
-	 * @param 	object 	$reminder 	the record object to insert.
+	 * @param 	object 	$reminder 	the record object to update.
 	 * 
 	 * @return 	bool
 	 */
@@ -194,15 +283,18 @@ final class VBORemindersHelper extends JObject
 			return false;
 		}
 
-		$dbo = JFactory::getDbo();
+		if (!empty($reminder->payload) && !is_scalar($reminder->payload)) {
+			// make sure to JSON encode the payload property
+			$reminder->payload = json_encode($reminder->payload);
+		}
 
-		$res = false;
+		$dbo = JFactory::getDbo();
 
 		try {
 			$res = $dbo->updateObject('#__vikbooking_reminders', $reminder, 'id');
 		} catch (Exception $e) {
-			// do nothing
 			$this->setError('The query to insert the record failed');
+			$res = false;
 		}
 
 		return $res;
@@ -235,7 +327,10 @@ final class VBORemindersHelper extends JObject
 
 		$dbo = JFactory::getDbo();
 
-		$q = "DELETE FROM `#__vikbooking_reminders` WHERE `id`=" . $reminder_id;
+		$q = $dbo->getQuery(true)
+			->delete($dbo->qn('#__vikbooking_reminders'))
+			->where($dbo->qn('id') . ' = ' . $reminder_id);
+
 		$dbo->setQuery($q);
 		$dbo->execute();
 
@@ -251,7 +346,10 @@ final class VBORemindersHelper extends JObject
 	{
 		$dbo = JFactory::getDbo();
 
-		$q = "DELETE FROM `#__vikbooking_reminders` WHERE `duedate` < NOW();";
+		$q = $dbo->getQuery(true)
+			->delete($dbo->qn('#__vikbooking_reminders'))
+			->where($dbo->qn('duedate') . ' < NOW()');
+
 		$dbo->setQuery($q);
 		$dbo->execute();
 
@@ -349,5 +447,76 @@ final class VBORemindersHelper extends JObject
 		}
 
 		return $diff_data;
+	}
+
+	/**
+	 * Tells whether a specific booking ID has got a reminder assigned.
+	 * 
+	 * @param 	int 	$booking_id 	the reservation ID to check.
+	 * @param 	array 	$payload 		optional payload to compare.
+	 * 
+	 * @return 	bool
+	 * 
+	 * @since 	1.16.3 (J) - 1.6.3 (WP)
+	 * @since 	1.16.5 (J) - 1.6.5 (WP) added argument $payload.
+	 */
+	public function bookingHasReminder($booking_id, array $payload = [])
+	{
+		$dbo = JFactory::getDbo();
+
+		$q = $dbo->getQuery(true);
+
+		$q->select('COUNT(1)')
+			->from($dbo->qn('#__vikbooking_reminders'))
+			->where($dbo->qn('idorder') . ' = ' . (int)$booking_id);
+
+		if ($payload) {
+			$q->where($dbo->qn('payload') . ' = ' . $dbo->q(json_encode($payload)));
+		}
+
+		$dbo->setQuery($q);
+
+		return (bool)$dbo->loadResult();
+	}
+
+	/**
+	 * Gathers a list of Airbnb reservations that may require a host-to-guest review.
+	 * 
+	 * @param 	int 	$lim_start_ts 	the checkout timestamp to use as limit.
+	 * 
+	 * @return 	array
+	 * 
+	 * @since 	1.16.3 (J) - 1.6.3 (WP)
+	 */
+	public function gatherAirbnbReservationsCheckedOut($lim_start_ts = 0)
+	{
+		if (!$lim_start_ts) {
+			// default to checkout two weeks ago
+			$lim_start_ts = strtotime("-14 days", strtotime(date('Y-m-d')));
+		}
+
+		// maximum checkout date must be 14 days ahead from checkout
+		$lim_end_ts = strtotime("+14 days", $lim_start_ts);
+
+		$dbo = JFactory::getDbo();
+
+		$q = $dbo->getQuery(true)
+			->select($dbo->qn([
+				'o.id',
+				'o.status',
+				'o.checkin',
+				'o.checkout',
+				'o.idorderota',
+				'o.channel',
+			]))
+			->from($dbo->qn('#__vikbooking_orders', 'o'))
+			->where($dbo->qn('o.status') . ' = ' . $dbo->q('confirmed'))
+			->where($dbo->qn('o.checkout') . ' >= ' . $lim_start_ts)
+			->where($dbo->qn('o.checkout') . ' <= ' . $lim_end_ts)
+			->where($dbo->qn('o.channel') . ' LIKE ' . $dbo->q('airbnbapi%'));
+
+		$dbo->setQuery($q);
+
+		return $dbo->loadAssocList();
 	}
 }

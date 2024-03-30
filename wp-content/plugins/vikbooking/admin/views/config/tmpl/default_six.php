@@ -10,7 +10,7 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-$vbo_app = new VboApplication();
+$vbo_app = VikBooking::getVboApplication();
 $vcm_installed = is_file(VCM_SITE_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'lib.vikchannelmanager.php');
 
 $gr_approval = VikBooking::guestReviewsApproval();

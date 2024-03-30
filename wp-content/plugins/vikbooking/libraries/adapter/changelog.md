@@ -1,5 +1,124 @@
 # Framework Changelog
 
+### 10.1.49
+
+*Release date - 3 November 2023*
+
+##### CHANGE
+
+* Improved the routing system to always remove the **lang** attribute from the query string.
+
+---
+
+### 10.1.48
+
+*Release date - 11 October 2023*
+
+##### ADD
+
+* Implemented `JToolbarHelper::link()` method.
+* Implemented `JPagination::getLimitBox()` method.
+* Implemented `JDocument::addHeadLink()` method.
+
+##### CHANGE
+
+* The `JPath::clean()` method now throws an `InvalidArgumentException` in case the provided path is invalid.
+* The `JHtmlBehavior::component()` method now excludes the colorpicker from being removed.
+* It is now possible to create overrides for WordPress-only views.
+
+##### BUG FIXES
+
+* The `JEditor::display()` method is now compatible with the interface used on Joomla (asset and author arguments).
+* The **CodeMirror** editor is now able to properly use the `javascript` syntax.
+
+---
+
+### 10.1.47
+
+*Release date - 4 September 2023*
+
+##### CHANGE
+
+* It is now possible to manipulate the `PHPMailer` properties through the setter magic method declared by `JMail`.
+
+---
+
+### 10.1.46
+
+*Release date - 26 July 2023*
+
+##### ADD
+
+* Added support for direct charge in payment framework.
+
+##### CHANGE
+
+* `JLanguage::attachHandler()` now accepts either file paths and `JLanguageHandler` instances.
+
+---
+
+### 10.1.45
+
+*Release date - 22 May 2023*
+
+##### BUG FIXES
+
+* Fixed notices and warnings with PHP 8.2.
+
+---
+
+### 10.1.44
+
+*Release date - 4 April 2023*
+
+##### CHANGE
+
+* The `JPagination` class constructor now accepts a prefix to differentiate different navigations within the same page.
+
+---
+
+### 10.1.43
+
+*Release date - 23 February 2023*
+
+##### CHANGE
+
+* The URL doesn't contain the locale key anymore in case the matching shortcode has been assigned to the same language.
+* The `JSessionHandler::isStarted()` method now checks whether the session status is currently active.
+
+---
+
+### 10.1.42
+
+*Release date - 30 January 2023*
+
+##### BUG FIXES
+
+* Fixed a few PHP warnings that could occur in PHP 8 or higher.
+
+---
+
+### 10.1.41
+
+*Release date - 15 November 2022*
+
+##### ADD
+
+* Implemented `JLoader::registerNamespace()` method to support PSR loading.
+* Introduced a new auto-loader to support namespaces.
+
+##### CHANGE
+
+* Moved framework auto-loader anonymous function into `JLoader::setup()` method.
+* Enhanced table fields caching system.
+
+##### BUG FIXES
+
+* `JController::display()` now configures the layout with the apposite setter instead of passing it to `JView::display()`.
+* Fixed an issue in `JView::loadTemplate()` that was not able to properly load a sub-template belonging to a specific file.
+
+---
+
 ### 10.1.40
 
 *Release date - 11 July 2022*

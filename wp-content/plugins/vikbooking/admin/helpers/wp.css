@@ -49,9 +49,6 @@ input[type="date"], input[type="datetime-local"], input[type="datetime"], input[
 .vbo-ratesoverview-entryinline .select2-container--default .select2-selection--single .select2-selection__rendered, .vbo-reports-container .select2-container--default .select2-selection--single .select2-selection__rendered {
 	line-height: 40px !important;
 }
-.vbo-allbookings-fm .vbo-btn-toolbar .btn-group.pull-right > a {
-	margin: 0 2px;
-}
 .vikwp-extra-more {
 	text-align: center;
 	margin-top: 20px;
@@ -60,8 +57,8 @@ input[type="date"], input[type="datetime-local"], input[type="datetime"], input[
 
 /*** Menu ***/
 .vbo-menu-container {
-	margin-bottom: 50px;
-	margin-top: 20px;
+	margin-bottom: 20px;
+	margin-top: 10px;
 }
 .vbo-menu-container-closer {
 	margin-bottom: 10px;
@@ -79,6 +76,7 @@ input[type=checkbox]:checked:before {
 .input-append .hasDatepicker {
 	border-top-right-radius: 0 !important;
 	border-bottom-right-radius: 0 !important;
+	border-color: var(--vbo-config-border-color);
 }
 .input-append .hasDatepicker:focus {
 	box-shadow: 0 0 0 1px transparent;
@@ -118,17 +116,6 @@ a {
 }
 select {
 	vertical-align: top;
-}
-.label-info {
-	background-color: #31708f;
-}
-.badge {
-    padding-left: 9px;
-    padding-right: 9px;
-    -webkit-border-radius: 9px;
-    -moz-border-radius: 9px;
-    border-radius: 9px;
-    background-color: #999;
 }
 .input-append, .input-prepend {
     display: inline-block;
@@ -271,39 +258,26 @@ i.wp-quest-popover:hover {
 }
 #screen-meta-links .show-settings {
 	background-color: var(--vbo-config-bg-color) !important;
-	border-color: var(--vbo-light-color-btn);
 }
-#wpbody-content #screen-meta {
+#wpbody-content #screen-meta  {
 	background-color: var(--vbo-config-bg-color);
 	border-color: var(--vbo-light-color-btn);
 }
-/*
-* Classes .label and .badge
-*/
-.label {
-	-webkit-border-radius: 3px;
-	-moz-border-radius: 3px;
-	border-radius: 3px;
+#contextual-help-back {
+	background-color: var(--vbo-light-blue);
 }
-.label, .badge {
-	display: inline-block;
-	padding: 2px 4px;
-	font-size: 10.998px;
-	font-weight: bold;
-	line-height: 14px;
-	color: #fff;
-	vertical-align: baseline;
-	white-space: nowrap;
-	background-color: #999;
+.contextual-help-tabs .active {
+	background-color: var(--vbo-basic-btn);
 }
-.label-success, .badge-success {
-	background-color: #3c763d;
+.contextual-help-tabs .active a {
+	background-color: var(--vbo-light-blue);
+	color: var(--vbo-body-text-color);
 }
-.label-warning, .badge-warning {
-	background-color: #f89406;
+.contextual-help-tabs a:hover {
+	color: var(--vbo-body-text-color);
 }
-.label-info, .badge-info {
-	background-color: #31708f;
+.contextual-help-tabs-wrap a, .contextual-help-sidebar a {
+	text-decoration: underline;
 }
 
 /* Menu links should not have any text-decoration */
@@ -315,14 +289,12 @@ i.wp-quest-popover:hover {
 /* LI tags don't need bottom margin */
 .vbo-menu-ul li {
 	margin-bottom: 0;
+	margin-top: 0;
 }
 
 /* Buttons fixes */
 .btn i[class^="icon-"] {
 	vertical-align: top;
-}
-.btn i.fas, .btn i.far {
-	margin-right: 5px;
 }
 /* Icons fixes */
 i[class^="icon-"],
@@ -416,8 +388,8 @@ i.icon-image:before {
 
 /* Buttons classes */
 .btn {
-	background-color: #f3f3f3;
-	color: #333;
+	background-color: var(--vbo-config-child-bg-color);
+	color: var(--vbo-body-text-color);
 	display: inline-block;
 	font-weight: 400;
 	text-align: center;
@@ -427,30 +399,38 @@ i.icon-image:before {
 	-moz-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
-	border: 1px solid #b3b3b3;
+	border: 1px solid var(--vbo-config-border-color);
 	padding: 10px 12px;
 	font-size: 13px;
 	line-height: 18px;
 	border-radius: 3px;
-	transition: background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 	cursor: pointer;
 }
-.btn-small {
+.btn:hover {
+	background-color: var(--vbo-basic-btn-hover);
+	border-color: var(--vbo-config-border-color);	
+}
+.btn:focus {
+	background-color: var(--vbo-basic-btn-focus);
+	border-color: var(--vbo-config-border-color);	
+}
+.btn.btn-small {
     padding: 2px 10px;
     font-size: 12px;
     -webkit-border-radius: 3px;
     -moz-border-radius: 3px;
     border-radius: 3px;
 }
-
 .btn-secondary {
 	color: var(--vbo-config-title-color);
 	background-color: var(--vbo-basic-btn);
 	border-color: var(--vbo-config-border-color);
 }
 .btn-secondary:hover {
+	color: var(--vbo-config-title-color);
 	background-color: var(--vbo-basic-btn-hover);
 }
+
 a.btn {
 	text-decoration: none;
 }
@@ -605,7 +585,7 @@ input[type="number"], #vbo-addnumnight, #vbo-numnights, #vbo-numadults, #vbo-num
 	display: block;
 	margin-bottom: 10px;
 }
-.vbo-editbooking-room-pricetypes .vbo-editbooking-room-pricetype label, .vbo-editbooking-room-options .vbo-editbooking-room-option label {
+.vbo-editbooking-room-pricetypes .vbo-editbooking-room-pricetype label, .vbo-editbooking-room-services .vbo-editbooking-room-service label {
 	display: block;
 	margin-bottom: 5px;
 }
@@ -773,9 +753,6 @@ input[type="number"], #vbo-addnumnight, #vbo-numnights, #vbo-numadults, #vbo-num
 .vbo-overview-roomunits {
 	line-height: 20px;
 }
-.vboverviewtable {
-	margin-top: 10px;
-}
 .vbo-overlay-fests-addnew .vbo-overlay-fests-addnew-elem  {
 	margin: 5px 0 8px;
 }
@@ -818,10 +795,10 @@ input[type="number"], #vbo-addnumnight, #vbo-numnights, #vbo-numadults, #vbo-num
 }
 .vbo-drivers-output table td .btn.btn-primary {
 	padding: 4px 12px;
-	border-color: #2384d3;	
+	border-color: var(--vbo-base-color);	
 }
 .vbo-drivers-output table td .btn.btn-primary:hover {
-	border-color: #004e72;
+	border-color: var(--vbo-base-color-hover);
 }
 .vbo-drivers-output table td .btn.btn-primary:active {
 	color: #fff;
@@ -835,10 +812,6 @@ input[type="number"], #vbo-addnumnight, #vbo-numnights, #vbo-numadults, #vbo-num
 /*** Popover and tooltip in Ajax Modal ***/
 .vbo-bookdet-head {
 	position: initial !important;
-}
-.vbo-bookdet-head > i.vboicn-info {
-	position: unset !important;
-	left: unset !important;
 }
 
 /*** PRO Version ***/
@@ -937,7 +910,7 @@ button.vbo-gotopro:hover {
 }
 .vikwppro-advantages-item {
     margin: 5px;
-    background: var(--vbo-main-bg-color);
+    background: var(--vbo-config-bg-color);
     padding: 20px 30px;
     text-align: center;
     font-size: 18px;
@@ -1488,6 +1461,7 @@ h1.vikwp-download-error {
 }
 .vbo-menu-updates .vbo-gotopro {
 	padding: 12px 15px;
+	line-height: initial !important;
 	border-radius: 36px;
 	width: auto;
 	height: auto;
@@ -1513,9 +1487,6 @@ h1.vikwp-download-error {
 @media screen and (max-width : 1780px) {
 	.vbo-menu-left {
 		max-width: 100px;
-	}
-	.vbo-menu-parent-li > span {
-		padding: 18px 26px 18px 13px;
 	}
 }
 @media screen and (max-width : 1670px) {
@@ -1725,3 +1696,7 @@ h1.vikwp-download-error {
 	}
 }
 
+/* fix line folding on code mirror */
+.CodeMirror-wrap pre {
+	word-break: break-all !important;
+}

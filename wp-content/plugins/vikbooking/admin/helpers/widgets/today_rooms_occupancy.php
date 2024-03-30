@@ -130,7 +130,7 @@ class VikBookingAdminWidgetTodayRoomsOccupancy extends VikBookingAdminWidget
 		?>
 <div class="vbo-admin-widget-wrapper">
 	<div class="vbo-admin-widget-head vbo-dashboard-today-occ-head">
-		<h4><?php VikBookingIcons::e('users'); ?> <?php echo JText::translate('VBDASHTODROCC'); ?></h4>
+		<h4><?php echo $this->widgetIcon; ?> <span><?php echo $this->widgetName; ?></span></h4>
 		<div class="btn-toolbar pull-right vbo-dashboard-search-today-occ">
 			<div class="btn-wrapper input-append">
 				<input type="text" class="today-search form-control" placeholder="<?php echo JText::translate('VBODASHSEARCHKEYS'); ?>">
@@ -146,12 +146,24 @@ class VikBookingAdminWidgetTodayRoomsOccupancy extends VikBookingAdminWidget
 			// skip rooms with just a closure, or with no real bookings (shared calendars)
 			continue;
 		}
+		// calculate color for percentage of occupancy
+		$tot_rooms_units = $info_rooms['all_rooms_units'][$idr];
+		$tot_rooms_units = $tot_rooms_units < 1 ? 1 : $tot_rooms_units;
+		$percentage_booked = round((100 * $rbked / $tot_rooms_units), 2);
+		$occupancy_cls = 'vbo-roomocc-units-free';
+		if ($percentage_booked > 33 && $percentage_booked <= 66) {
+			$occupancy_cls = 'vbo-roomocc-units-half';
+		} elseif ($percentage_booked > 66 && $percentage_booked < 100) {
+			$occupancy_cls = 'vbo-roomocc-units-threefourth';
+		} elseif ($percentage_booked >= 100) {
+			$occupancy_cls = 'vbo-roomocc-units-full';
+		}
 		?>
 		<div class="vbo-dashboard-today-roomocc">
 			<div class="vbo-dashboard-today-roomocc-det">
 				<h5>
 					<span class="vbo-dashboard-today-roomocc-det-rname"><?php echo $info_rooms['all_rooms_ids'][$idr]; ?></span>
-					<span class="vbo-dashboard-roomocc-units-fromto">
+					<span class="vbo-dashboard-roomocc-units-fromto <?php echo $occupancy_cls; ?>">
 						<span class="vbo-dashboard-roomocc-units-from"><?php echo $rbked; ?></span> / <span><?php echo $info_rooms['all_rooms_units'][$idr]; ?></span>
 					</span>
 				</h5>
@@ -161,7 +173,7 @@ class VikBookingAdminWidgetTodayRoomsOccupancy extends VikBookingAdminWidget
 							<tr class="vbo-dashboard-today-roomocc-firstrow">
 								<th class="left"><?php echo JText::translate('VBCUSTOMERNOMINATIVE'); ?></th>
 								<th class="center">&nbsp;</th>
-								<th class="center"><?php echo JText::translate('VBDASHUPRESFOUR'); ?></th>
+								<th class="right"><?php echo JText::translate('VBDASHUPRESFOUR'); ?></th>
 							</tr>
 							<tr class="warning no-results">
 								<td colspan="7"><i class="vboicn-warning"></i> <?php echo JText::translate('VBONORESULTS'); ?></td>
@@ -199,7 +211,18 @@ class VikBookingAdminWidgetTodayRoomsOccupancy extends VikBookingAdminWidget
 							<tr class="vbo-dashboard-today-roomocc-rows">
 								<td class="searchable left"><?php echo $country_flag.'<a href="index.php?option=com_vikbooking&task=editorder&cid[]='.$room_booking['idorder'].'" target="_blank">'.$nominative.'</a>'; ?></td>
 								<td class="searchable center"><?php echo $room_first_feature; ?></td>
-								<td class="searchable center"><?php echo date(str_replace("/", $this->datesep, $this->df).' H:i', $room_booking['checkout']).$act_status; ?></td>
+								<td class="searchable right">
+									<div class="vbo-dashboard-today-roomocc-row-checkout">
+										<span class="vbo-dashboard-today-roomocc-checkout-dt"><?php echo date(str_replace("/", $this->datesep, $this->df).' H:i', $room_booking['checkout']); ?></span>
+									<?php
+									if (!empty($act_status)) {
+										?>
+										<span class="vbo-dashboard-today-roomocc-checkout-do"><?php echo $act_status; ?></span>
+										<?php
+									}
+									?>
+									</div>
+								</td>
 							</tr>
 							<?php
 						}
@@ -216,7 +239,13 @@ class VikBookingAdminWidgetTodayRoomsOccupancy extends VikBookingAdminWidget
 </div>
 
 <script type="text/javascript">
-	jQuery(document).ready(function() {
+	jQuery(function() {
+		/* Attempt to append the modal container to the body for the multitask panel */
+		let modal_container = jQuery('[id*="vbo-checkin-booking"][class*="modal"]');
+		if (modal_container.length) {
+			modal_container.first().appendTo('body');
+		}
+
 		/* Today Search */
 		jQuery(".today-search").keyup(function () {
 			var inp_elem = jQuery(this);

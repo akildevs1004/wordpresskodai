@@ -36,8 +36,8 @@ class VboApplication extends VikApplication
 	{
 		$document = JFactory::getDocument();
 
-		if (file_exists(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'wp.css')) {
-			$document->addStyleSheet(VBO_ADMIN_URI . 'helpers/' . 'wp.css');
+		if (is_file(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'wp.css')) {
+			$document->addStyleSheet(VBO_ADMIN_URI . 'helpers/' . 'wp.css', ['version' => VIKBOOKING_SOFTWARE_VERSION], ['id' => 'vbo-wp-style']);
 		}
 	}
 
@@ -96,24 +96,45 @@ class VboApplication extends VikApplication
 		}
 
 		/**
+		 * Conditional text rules may set extra recipients or attachments.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$extra_admin_recipients = VikBooking::addAdminEmailRecipient(null);
+		$bcc_addresses 			= VikBooking::addAdminEmailRecipient(null, $bcc = true);
+		$extra_attachments 		= VikBooking::addEmailAttachment(null);
+		if ($extra_admin_recipients) {
+			// cast a possible string to array
+			$to = (array) $to;
+			// merge additional recipients
+			$to = array_merge($to, $extra_admin_recipients);
+		}
+		if ($extra_attachments) {
+			$attachment = $attachment ? (array) $attachment : [];
+			$attachment = array_merge($attachment, $extra_attachments);
+		}
+
+		/**
 		 * We let the internal library process the email sending depending on the platform.
 		 * This will allow us to perform the required manipulation of the content, if needed.
-		 * 
-		 * @deprecated  code below:
-		 * return parent::sendMail($from_address, $from_name, $to, $reply_address, $subject, $hmess, $attachment, $is_html, $encoding);
 		 * 
 		 * @since   1.15.2 (J) - 1.5.5 (WP)
 		 */
 		$mail_data = new VBOMailWrapper([
 			'sender'      => [$from_address, $from_name],
 			'recipient'   => $to,
-			'bcc'         => [],
+			'bcc'         => $bcc_addresses,
 			'reply'       => $reply_address,
 			'subject'     => $subject,
 			'content'     => $hmess,
 			'attachments' => $attachment,
 		]);
 
+		// unset queues for the next email sending operation
+		VikBooking::addAdminEmailRecipient(null, false, $reset = true);
+		VikBooking::addEmailAttachment(null, $reset = true);
+
+		// dispatch the email sending command
 		return VBOFactory::getPlatform()->getMailer()->send($mail_data);
 	}
 
@@ -198,20 +219,21 @@ class VboApplication extends VikApplication
 	}
 
 	/**
-	 * Returns the Script tag to render the Bootstrap JModal window.
+	 * Adds the script declaration to render the Bootstrap JModal window.
 	 * The suffix can be passed to generate other JS functions.
 	 * Optionally pass JavaScript code for the 'show' and 'hide' events.
-	 * Only compatible with Joomla > 3.x. jQuery must be defined.
+	 * For compatibility with the Joomla framework, this method should be
+	 * echoed although it does not return anything on WordPress.
 	 *
 	 * @param   $suffix     string
 	 * @param   $hide_js    string
 	 * @param   $show_js    string
 	 *
-	 * @return  string
+	 * @return  void 		should still be echoed for compatibility with J.
 	 */
 	public function getJmodalScript($suffix = '', $hide_js = '', $show_js = '')
 	{
-		static $loaded = array();
+		static $loaded = [];
 
 		$doc = JFactory::getDocument();
 
@@ -250,7 +272,6 @@ JS
 
 			$loaded[$suffix] = 1;
 		}
-
 	}
 
 	/**
@@ -299,10 +320,17 @@ JS
 		$vbo_df = VikBooking::getDateFormat();
 		$juidf = $vbo_df == "%d/%m/%Y" ? 'dd/mm/yy' : ($vbo_df == "%m/%d/%Y" ? 'mm/dd/yy' : 'yy/mm/dd');
 
+		$is_rtl_lan = false;
 		$is_rtl_str = 'false';
+		$day_names_min_len = 2;
 		$now_lang = JFactory::getLanguage();
 		if (method_exists($now_lang, 'isRtl')) {
-			$is_rtl_str = $now_lang->isRtl() ? 'true' : $is_rtl_str;
+			$is_rtl_lan = $now_lang->isRtl();
+			$is_rtl_str = $is_rtl_lan ? 'true' : $is_rtl_str;
+			if ($is_rtl_lan) {
+				// for most RTL languages, 2 chars for the week-days would not make sense
+				$day_names_min_len = 3;
+			}
 		}
 
 		$ldecl = '
@@ -316,7 +344,7 @@ jQuery(function($){'."\n".'
 		monthNamesShort: ["'.$this->safeSubstr(JText::translate('VBMONTHONE')).'","'.$this->safeSubstr(JText::translate('VBMONTHTWO')).'","'.$this->safeSubstr(JText::translate('VBMONTHTHREE')).'","'.$this->safeSubstr(JText::translate('VBMONTHFOUR')).'","'.$this->safeSubstr(JText::translate('VBMONTHFIVE')).'","'.$this->safeSubstr(JText::translate('VBMONTHSIX')).'","'.$this->safeSubstr(JText::translate('VBMONTHSEVEN')).'","'.$this->safeSubstr(JText::translate('VBMONTHEIGHT')).'","'.$this->safeSubstr(JText::translate('VBMONTHNINE')).'","'.$this->safeSubstr(JText::translate('VBMONTHTEN')).'","'.$this->safeSubstr(JText::translate('VBMONTHELEVEN')).'","'.$this->safeSubstr(JText::translate('VBMONTHTWELVE')).'"],'."\n".'
 		dayNames: ["'.JText::translate('VBWEEKDAYZERO').'", "'.JText::translate('VBWEEKDAYONE').'", "'.JText::translate('VBWEEKDAYTWO').'", "'.JText::translate('VBWEEKDAYTHREE').'", "'.JText::translate('VBWEEKDAYFOUR').'", "'.JText::translate('VBWEEKDAYFIVE').'", "'.JText::translate('VBWEEKDAYSIX').'"],'."\n".'
 		dayNamesShort: ["'.$this->safeSubstr(JText::translate('VBWEEKDAYZERO')).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYONE')).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYTWO')).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYTHREE')).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYFOUR')).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYFIVE')).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYSIX')).'"],'."\n".'
-		dayNamesMin: ["'.$this->safeSubstr(JText::translate('VBWEEKDAYZERO'), 2).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYONE'), 2).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYTWO'), 2).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYTHREE'), 2).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYFOUR'), 2).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYFIVE'), 2).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYSIX'), 2).'"],'."\n".'
+		dayNamesMin: ["'.$this->safeSubstr(JText::translate('VBWEEKDAYZERO'), $day_names_min_len).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYONE'), $day_names_min_len).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYTWO'), $day_names_min_len).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYTHREE'), $day_names_min_len).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYFOUR'), $day_names_min_len).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYFIVE'), $day_names_min_len).'", "'.$this->safeSubstr(JText::translate('VBWEEKDAYSIX'), $day_names_min_len).'"],'."\n".'
 		weekHeader: "'.JText::translate('VBJQCALWKHEADER').'",'."\n".'
 		dateFormat: "'.$juidf.'",'."\n".'
 		firstDay: '.VikBooking::getFirstWeekDay().','."\n".'
@@ -326,6 +354,15 @@ jQuery(function($){'."\n".'
 	};'."\n".'
 	$.datepicker.setDefaults($.datepicker.regional["vikbooking"]);'."\n".'
 });';
+
+		/**
+		 * Trigger event to allow third party plugins to overwrite the JS declaration for the datepicker.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		VBOFactory::getPlatform()->getDispatcher()->trigger('onBeforeDeclareDatepickerRegionalVikBooking', [$is_rtl_lan, $now_lang->getTag(), &$ldecl]);
+
+		// add script declaration
 		$document->addScriptDeclaration($ldecl);
 
 		// cache loaded flag
@@ -534,7 +571,7 @@ jQuery(function($){'."\n".'
 	public function getMediaField($name, $value = null, array $data = array())
 	{
 		// check if WordPress is installed
-		if (defined('ABSPATH'))
+		if (VBOPlatformDetection::isWordPress())
 		{
 			add_action('admin_enqueue_scripts', function() {
 				wp_enqueue_media();
@@ -578,10 +615,10 @@ jQuery(function($){'."\n".'
 		{
 			// there is no preview width, set a defualt value
 			// to make the image visible within the popover
-			$data['previewWidth'] = 480;    
+			$data['previewWidth'] = 480;
 		}
 
-		// render the field 
+		// render the field	
 		return $field->render('joomla.form.field.media', $data);
 	}
 
@@ -817,7 +854,7 @@ JS
 		$mail_preview_icn = '<i class="' . VikBookingIcons::i('eye') . '" title="' . htmlspecialchars(JText::translate('VBOPREVIEW')) . '"></i>';
 
 		// icon for property logo (home icon)
-		$mail_homelogo_icn = '<i class="' . VikBookingIcons::i('hotel') . '" title="' . htmlspecialchars(JText::translate('VBCONFIGFOURLOGO')) . '"></i>';
+		$mail_homelogo_icn = '<i class="' . VikBookingIcons::i('hotel') . '" title="' . htmlspecialchars(JText::translate('VBCONFIGFOURLOGO'), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401) . '"></i>';
 
 		// append JS script declaration to document
 		$doc->addScriptDeclaration(
@@ -1110,7 +1147,7 @@ JS
 				if (!isset($allowed_modes[$key])) {
 					continue;
 				}
-				$editor .= "\t\t" . '<button type="button" class="btn btn-small vik-contentbuilder-switcher-btn' . ($default_mode == $key ? ' vik-contentbuilder-switcher-btn-active' : '') . '" data-switch="' . $key . '" onclick="VikContentBuilder.switchMode(this);">' . $val . '</button>' . "\n";
+				$editor .= '<button type="button" class="btn vik-contentbuilder-switcher-btn' . ($default_mode == $key ? ' vik-contentbuilder-switcher-btn-active' : '') . '" data-switch="' . $key . '" onclick="VikContentBuilder.switchMode(this);">' . $val . '</button>';
 			}
 			$editor .= "\t" . '</div>' . "\n";
 		}
@@ -1240,5 +1277,74 @@ JS
 
 		// return the necessary HTML string to be displayed
 		return $editor;
+	}
+
+	/**
+	 * Loads the necessary assets to render context menus.
+	 * 
+	 * @return  void
+	 * 
+	 * @since   1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function loadContextMenuAssets()
+	{
+		static $loaded = null;
+
+		if ($loaded) {
+			return;
+		}
+
+		// get appearance preference
+		$app_pref = VikBooking::getAppearancePref();
+
+		$dark_mode = 'null';
+		if ($app_pref == 'light') {
+			$dark_mode = 'false';
+		} elseif ($app_pref == 'dark') {
+			$dark_mode = 'true';
+		}
+
+		$this->addScript(VBO_ADMIN_URI . 'resources/contextmenu.js');
+
+		$doc = JFactory::getDocument();
+
+		$doc->addStyleSheet(VBO_ADMIN_URI . 'resources/contextmenu.css');
+		$doc->addScriptDeclaration(
+<<<JS
+(function($) {
+	'use strict';
+
+	$(function() {
+		$.vboContextMenu.defaults.darkMode = {$dark_mode};
+		$.vboContextMenu.defaults.class    = 'vbo-dropdown-cxmenu';
+	});
+})(jQuery);
+JS
+		);
+
+		$loaded = 1;
+	}
+
+	/**
+	 * Loads the assets necessary to render a phone input field.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function loadPhoneInputFieldAssets()
+	{
+		static $loaded = null;
+
+		if ($loaded) {
+			return;
+		}
+
+		$loaded = 1;
+
+		$document = JFactory::getDocument();
+
+		$document->addStyleSheet(VBO_SITE_URI . 'resources/intlTelInput.css');
+		$document->addScript(VBO_SITE_URI . 'resources/intlTelInput.js');
 	}
 }

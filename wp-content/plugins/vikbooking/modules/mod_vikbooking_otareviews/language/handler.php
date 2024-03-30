@@ -104,6 +104,28 @@ class Mod_VikBooking_OtareviewsLanguageHandler implements JLanguageHandler
 				break;
 
 			/**
+			 * Review categories
+			 */
+			case 'VBOGREVCOMFORT':
+				$result = __('Comfort', 'vikbooking');
+				break;
+			case 'VBOGREVLOCATION':
+				$result = __('Location', 'vikbooking');
+				break;
+			case 'VBOGREVCLEAN':
+				$result = __('Clean', 'vikbooking');
+				break;
+			case 'VBOGREVVALUE':
+				$result = __('Value for money', 'vikbooking');
+				break;
+			case 'VBOGREVSTAFF':
+				$result = __('Staff', 'vikbooking');
+				break;
+			case 'VBOGREVFACILITIES':
+				$result = __('Facilities', 'vikbooking');
+				break;
+
+			/**
 			 * Layout and Page
 			 */
 

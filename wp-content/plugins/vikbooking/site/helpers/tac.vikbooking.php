@@ -194,8 +194,8 @@ class TACVBO
 			$q = "SELECT `id`, `units` FROM `#__vikbooking_rooms` WHERE `avail`=1 AND `toadult`>=".$args['num_adults'].";";
 		}
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() == 0) {
+		$avail_rooms = $dbo->loadAssocList();
+		if (!$avail_rooms) {
 			// set error code
 			self::$errorCode = 3;
 
@@ -206,8 +206,6 @@ class TACVBO
 			exit;
 		}
 
-		$avail_rooms = $dbo->loadAssocList();
-				
 		// arr[0] = (sec) checkin, arr[1] = (sec) checkout
 		$check_in_out = VikBooking::getTimeOpenStore();
 		if (is_array($check_in_out)) {
@@ -269,8 +267,8 @@ class TACVBO
 		$rates = array();
 		$q = "SELECT `p`.*, `r`.`id` AS `r_reference_id`, `r`.`name` AS `r_short_desc`, `r`.`img`, `r`.`units`, `r`.`moreimgs`, `r`.`imgcaptions`, `prices`.`id` AS `price_reference_id`, `prices`.`name` AS `pricename`, `prices`.`breakfast_included`, `prices`.`free_cancellation`, `prices`.`canc_deadline`, `prices`.`minlos`, `prices`.`minhadv` FROM `#__vikbooking_dispcost` AS `p`, `#__vikbooking_rooms` AS `r`, `#__vikbooking_prices` AS `prices` WHERE `r`.`id`=`p`.`idroom` AND `p`.`idprice`=`prices`.`id` AND `p`.`days`=".$args['nights']." AND `r`.`id` IN (".implode(',', array_keys($room_ids)).") ORDER BY `p`.`cost` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if (!$dbo->getNumRows()) {
+		$rates = $dbo->loadAssocList();
+		if (!$rates) {
 			// set error code
 			self::$errorCode = 6;
 
@@ -280,7 +278,6 @@ class TACVBO
 			echo json_encode(array('e4j.error' => 'The Query for fetching the rates returned an empty result'));
 			exit;
 		}
-		$rates = $dbo->loadAssocList();
 		$vbo_tn->translateContents($rates, '#__vikbooking_rooms', array('id' => 'r_reference_id', 'r_short_desc' => 'name'));
 		$vbo_tn->translateContents($rates, '#__vikbooking_prices', array('id' => 'price_reference_id', 'pricename' => 'name'));
 		$arr_rates = array();
@@ -349,6 +346,8 @@ class TACVBO
 			self::$errorCode = $err_rtype_booked ? 7 : 8;
 
 			// build error response
+			$err_mess = JText::translate('VBNOROOMSINDATE');
+			$err_mess = $err_mess == 'VBNOROOMSINDATE' ? JText::translate('VBO_AV_ECODE_7') : $err_mess;
 			$res = array('e4j.error' => 'No availability for these dates');
 			if ($only_rates && count($fullybooked)) {
 				$res['fullybooked'] = $fullybooked;
@@ -500,9 +499,8 @@ class TACVBO
 		$tax_rates = array();
 		$q = "SELECT `p`.`id`,`t`.`aliq`,`t`.`taxcap` FROM `#__vikbooking_prices` AS `p` LEFT JOIN `#__vikbooking_iva` `t` ON `p`.`idiva`=`t`.`id` WHERE `p`.`id` IN (".implode(',', $rates_ids).");";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$alltaxrates = $dbo->loadAssocList();
+		$alltaxrates = $dbo->loadAssocList();
+		if ($alltaxrates) {
 			foreach ($alltaxrates as $tx) {
 				if (!empty($tx['aliq']) && $tx['aliq'] > 0) {
 					/**

@@ -63,7 +63,7 @@ class VikBookingLanguageSite implements JLanguageHandler
 				$result = __('Check-in and Check-out Dates are wrong', 'vikbooking');
 				break;
 			case 'VBINCONGRTOT':
-				$result = __('Error, Booking Total is wrong', 'vikbooking');
+				$result = __('Error, booking total is wrong', 'vikbooking');
 				break;
 			case 'VBINCONGRDATAREC':
 				$result = __('Error, Wrong data.', 'vikbooking');
@@ -366,7 +366,7 @@ class VikBookingLanguageSite implements JLanguageHandler
 				$result = __('Personal Details', 'vikbooking');
 				break;
 			case 'VBLIBTEN':
-				$result = __('Rooms Reserved', 'vikbooking');
+				$result = __('Rooms Booked', 'vikbooking');
 				break;
 			case 'VBLIBELEVEN':
 				$result = __('Check-in Date', 'vikbooking');
@@ -609,7 +609,7 @@ class VikBookingLanguageSite implements JLanguageHandler
 				$result = __('The Coupon is not valid for this room', 'vikbooking');
 				break;
 			case 'VBCOUPONINVMINTOTORD':
-				$result = __('The Booking Total is not enough for this Coupon', 'vikbooking');
+				$result = __('This coupon requires a greater booking total amount', 'vikbooking');
 				break;
 			case 'VBCOUPON':
 				$result = __('Coupon', 'vikbooking');
@@ -1852,6 +1852,54 @@ class VikBookingLanguageSite implements JLanguageHandler
 				break;
 			case 'VBO_INQUIRY_PENDING':
 				$result = __('Pending inquiry', 'vikbooking');
+				break;
+			case 'VBO_INV_TAX_SUMMARY':
+				$result = __('Tax Summary', 'vikbooking');
+				break;
+			case 'VBO_INV_TAX_ALIQUOTE':
+				$result = __('Tax Rate', 'vikbooking');
+				break;
+			case 'VBO_SPLIT_STAY_SOLS':
+				$result = __('Split stay solutions', 'vikbooking');
+				break;
+			case 'VBO_SPLIT_STAY_SOLS_DESCR':
+				$result = __('By placing a split stay reservation you will have to change room(s) during your stay.', 'vikbooking');
+				break;
+			case 'VBO_SPLIT_STAY_RES':
+				$result = __('Split stay reservation', 'vikbooking');
+				break;
+			case 'VBO_STATE_PROVINCE':
+				$result = __('State/Province', 'vikbooking');
+				break;
+			case 'VBO_CANC_FEE':
+				$result = __('Cancellation fee', 'vikbooking');
+				break;
+			case 'VBO_UPGRADE_ROOMS':
+				$result = __('Get a better room', 'vikbooking');
+				break;
+			case 'VBO_UPGRADE_CONFIRM':
+				$result = __('Confirm upgrade', 'vikbooking');
+				break;
+			case 'VBO_YOU_SAVE_PCENT':
+				$result = __('You save %s', 'vikbooking');
+				break;
+			case 'VBO_KEEP_ROOM':
+				$result = __('Keep this room', 'vikbooking');
+				break;
+			case 'VBO_DOUPGRADE_CONFIRM':
+				$result = __('Do you want to upgrade to this room? Your booking will be modified.', 'vikbooking');
+				break;
+			case 'VBCOUPONINVMAXTOTORD':
+				$result = __('This coupon requires a lower booking total amount', 'vikbooking');
+				break;
+			case 'VBO_RM_COUPON_CONFIRM':
+				$result = __('Do you want to remove the coupon discount?', 'vikbooking');
+				break;
+			case 'VBO_PET':
+				$result = __('Pet', 'vikbooking');
+				break;
+			case 'VBO_PETS':
+				$result = __('Pets', 'vikbooking');
 				break;
 		}
 

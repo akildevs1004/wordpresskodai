@@ -470,6 +470,8 @@ class VikBookingReportIstatVeneto extends VikBookingReport
 
 		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
 
+		$this->registerExportFileName();
+
 		parent::__construct();
 	}
 
@@ -1109,6 +1111,7 @@ class VikBookingReportIstatVeneto extends VikBookingReport
 		if (!$this->getReportData()) {
 			return false;
 		}
+
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$ptodate = VikRequest::getString('todate', '', 'request');
 		$pcodstru = VikRequest::getString('codstru', '', 'request');
@@ -1279,7 +1282,7 @@ class VikBookingReportIstatVeneto extends VikBookingReport
 			}
 		}
 	
-		$codstr;
+		$codstr = '';
 		foreach ($arr['italia'] as $key => $value) {
 			
 			if($arr['italia'][$key]['arrivi'] > 0 || $arr['italia'][$key]['partiti'] > 0){	
@@ -1390,35 +1393,55 @@ class VikBookingReportIstatVeneto extends VikBookingReport
 
 			$txt .= "\n";
 		} else {
-
 			if (strlen($this->rows['0']['0']['value']) > 11) { 
 				$codstr = substr($this->rows['0']['0']['value'], 2);
 				$txt .= "X".$codstr;
 			} else {
 				$txt .= $this->rows['0']['0']['value'];
 			}
-			$txt .= substr($pfromdate,0,2)."/".substr($pfromdate,3,2)."/".substr($pfromdate,6,4). " -1" ;
+			$txt .= substr($pfromdate, 0, 2)."/".substr($pfromdate, 3, 2)."/".substr($pfromdate, 6, 4). " -1" ;
 		}
 
-		if (isset($codstr) && !empty($codstr)) {
-			$filename = "X".substr($pfromdate,0,2).substr($pfromdate,3,2).substr($pfromdate,6,4).'.txt';
+		/**
+		 * Custom export method supports a custom export handler, if previously set.
+		 * 
+		 * @since 	1.16.1 (J) - 1.6.1 (WP)
+		 */
+		if ($this->hasExportHandler()) {
+			// write data onto the custom file handler
+			$fp = $this->getExportCSVHandler();
+			fwrite($fp, $txt);
+			fclose($fp);
+
+			return true;
+		}
+
+		if (!empty($codstr)) {
+			$filename = "X" . substr($pfromdate, 0, 2) . substr($pfromdate, 3, 2) . substr($pfromdate, 6, 4) . '.txt';
 		} else {
-			$filename = $this->rows['0']['0']['value'].substr($pfromdate,0,2).substr($pfromdate,3,2).substr($pfromdate,6,4).'.txt';
+			$filename = $this->rows['0']['0']['value'] . substr($pfromdate, 0, 2) . substr($pfromdate, 3, 2) . substr($pfromdate, 6, 4) . '.txt';
 		}
-		$filepath = dirname(__FILE__) . DIRECTORY_SEPARATOR . $filename;
-		$handle = fopen($filepath, "w+");
-   		fwrite($handle, $txt);
-    	fclose($handle);
-    	header('Content-Type: application/octet-stream');
-	    header('Content-Disposition: attachment; filename='.basename($filepath));
-	    header('Expires: 0');
-	    header('Cache-Control: must-revalidate');
-	    header('Pragma: public');
-	    header('Content-Length: ' . filesize($filepath));
-	    readfile($filepath);
-	    @unlink($filepath);
 
-	    exit;
+		// force text file download
+		header("Content-type: text/plain");
+		header("Cache-Control: no-store, no-cache");
+		header('Content-Disposition: attachment; filename="' . $filename . '"');
+		echo $txt;
+
+		exit;
 	}
 
+	/**
+	 * Registers the name to give to the file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	protected function registerExportFileName()
+	{
+		$pfromdate = VikRequest::getString('fromdate', '', 'request');
+
+		$this->setExportCSVFileName("X" . substr($pfromdate, 0, 2) . substr($pfromdate, 3, 2) . substr($pfromdate, 6, 4) . '.txt');
+	}
 }

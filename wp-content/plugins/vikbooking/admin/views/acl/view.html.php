@@ -65,11 +65,11 @@ class VikBookingViewAcl extends JView
 			}
 		}
 
-		$this->roles 		= &$roles;
-		$this->actions 		= &$actions;
-		$this->user 		= &$user;
-		$this->returnLink 	= &$return;
-		$this->activeRole 	= &$active;
+		$this->roles 		= $roles;
+		$this->actions 		= $actions;
+		$this->user 		= $user;
+		$this->returnLink 	= $return;
+		$this->activeRole 	= $active;
 
 		$this->addToolbar();
 		

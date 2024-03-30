@@ -33,6 +33,8 @@ final class VBONotificationDisplayReview extends JObject implements VBONotificat
 	 * the notification in the browser.
 	 * 
 	 * @return 	null|object 	the notification display data payload.
+	 * 
+	 * @throws 	Exception
 	 */
 	public function getData()
 	{
@@ -69,10 +71,7 @@ final class VBONotificationDisplayReview extends JObject implements VBONotificat
 		$notif_data->message = $this->get('score', '') . ' ' . $this->get('content', '');
 		$notif_data->icon 	 = $notif_icon;
 		$notif_data->onclick = 'VBOCore.handleGoto';
-		$notif_data->gotourl = 'index.php?option=com_vikbooking&task=editorder&cid[]=' . $booking_id;
-		if (defined('ABSPATH')) {
-			$notif_data->gotourl = str_replace('index.php', 'admin.php', $notif_data->gotourl);
-		}
+		$notif_data->gotourl = VBOFactory::getPlatform()->getUri()->admin("index.php?option=com_vikbooking&task=editorder&cid[]={$booking_id}", false);
 
 		return $notif_data;
 	}

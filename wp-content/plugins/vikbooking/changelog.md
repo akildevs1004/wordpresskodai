@@ -1,5 +1,122 @@
 # Changelog
 
+## 1.6.6
+
+*Release date - 13 December 2023*
+
+- Added support for the E4jConnect Trial activation system.
+- Added search facility to translations.
+- New actions and filters introduced.
+
+## 1.6.5
+
+*Release date - 13 November 2023*
+
+- New Booking Details admin-widget.
+- Admin widgets framework refactoring.
+- Introducing Push notifications through ServiceWorker.
+- Improved Desktop (Web) notifications.
+- Added support for WebApp through apposite manifest for MacOS.
+- Added support for new Channel Manager capabilities with the Booking.com Content APIs.
+- Cron Jobs attempting to notify Airbnb reservations now rely on the Guest Messaging APIs.
+- Added the "important" flag to reminders for specific reservations.
+- New overrides manager interface and breaking changes detection framework.
+- Minor framework improvements.
+
+## 1.6.4
+
+*Release date - 27 July 2023*
+
+- New Virtual Terminal admin-widget.
+- Added support for direct-charge transactions.
+- Seasonal rates refactoring for promotions.
+- Improvements to increase the price the accuracy score with Google Hotel.
+- Hooks refactoring for admin widgets.
+- Minor framework improvements.
+
+## 1.6.3
+
+*Release date - 21 June 2023*
+
+- Split stays framework improvements.
+- Automatic reminders for Channel Manager notifications.
+- Added support for the new Vrbo API channel connection.
+- Maximum advance booking notice at room-level.
+- Implemented several new hooks to facilitate customization.
+- Improved extendibility of check-in and pre-checkin registration fields.
+- CTD restrictions applied on check-out date rather than on check-in date.
+- CSS styling inspector improvements with quick preview and tag selector.
+- Several improvements for the PMS Reports framework.
+- Broadcast channel for desktop push notifications across multiple tabs.
+- Backup framework improvements for large datasets.
+- Cron Jobs framework improvements to avoid timezone conflicts.
+- New hooks implemented for the Statistics Tracking object.
+- New front-end pricing calendar calculation based on rate plan IDs.
+- Several generic improvements related to UI and framework.
+
+## 1.6.2
+
+*Release date - 4 May 2023*
+
+- Added support for pet fees through options with selectable quantity.
+- New planning system with Availability Overview.
+- Drag & Drop functionalities for single-unit rooms as well as for hotel-inventory rooms.
+- Swap room sub-units in case of low or full occupancy.
+- New PMS Report for Takings.
+- Several improvements and fixes (CSRF).
+
+## 1.6.1
+
+*Release date - 18 April 2023*
+
+- Enhanced caching functions for databases with large datasets.
+- Improved performances.
+- Several improvements to the admin-widgets and Multitask panel.
+- Added support for pets for each room reservation record.
+- Added support for included meal plans in the various rate plans.
+- New framework for the PMS Reports supporting CSV, Excel and Print formats.
+- Improved various PMS Reports (Pro version).
+- New Cron Job (Pro version) to automatically export reports dynamically.
+- Default integration for PayPal Express Checkout (Pro version).
+- Compatibility with the new Vrbo API channel connection (Pro version + E4jConnect & Vik Channel Manager).
+
+## 1.6.0
+
+*Release date - 14 February 2023*
+
+- Major release of the framework.
+- New admin-widgets: Finance and Guest Messaging.
+- Improved several admin-widgets.
+- Quick reservation added to Bookings Calendar admin-widget.
+- Multitask panel improvements to render the admin-widgets within modal windows.
+- Support for simultaneous chat threads with Booking.com, Airbnb and Website.
+- New Availability Overview layout and functionalities.
+- New adaptive back-end menu with custom and pinnable quick actions.
+- New browser notifications system.
+- Split Stays.
+- Early departures or late arrivals for multiple room bookings.
+- Room Upgrade functionalities.
+- Enhanced Cron Jobs framework.
+- Enhanced coupons functionalities to apply tailored and automatic discounts to certain customers.
+- Added plenty of new hooks/events to extend the default framework functionalities.
+- Back-end registration detection of returning customer.
+- VAT breakdown for each line item in the invoice template.
+- Payment methods can be assigned to certain listings only.
+- PMS Reports improvements.
+- States/Provinces management functions for each country.
+- New custom field of type "State".
+- Improved communication with Vik Channel Manager.
+- Added support for the new Expedia Product API within Vik Channel Manager.
+- Several enhancements for the front-end pages.
+- Several minor fixes and improvements.
+- Added CSRF tokens to admin AJAX requests to improve the security.
+
+## 1.5.12
+
+*Release date - 10 January 2023*
+
+- Fixed attributes escaping to prevent XSS attacks with administrator privileges.
+
 ## 1.5.11
 
 *Release date - 26 July 2022*
@@ -88,7 +205,7 @@
 - Coupon codes with minimum stay filter.
 - New conditional text rules.
 - New permissions for front-end Tableaux and operators.
-- Support (and certification) for Google Hotel Free Booking Links!!! (Vik Channel Manager + E4JConnect subscription required)
+- Support (and certification) for Google Hotel Free Booking Links!! (Vik Channel Manager + E4jConnect subscription required)
 
 ## 1.4.6
 

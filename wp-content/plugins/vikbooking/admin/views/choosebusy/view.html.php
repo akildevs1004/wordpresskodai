@@ -52,11 +52,11 @@ class VikBookingViewChoosebusy extends JViewVikBooking {
 		$pageNav = new JPagination( $dbo->loadResult(), $lim0, $lim );
 		$navbut = "<table align=\"center\"><tr><td>".$pageNav->getListFooter()."</td></tr></table>";
 		
-		$this->reservs = &$reservs;
-		$this->totres = &$totres;
-		$this->pts = &$pts;
-		$this->lim0 = &$lim0;
-		$this->navbut = &$navbut;
+		$this->reservs = $reservs;
+		$this->totres = $totres;
+		$this->pts = $pts;
+		$this->lim0 = $lim0;
+		$this->navbut = $navbut;
 		
 		// Display the template
 		parent::display($tpl);

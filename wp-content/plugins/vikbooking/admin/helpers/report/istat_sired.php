@@ -2,8 +2,8 @@
 /**
  * @package     VikBooking
  * @subpackage  com_vikbooking
- * @author      Lorenzo - e4j - Extensionsforjoomla.com
- * @copyright   Copyright (C) 2019 e4j - Extensionsforjoomla.com. All rights reserved.
+ * @author      Alessio Gaggii - e4j - Extensionsforjoomla.com
+ * @copyright   Copyright (C) 2018 e4j - Extensionsforjoomla.com. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE
  * @link        https://vikwp.com
  */
@@ -44,7 +44,7 @@ class VikBookingReportIstatSired extends VikBookingReport
 	 * Class constructor should define the name of the report and
 	 * other vars. Call the parent constructor to define the DB object.
 	 */
-	function __construct()
+	public function __construct()
 	{
 		$this->reportFile = basename(__FILE__, '.php');
 		$this->reportName = 'ISTAT SIRED';
@@ -54,9 +54,12 @@ class VikBookingReportIstatSired extends VikBookingReport
 		$this->rows = array();
 		$this->footerRow = array();
 
-		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
 		$this->comuniProvince = $this->loadComuniProvince();
 		$this->nazioni = $this->loadNazioni();
+
+		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
+
+		$this->registerExportFileName();
 
 		parent::__construct();
 	}
@@ -527,15 +530,12 @@ class VikBookingReportIstatSired extends VikBookingReport
 			"WHERE `o`.`status`='confirmed' AND `o`.`closure`=0 AND `o`.`checkin`>=".$from_ts." AND `o`.`checkin`<=".$to_ts." ".
 			"ORDER BY `o`.`checkin` ASC, `o`.`id` ASC;";
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		if ($this->dbo->getNumRows() > 0) {
-			$records = $this->dbo->loadAssocList();
-		}
-		if (!count($records)) {
+		$records = $this->dbo->loadAssocList();
+
+		if (!$records) {
 			$this->setError(JText::translate('VBOREPORTSERRNORESERV'));
 			return false;
 		}
-
 
 		//nest records with multiple rooms booked inside sub-array
 		$bookings = array();
@@ -691,27 +691,39 @@ class VikBookingReportIstatSired extends VikBookingReport
 		foreach ($bookings as $gbook) {
 			$guests_rows = array($gbook[0]);
 			$tot_guests_rows = 1;
+
 			$tipo = 16;
-			//Codici Tipo Alloggiato
+			// Codici Tipo Alloggiato
 			// 16 = Ospite Singolo
 			// 17 = Capofamiglia
 			// 18 = Capogruppo
 			// 19 = Familiare
 			// 20 = Membro Gruppo
-			//
+
 			$guestsnum = 0;
 			foreach ($gbook as $book) {
 				$guestsnum += $book['adults'] + $book['children'];
 			}
+
 			$country = '';
 			if (!empty($gbook[0]['country'])) {
 				$country = $gbook[0]['country'];
 			} elseif (!empty($gbook[0]['customer_country'])) {
 				$country = $gbook[0]['customer_country'];
 			}
+
+			// count the total number of guests for all rooms of this booking
+			$tot_booking_guests = 0;
+			$room_guests = array();
+			foreach ($gbook as $rbook) {
+				$tot_booking_guests += ($rbook['adults'] + $rbook['children']);
+				$room_guests[] = ($rbook['adults'] + $rbook['children']);
+			}
+
+			// make sure to decode the current pax data
 			if (!empty($gbook[0]['pax_data'])) {
 				$pax_data = json_decode($gbook[0]['pax_data'], true);
-				if (count($pax_data)) {
+				if (is_array($pax_data) && $pax_data) {
 					$guests_rows[0]['pax_data'] = $pax_data;
 					$tot_guests_rows = 0;
 					foreach ($pax_data as $roomguests) {
@@ -723,16 +735,41 @@ class VikBookingReportIstatSired extends VikBookingReport
 					$tipo = count($guests_rows) > 1 ? 17 : $tipo;
 				}
 			}
+
 			$history_last = $gbook[0]['history_last'];
 			$tipo_provenienza = $this->guessTipoProvenienza($gbook[0]);	
+
+			// create one row for each guest
 			$guest_ind = 1;
 			foreach ($guests_rows as $ind => $guests) {
-				$use_tipo = $ind > 0 && $tipo == 17 ? 19 : $tipo;
+				// prepare row record for this room-guest
 				$insert_row = array();
-				//Tipo Alloggiato
+
+				// find the actual guest-room-index
+				$guest_room_ind = $this->calcGuestRoomIndex($room_guests, $guest_ind);
+
+				// determine the type of guest, either automatically or from the check-in pax data
+				$use_tipo = $ind > 0 && $tipo == 17 ? 19 : $tipo;
+				$pax_guest_type = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'guest_type');
+				$use_tipo = !empty($pax_guest_type) ? $pax_guest_type : $use_tipo;
+
+				/**
+				 * Il calcolo dello stato di nascita è fatto qua per evitare che poi succeda casino col comune. (Belgio -> Belgioioso, vedi cliente)
+				 * In questo modo, il calcolo dello stato di nascita permette di escludere poi la provincia di nascita in caso il cliente sia straniero.
+				 * 
+				 * @since 	1.4.1
+				 * 
+				 * @see 	the updated integration of this report relies on drivers, and so such controls are no longer
+				 * 			needed, if the pax data is collected through the back-end before launching the report.
+				 */
+				$stabirth = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'country');
+				$stabirth = $stabirth || '';
+				$staval = $this->checkCountry($stabirth);
+
+				// Tipo Alloggiato
 				array_push($insert_row, array(
 					'key' => 'tipo',
-					'callback' => function ($val) {
+					'callback' => function($val) {
 						switch ($val) {
 							case 16:
 								return 'Ospite Singolo';
@@ -747,260 +784,288 @@ class VikBookingReportIstatSired extends VikBookingReport
 						}
 						return '?';
 					},
-					'callback_export' => function ($val) {
+					'callback_export' => function($val) {
 						return $val;
 					},
 					'value' => $use_tipo
 				));
+
 				//Data Arrivo
 				array_push($insert_row, array(
 					'key' => 'checkin',
 					'attr' => array(
 						'class="center"'
 					),
-					'callback' => function ($val) {
+					'callback' => function($val) {
 						return date('d/m/Y', $val);
 					},
 
 					'value' => $guests['checkin']
 				));
-				
-				//Cognome
+
+				// Cognome
 				$cognome = !empty($guests['t_last_name']) ? $guests['t_last_name'] : $guests['last_name'];
-				if (is_array($guests['pax_data']) && count($guests['pax_data']) > 0) {
-					$j = 0;
-					foreach ($guests['pax_data'] as $rnum => $rguests) {
-						foreach ($rguests as $rguest) {
-							$j++;
-							if ($j == $guest_ind) {
-								$cognome = !empty($rguest['last_name']) ? $rguest['last_name'] : $cognome;
-								break 2;
-							}
-						}
-					}
-				}
+				$pax_cognome = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'last_name');
+				$cognome = !empty($pax_cognome) ? $pax_cognome : $cognome;
 				array_push($insert_row, array(
 					'key' => 'cognome',
 					'value' => $cognome,
-					'callback_export' => function ($val) {
+					'callback_export' => function($val) {
 						return $val;
 					},
 				));
+
 				//Nome
 				$nome = !empty($guests['t_first_name']) ? $guests['t_first_name'] : $guests['first_name'];
-				if (is_array($guests['pax_data']) && count($guests['pax_data']) > 0) {
-					$j = 0;
-					foreach ($guests['pax_data'] as $rnum => $rguests) {
-						foreach ($rguests as $rguest) {
-							$j++;
-							if ($j == $guest_ind) {
-								$nome = !empty($rguest['first_name']) ? $rguest['first_name'] : $nome;
-								break 2;
-							}
-						}
-					}
-				}
+				$pax_nome = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'first_name');
+				$nome = !empty($pax_nome) ? $pax_nome : $nome;
 				array_push($insert_row, array(
 					'key' => 'nome',
 					'value' => $nome,
-					'callback_export' => function ($val) {
+					'callback_export' => function($val) {
 						return $val;
 					},
 				));
+
 				//Sesso
 				$gender = !empty($guests['gender']) && $guest_ind < 2 ? strtoupper($guests['gender']) : '';
-				$gender = $gender == 'F' ? 2 : ($gender == 'M' ? 1 : $gender);
-				if (is_array($guests['pax_data']) && count($guests['pax_data']) > 0) {
-					$j = 0;
-					foreach ($guests['pax_data'] as $rnum => $rguests) {
-						foreach ($rguests as $rguest) {
-							$j++;
-							if ($j == $guest_ind) {
-								$gender = !empty($rguest['gender']) ? $rguest['gender'] : $gender;
-								$gender = $gender == 'Female' ? 2 : ($gender == 'Male' ? 1 : $gender);
-								break 2;
-							}
-						}
-					}
+				$pax_gender = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'gender');
+				$gender = !empty($pax_gender) ? $pax_gender : $gender;
+				/**
+				 * We make sure the gender will be compatible with both back-end and front-end
+				 * check-in/registration data collection driver and processes.
+				 * 
+				 * @since 	1.15.0 (J) - 1.5.0 (WP)
+				 */
+				if (is_numeric($gender)) {
+					$gender = (int)$gender;
+				} elseif (!strcasecmp($gender, 'F')) {
+					$gender = 2;
+				} elseif (!strcasecmp($gender, 'M')) {
+					$gender = 1;
 				}
 				array_push($insert_row, array(
 					'key' => 'gender',
 					'attr' => array(
 						'class="center'.(empty($gender) ? ' vbo-report-load-sesso' : '').'"'
 					),
-					'callback' => function ($val) {
+					'callback' => function($val) {
 						return $val == 2 ? 'F' : ($val == 1 ? 'M' : '?');
 					},
-					'callback_export' => function ($val) {
+					'callback_export' => function($val) {
 						return $val == 2 ? 'F' : ($val == 1 ? 'M' : '?');
 					},
 					'value' => $gender
 				));
+
 				//Data di nascita
 				$dbirth = !empty($guests['bdate']) && $guest_ind < 2 ? VikBooking::getDateTimestamp($guests['bdate'], 0, 0) : '';
-				if (is_array($guests['pax_data']) && count($guests['pax_data']) > 0) {
-					$j = 0;
-					foreach ($guests['pax_data'] as $rnum => $rguests) {
-						foreach ($rguests as $rguest) {
-							$j++;
-							if ($j == $guest_ind) {
-								$dbirth = !empty($rguest['date_birth']) ? $rguest['date_birth'] : $dbirth;
-								break 2;
-							}
-						}
-					}
-				}
+				$pax_dbirth = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'date_birth');
+				$dbirth = !empty($pax_dbirth) ? $pax_dbirth : $dbirth;
 				$dbirth = (strpos($dbirth, '/') === false && strpos($dbirth, VikBooking::getDateSeparator()) === false) ? $dbirth : VikBooking::getDateTimestamp($dbirth, 0, 0);
 				array_push($insert_row, array(
 					'key' => 'dbirth',
 					'attr' => array(
 						'class="center'.(empty($dbirth) ? ' vbo-report-load-dbirth' : '').'"'
 					),
-					'callback' => function ($val) {
-						return (!empty($val) && strpos($val, '/') === false && strpos($val, VikBooking::getDateSeparator()) === false) ? date('d/m/Y', $val) : (!empty($val) && strpos($val, '/') !== false ? $val : '?');
+					'callback' => function($val) {
+						if (!empty($val) && strpos($val, '/') === false && strpos($val, VikBooking::getDateSeparator()) === false) {
+							return date('d/m/Y', $val);
+						}
+						if (!empty($val) && strpos($val, '/') !== false) {
+							return $val;
+						}
+						return '?';
 					},
 					'value' => $dbirth
 				));
 
-				//Stato di nascita
-				$stabirth = '';
-				$staval = '';
-				if (is_array($guests['pax_data']) && count($guests['pax_data']) > 0) {
-					$j = 0;
-					foreach ($guests['pax_data'] as $rnum => $rguests) {
-						foreach ($rguests as $rguest) {
-							$j++;
-							if ($j == $guest_ind) {
-								$stabirth = !empty($rguest['country']) ? $rguest['country'] : $stabirth;
-								$staval = $this->checkCountry($stabirth);
-								break 2;
-							}
+				/**
+				 * Comune di nascita.
+				 * Check compatibility with pax_data field of driver for "Italy".
+				 */
+				$pax_comval = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'comune_b');
+
+				//if the country has been set and it's not "Italy", then don't let the user select Comune and Provincia.
+				$is_foreign = (empty($staval) || !isset($this->nazioni[$staval]) || strcasecmp($this->nazioni[$staval]['name'], 'ITALIA'));
+
+				// default value for "comune di nascita"
+				$combirth = !empty($guests['pbirth']) && $guest_ind < 2 && !$is_foreign ? strtoupper($guests['pbirth']) : '';
+
+				// assign the default value found from pax_data registration
+				$comval = $pax_comval;
+
+				$result = array();
+				if (empty($pax_comval)) {
+					$result = $this->sanitizeComune($combirth);
+					if (!empty($combirth) && $guest_ind < 2 && (!$is_foreign && !empty($staval)) ) {
+						//if $combirth has been sanitized, then you should just check if the province is the right one
+						if (isset($result['combirth'])) {
+							$result = $this->checkComune($result['combirth'], true, $result['province']);
+						} else {
+							$result = $this->checkComune($combirth, false, '');
+						}	
+						$combirth = $result['combirth'];
+					}
+
+					if (!$is_foreign && !empty($staval)) {
+						$pax_combirth = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'place_birth');
+						$combirth = !empty($pax_combirth) ? strtoupper($pax_combirth) : $combirth;
+						$result = $this->sanitizeComune($combirth);
+						//If $combirth have been sanitized, then you should just check if the province is the right one
+						if (isset($result['combirth'])) {
+							$result = $this->checkComune($result['combirth'], true, $result['province']);
+						} else {
+							$result = $this->checkComune($combirth, false, '');
 						}
+						$comval = isset($result['comval']) ? $result['comval'] : $combirth;
 					}
 				}
+
+				/**
+				 * Stato di nascita.
+				 * Check compatibility with pax_data field of driver for "Italy".
+				 */
+				$pax_country = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'country_b');
+
+				$staval   = !empty($pax_country) ? $pax_country : $staval;
+				$stabirth = !empty($pax_country) ? $pax_country : $stabirth;
+
 				array_push($insert_row, array(
 					'key' => 'stabirth',
 					'attr' => array(
 						'class="center'.(empty($stabirth) ? ' vbo-report-load-nazione' : '').'"'
 					),
-					'callback' => function ($val) {
+					'callback' => function($val) {
 						return (!empty($val) ? $this->nazioni[$val]['name'] : '?');
 					},
 					'no_export_callback' => 1,
-
-					'value' => !empty($staval) ? $staval : ''
+					'value' => $staval
 				));
-		//Comune di nascita
-				$combirth = !empty($guests['pbirth']) && $guest_ind < 2 ? strtoupper($guests['pbirth']) : '';
-				$comval = '';
-				$result = $this->sanitizeComune($combirth);
-				$similar = false;
-				$found = false;
 
-				if (!empty($combirth) && $guest_ind < 2) {
-					//If $combirth have been sanitized, then you should just check if the province is the right one
-					if (isset($result['combirth'])) {
-						$result = $this->checkComune($result['combirth'], true, $result['province']);
-					} else {
-						$result = $this->checkComune($combirth, false, '');
-					}	
-					$combirth = $result['combirth'];
-				}
-
-				if (is_array($guests['pax_data']) && count($guests['pax_data']) > 0) {
-					$j = 0;
-					foreach ($guests['pax_data'] as $rnum => $rguests) {
-						foreach ($rguests as $rguest) {
-							$j++;
-							if ($j == $guest_ind) {
-								$combirth = !empty($rguest['place_birth'])  ? strtoupper($rguest['place_birth']) : $combirth;
-								$result = $this->sanitizeComune($combirth);
-								//If $combirth have been sanitized, then you should just check if the province is the right one
-								if (isset($result['combirth'])) {
-									$result = $this->checkComune($result['combirth'], true, $result['province']);
-								} else {
-									$result = $this->checkComune($combirth, false, '');
-								}
-								$comval = isset($result['comval']) ? $result['comval'] : $comval;
-								break 2;
-							}
-						}
+				// se il comune di nascita è vuoto o è stato indovinato, allora aggiungi la classe. Altrimenti non rendere selezionabile il comune.
+				$comune = empty($combirth);
+				$comguessed = (isset($result['similar']) && $result['similar']);
+				$addclass = false;
+				if (empty($pax_comval) && ($comune || $comguessed)) {
+					if (empty($staval)) {
+						//se lo stato manca, comunque rendilo selezionabile, sia che sia vuoto, sia che sia stato "indovinato"
+						$addclass = true;
+					} elseif (!$is_foreign && !empty($staval)) {
+						//se lo stato esiste, ed è italiano, allora è selezionabile. Se è straniero, non farlo scegliere in quanto non necessario.
+						$addclass = true;	
 					}
 				}
 				array_push($insert_row, array(
 					'key' => 'combirth',
 					'attr' => array(
-						'class="center'.(empty($comval) || $result['similar'] ? ' vbo-report-load-comune' : '').'"'
+						'class="center'.($addclass ? ' vbo-report-load-comune' : '').'"'
 					),
-					'callback' => function($val) {
-						return !empty($val) && isset($this->comuniProvince['comuni'][$val]) ? $this->comuniProvince['comuni'][$val]['name'] : '?';
+					'callback' => function($val) use ($addclass) {
+						return !empty($val) && isset($this->comuniProvince['comuni'][$val]) ? $this->comuniProvince['comuni'][$val]['name'] : ($addclass ? '?' : "---");
 					},
 					'no_export_callback' => 1,
 					'value' => $comval
 				));
-				
-				
-				//Cittadinanza
+
+				/**
+				 * Cittadinanza.
+				 * Check compatibility with pax_data field of driver for "Italy".
+				 */
+				$pax_country_c = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'country_c');
+
 				$citizen = !empty($guests['country']) && $guest_ind < 2 ? $guests['country'] : '';
-				$citizenres = array();
 				$citizenval = '';
 				if (!empty($citizen) && $guest_ind < 2) {
 					$citizenval = $this->checkCountry($citizen);
 				}
-				if (is_array($guests['pax_data']) && count($guests['pax_data']) > 0) {
-					$j = 0;
-					foreach ($guests['pax_data'] as $rnum => $rguests) {
-						foreach ($rguests as $rguest) {
-							$j++;
-							if ($j == $guest_ind) {
-								$citizen = !empty($rguest['nationality']) ? $rguest['nationality'] : $citizen;
-								$citizenval = $this->checkCountry($citizen);
-								break 2;
-							}
-						}
-					}
-				}
+
+				// check nationality field from pre-checkin
+				$pax_citizen = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'nationality');
+				$citizen = !empty($pax_citizen) ? $pax_citizen : $citizen;
+
+				$citizen = !empty($pax_country_c) ? $pax_country_c : $citizen;
+				$citizenval = !empty($pax_country_c) ? $pax_country_c : $this->checkCountry($citizen);
 
 				array_push($insert_row, array(
 					'key' => 'citizen',
 					'attr' => array(
 						'class="center'.(empty($citizen) ? ' vbo-report-load-cittadinanza' : '').'"'
 					),
-					'callback' => function ($val) {
+					'callback' => function($val) {
 						return !empty($val) ? $this->nazioni[$val]['name'] : '?';
 					},
 					'no_export_callback' => 1,
-
 					'value' => !empty($citizenval) ? $citizenval : ''
 				));
-				//Stato di residenza
+
+
+
+				// TODO go ahead
+
+
+				/**
+				 * Stato di residenza.
+				 * Check compatibility with pax_data field of driver for "Italy".
+				 */
+				$pax_provstay = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'country_s');
 				array_push($insert_row, array(
 					'key' => 'stares',
 					'attr' => array(
-						'class="center vbo-report-load-nazioneres"'
+						'class="center'.(empty($pax_provstay) && $guest_ind < 2 ? ' vbo-report-load-nazioneres' : '').'"'
 					),
-					'value' => '?',
-					
+					'callback' => function($val) use ($guest_ind) {
+						if ($guest_ind > 1) {
+							// not needed for the Nth guest
+							return "---";
+						}
+						if (!empty($val) && isset($this->nazioni[$val])) {
+							return $this->nazioni[$val]['name'];
+						}
+						// information is missing and should be provided
+						return '?';
+					},
+					'no_export_callback' => 1,
+					'value' => $pax_provstay,
 				));
-				//Comune di residenza
+
+				/**
+				 * Comune di residenza.
+				 * Check compatibility with pax_data field of driver for "Italy".
+				 */
+				$pax_comstay = $this->getGuestPaxDataValue($guests['pax_data'], $room_guests, $guest_ind, 'comune_s');
 				array_push($insert_row, array(
 					'key' => 'comres',
 					'attr' => array(
-						'class="center vbo-report-load-comuneres"'
+						'class="center'.(empty($pax_comstay) && $guest_ind < 2 ? ' vbo-report-load-comuneres' : '').'"'
 					),
-					'value' => '?',
-					
-				)); 
-				array_push($insert_row,array(
+					'callback' => function($val) use ($guest_ind) {
+						if ($guest_ind > 1) {
+							// not needed for the Nth guest
+							return "---";
+						}
+						if (!empty($val) && isset($this->comuniProvince['comuni'][$val])) {
+							return $this->comuniProvince['comuni'][$val]['name'];
+						}
+						// information is missing and should be provided
+						return '?';
+					},
+					'no_export_callback' => 1,
+					'value' => $pax_comstay,
+				));
+
+				// check-out
+				array_push($insert_row, array(
 					'key' => 'checkout',
 					'attr' => array(
 						'class="center"'
 					),
-					'callback' => function ($val) {
+					'callback' => function($val) {
 						return date('d/m/Y', $val);
 					},
 					'value' => $gbook[0]['checkout']
 				));
+
 				//Camere prenotate 
 				array_push($insert_row, array(
 					'key' => 'roomsbooked',
@@ -1008,47 +1073,50 @@ class VikBookingReportIstatSired extends VikBookingReport
 						'class="center"'
 					),
 					'value' => count($gbook),
-					'callback_export' => function ($val) {
+					'callback_export' => function($val) {
 						return $val;
 					},
 				));
-				//Camere prenotate 
+
+				// Totale camere
 				array_push($insert_row, array(
 					'key' => 'totrooms',
 					'attr' => array(
 						'class="center"'
 					),
 					'value' => $total_rooms_units,
-					'callback_export' => function ($val) {
+					'callback_export' => function($val) {
 						return $val;
 					},
 				));
+
 				//id booking
 				array_push($insert_row, array(
 					'key' => 'idbooking',
 					'attr' => array(
 						'class="center"'
 					),
-					'callback' => function ($val) {
+					'callback' => function($val) {
 						return '<a href="index.php?option=com_vikbooking&task=editorder&cid[]='.$val.'" target="_blank"><i class="'.VikBookingIcons::i('external-link').'"></i> '.$val.'</a>';
 					},
-					'callback_export' => function ($val) {
+					'callback_export' => function($val) {
 						return $val;
 					},
 					'value' => $guests['id']
 				));
 
-				//push fields in the rows array as a new row
+				// push fields in the rows array as a new row
 				array_push($this->rows, $insert_row);
-				//increment guest index
+
+				// increment guest index
 				$guest_ind++;
 			}
 		}
 
-		//sort rows
+		// sort rows
 		$this->sortRows($pkrsort, $pkrorder);
 
-		//the footer row will just print the amount of records to export
+		// the footer row will just print the amount of records to export
 		array_push($this->footerRow, array(
 			array(
 				'attr' => array(
@@ -1064,13 +1132,12 @@ class VikBookingReportIstatSired extends VikBookingReport
 			)
 		));
 
-		//Debug
+		// Debug
 		if ($this->debug) {
 			$this->setWarning('path to report file = '.urlencode(dirname(__FILE__)).'<br/>');
 			$this->setWarning('$total_rooms_units = '.$total_rooms_units.'<br/>');
 			$this->setWarning('$bookings:<pre>'.print_r($bookings, true).'</pre><br/>');
 		}
-		//
 
 		return true;
 	}
@@ -1085,7 +1152,7 @@ class VikBookingReportIstatSired extends VikBookingReport
 	 * 
 	 * @return 	mixed 	string to use for the column 'tipo', -1 if empty.
 	 */
-	private function guessTipoProvenienza($booking)
+	protected function guessTipoProvenienza($booking)
 	{
 		if (empty($booking['customer_country'])) {
 			// unable to proceed when the country is missing (-1).
@@ -1146,9 +1213,7 @@ class VikBookingReportIstatSired extends VikBookingReport
 		if (!$this->getReportData()) {
 			return false;
 		}
-		$pfromdate = VikRequest::getString('fromdate', '', 'request');
-		$ptodate = VikRequest::getString('todate', '', 'request');
-		$pcodstru = VikRequest::getString('codstru', '', 'request');
+
 		// manual values in filler
 		$pfiller = VikRequest::getString('filler', '', 'request', VIKREQUEST_ALLOWRAW);
 		$pfiller = !empty($pfiller) ? json_decode($pfiller, true) : array();
@@ -1228,27 +1293,21 @@ class VikBookingReportIstatSired extends VikBookingReport
 					$field['value'] = 0;
 					VikError::raiseWarning('', 'La riga #'.$ind.' ha un valore vuoto che doveva essere riempito manualmente cliccando sul blocco in rosso. Il file potrebbe contenere valori invalidi per questa riga.');
 				}
-				
 
 				if (isset($field['callback_export'])) {
 					$field['callback'] = $field['callback_export'];
 				}
 				$export_value = !isset($field['no_export_callback']) && isset($field['callback']) && is_callable($field['callback']) ? $field['callback']($field['value']) : $field['value'];
-				//E4J Debug
-				//echo '<pre> CHIAVE: ' . print_r($field['key'], true) . '</pre>';
-				//E4J Debug
-				//echo '<pre> VALORE 1: ' . print_r($field['value'], true) . '</pre>';	
-				//echo '<pre> VALORE ESPORTAZIONE: ' . print_r($export_value, true) . '</pre>';
-				//E4J Debug
+
 				//controllo la nazione
 				if ($field['key'] == 'stabirth' || $field['key'] == 'stares') {
 
 					//se italia imposto il flag a true per prendere anche comuni e province dopo
-					if($export_value == '100000100'){
+					if ($export_value == '100000100'){
 						$italia = true;
 					}
 					$nation = $this->valueFiller($export_value, $keys_length_map[$field['key']]);
-					if($field['key'] == 'stares'){
+					if ($field['key'] == 'stares'){
 						$blank = true;
 					} 
 					continue;
@@ -1271,8 +1330,7 @@ class VikBookingReportIstatSired extends VikBookingReport
 								//echo '<pre> LUNGHEZZA: ' . strlen($export_value) . '</pre>';
 							}
 						}
-					}
-					else{
+					} else {
 						$temp = $this->valueFiller(' ', 9);
 						//echo '<pre> LUNGHEZZA ' .$field['key'] .' = '. strlen($temp) . '</pre>';
 
@@ -1297,46 +1355,61 @@ class VikBookingReportIstatSired extends VikBookingReport
 				//echo '<pre> LUNGHEZZA POST MODIFICA: ' . strlen($export_value) . '</pre>';
 
 				//riempio i campi vuoti mancanti
-				if($field['key'] == 'totrooms'){
+				if ($field['key'] == 'totrooms') {
 					$export_value .=  $this->valueFiller($pletti, $keys_length_map['pletti']).' ';
 				}
 
-				if($field['key'] == 'checkout'){
+				if ($field['key'] == 'checkout') {
 					$export_value .=  $this->valueFiller(' ', $keys_length_map['turi']). $this->valueFiller(' ', $keys_length_map['trasp']);
 				}
 				
-				if ($field['key'] != "idbooking"){
+				if ($field['key'] != "idbooking") {
 					$txt .= $export_value; 
 				} else {
 					$txt .= $export_value."1\r\n"; 
 				}
-				
-				//E4J Debug
-				//echo '<pre>' .strlen($txt). '</pre>';
-				//E4J Debug
-				//echo '<pre>' . print_r($txt , true) . '</pre>';
 			}
-		
-
 		}
-	//	die;
-	
-		// txt export
-		$filename = $pcodstru.'-'.str_replace('/', '_', $pfromdate).'-'.str_replace('/', '_', $ptodate).'.txt';
-		$filepath = dirname(__FILE__) . DIRECTORY_SEPARATOR . $filename;
-		$handle = fopen($filepath, "w+");
-   		fwrite($handle, $txt);
-    	fclose($handle);
-    	header('Content-Type: application/octet-stream');
-	    header('Content-Disposition: attachment; filename='.basename($filepath));
-	    header('Expires: 0');
-	    header('Cache-Control: must-revalidate');
-	    header('Pragma: public');
-	    header('Content-Length: ' . filesize($filepath));
-	    readfile($filepath);
-	    @unlink($filepath);
+
+		/**
+		 * Custom export method supports a custom export handler, if previously set.
+		 * 
+		 * @since 	1.16.1 (J) - 1.6.1 (WP)
+		 */
+		if ($this->hasExportHandler()) {
+			// write data onto the custom file handler
+			$fp = $this->getExportCSVHandler();
+			fwrite($fp, $txt);
+			fclose($fp);
+
+			return true;
+		}
+
+		// force text file download
+		header("Content-type: text/plain");
+		header("Cache-Control: no-store, no-cache");
+		header('Content-Disposition: attachment; filename="' . $this->getExportCSVFileName() . '"');
+		echo $txt;
+
 		exit;
 	}
+
+	/**
+	 * Registers the name to give to the file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	protected function registerExportFileName()
+	{
+		$pfromdate = VikRequest::getString('fromdate', '', 'request');
+		$ptodate = VikRequest::getString('todate', '', 'request');
+		$pcodstru = VikRequest::getString('codstru', '', 'request');
+
+		$this->setExportCSVFileName($pcodstru . '-' . str_replace('/', '_', $pfromdate) . '-' . str_replace('/', '_', $ptodate) . '.txt');
+	}
+
 	/**
 	 * Parses the file Comuni.csv and returns two associative
 	 * arrays: one for the Comuni and one for the Province.
@@ -1344,9 +1417,9 @@ class VikBookingReportIstatSired extends VikBookingReport
 	 *
 	 * @return 	array
 	 */
-	private function loadComuniProvince()
+	protected function loadComuniProvince()
 	{
-		$vals = array(
+		$comprov_codes = array(
 			'comuni' => array(
 				0 => '-- Estero --'
 			),
@@ -1355,23 +1428,35 @@ class VikBookingReportIstatSired extends VikBookingReport
 			)
 		);
 
-		$csv = dirname(__FILE__).DIRECTORY_SEPARATOR.'Comuni.csv';
+		$csv = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'Comuni.csv';
 		$rows = file($csv);
 		foreach ($rows as $row) {
 			if (empty($row)) {
 				continue;
 			}
+
 			$v = explode(';', $row);
 			if (count($v) != 3) {
 				continue;
 			}
-			$vals['comuni'][$v[0]]['name'] = $v[1];
-			$vals['comuni'][$v[0]]['province'] = $v[2];
-			$vals['province'][$v[2]] = $v[2];
+
+			// trim values
+			$v[0] = trim($v[0]);
+			$v[1] = trim($v[1]);
+			$v[2] = trim($v[2]);
+
+			if (!isset($comprov_codes['comuni'][$v[0]])) {
+				$comprov_codes['comuni'][$v[0]] = array();
+			}
+
+			$comprov_codes['comuni'][$v[0]]['name'] = $v[1];
+			$comprov_codes['comuni'][$v[0]]['province'] = $v[2];
+			$comprov_codes['province'][$v[2]] = $v[2];
 		}
 
-		return $vals;
+		return $comprov_codes;
 	}
+
 	/**
 	 * Parses the file Nazioni.csv and returns an associative
 	 * array with the code and name of the Nazione.
@@ -1379,44 +1464,29 @@ class VikBookingReportIstatSired extends VikBookingReport
 	 *
 	 * @return 	array
 	 */
-	private function loadNazioni()
+	protected function loadNazioni()
 	{
 		$nazioni = array();
 
-		$csv = dirname(__FILE__).DIRECTORY_SEPARATOR.'Nazioni.csv';
+		$csv = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'Nazioni.csv';
 		$rows = file($csv);
 		foreach ($rows as $row) {
 			if (empty($row)) {
 				continue;
 			}
+
 			$v = explode(';', $row);
 			if (count($v) != 3) {
 				continue;
 			}
-			
-			$nazioni[$v[0]]['name'] = $v[1];
-			$nazioni[$v[0]]['three_code'] = $v[2];		
 
+			$nazioni[$v[0]]['name'] = $v[1];
+			$nazioni[$v[0]]['three_code'] = $v[2];
 		}
 
 		return $nazioni;
 	}
 
-
-	private function csvDebug() {
-		$row = 1;
-		if (($handle = fopen(dirname(__FILE__).DIRECTORY_SEPARATOR.'Comuni.csv', "r")) !== FALSE) {
-		    while (($data = fgetcsv($handle, 1000, ";")) !== FALSE) {
-		        $num = count($data);
-		        echo "<p> $num fields in line $row: <br /></p>\n";
-		        $row++;
-		        for ($c=0; $c < $num; $c++) {
-		            echo $data[$c] . "<br />\n";
-		        }
-		    }
-		    fclose($handle);
-		}
-	}
 	/**
 	 * This method adds blank spaces to the string
 	 * until the passed length of string is reached.
@@ -1426,7 +1496,7 @@ class VikBookingReportIstatSired extends VikBookingReport
 	 *
 	 * @return 	string
 	 */
-	private function valueFiller($val, $len)
+	protected function valueFiller($val, $len)
 	{
 		$len = empty($len) || (int)$len <= 0 ? strlen($val) : (int)$len;
 
@@ -1445,7 +1515,7 @@ class VikBookingReportIstatSired extends VikBookingReport
 		return $val;
 	}
 
-	private function loadCss() {
+	protected function loadCss() {
 		?>
 		<style>
 			.select2-results__option {
@@ -1457,14 +1527,14 @@ class VikBookingReportIstatSired extends VikBookingReport
 	}
 
 	/**
+	 * Returns an array that contains both name and key of the comune
+	 * selected, plus the associated province.
 	 * 
-	 * Returns an array that contains both name and key of the comune selected, plus the associated province.
+	 * @deprecated 	1.5.0 there is no need to rely on this method.
 	 *
-	 * @return array
-	 *
-	 *
+	 * @return 		array
 	 */
-	private function checkComune($combirth, $checked, $province) {
+	protected function checkComune($combirth, $checked, $province) {
 		$result = array();
 		$first_found = '';
 		if (!count($this->comuniProvince)) {
@@ -1513,13 +1583,13 @@ class VikBookingReportIstatSired extends VikBookingReport
 	}
 
 	/**
-	 *
 	 * Returns the key of the state selected by the user.
+	 * 
+	 * @deprecated 	1.5.0 there is no need to rely on this method.
 	 *
  	 * @return string
- 	 *
 	 */
-	private function checkCountry($country) {
+	protected function checkCountry($country) {
 		$found = false;
 		$staval = '';
 		if (!count($this->nazioni)) {
@@ -1539,14 +1609,20 @@ class VikBookingReportIstatSired extends VikBookingReport
 	}
 
 	/**
+	 * Sanitizes the "Comune" if value also contains also the province. Example "PRATO (PO)".
+	 * 
+	 * @deprecated 	1.5.0 there is no need to rely on this method.
+	 * 
+	 * @param 	string 	$combirth 	the current value to check.
 	 *
-	 * Sanitizes the "Comune": if comune contains also the province, example PRATO (PO), 
-	 * then I set both Comune and Province and I check both of them with the checkComune() function. 
-	 *
-	 * @return array
-	 *
+	 * @return 	array 				empty array or comune/province info.
 	 */
-	private function sanitizeComune($combirth) {
+	protected function sanitizeComune($combirth)
+	{
+		if (empty($combirth)) {
+			return array();
+		}
+
 		$result = array();
 
 		if (strlen($combirth) > 2) {
@@ -1554,16 +1630,88 @@ class VikBookingReportIstatSired extends VikBookingReport
 				$comnas = explode("(", $combirth);
 				$result['combirth'] = trim($comnas[0]);
 				$result['province'] = $comnas[1];
-				$result['province'] = str_replace(")", "", $result['province']);
-				$result['checked'] = true;
+				$result['province'] = str_replace(')', '', $result['province']);
 			}
-		} else if(strlen($combirth) > 0){
-			$result['province'] = trim($combirth); 
+		} elseif(strlen($combirth) > 0) {
+			$result['province'] = trim($combirth);
 			$result['similar'] = true;
 		}
+
 		return $result; 
 	}
 
+	/**
+	 * Helper method to quickly get a pax_data property for the guest.
+	 * 
+	 * @param 	array 	$pax_data 	the current pax_data stored.
+	 * @param 	array 	$guests 	list of total guests per room.
+	 * @param 	int 	$guest_ind 	the guest index.
+	 * @param 	string 	$key 		the pax_data key to look for.
+	 * 
+	 * @return 	mixed 				null on failure or value fetched.
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	protected function getGuestPaxDataValue($pax_data, $guests, $guest_ind, $key)
+	{
+		if (!is_array($pax_data) || !count($pax_data) || empty($key)) {
+			return null;
+		}
 
+		// find room index for this guest number
+		$room_num = 0;
+		$use_guest_ind = $guest_ind;
+		foreach ($guests as $room_index => $room_tot_guests) {
+			// find the proper guest index for the room to which this belongs
+			if ($use_guest_ind <= $room_tot_guests) {
+				// proper room index found for this guest
+				$room_num = $room_index;
+				break;
+			} else {
+				// it's probably in a next room
+				$use_guest_ind -= $room_tot_guests;
+			}
+		}
 
+		// check if a value exists for the requested key in the found room and guest indexes
+		if (isset($pax_data[$room_num]) && isset($pax_data[$room_num][$use_guest_ind])) {
+			if (isset($pax_data[$room_num][$use_guest_ind][$key])) {
+				// we've got a value previously stored
+				return $pax_data[$room_num][$use_guest_ind][$key];
+			}
+		}
+
+		// nothing was found
+		return null;
+	}
+
+	/**
+	 * Helper method to determine the exact number for this guest in the room booked.
+	 * 
+	 * @param 	array 	$guests 	list of total guests per room.
+	 * @param 	int 	$guest_ind 	the guest index.
+	 * 
+	 * @return 	int 				the actual guest room index starting from 1.
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	protected function calcGuestRoomIndex($guests, $guest_ind)
+	{
+		// find room index for this guest number
+		$room_num = 0;
+		$use_guest_ind = $guest_ind;
+		foreach ($guests as $room_index => $room_tot_guests) {
+			// find the proper guest index for the room to which this belongs
+			if ($use_guest_ind <= $room_tot_guests) {
+				// proper room index found for this guest
+				$room_num = $room_index;
+				break;
+			} else {
+				// it's probably in a next room
+				$use_guest_ind -= $room_tot_guests;
+			}
+		}
+
+		return $use_guest_ind;
+	}
 }

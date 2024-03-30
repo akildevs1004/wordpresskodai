@@ -1504,8 +1504,8 @@ class VikBookingEInvoicingAgenziaEntrate extends VikBookingEInvoicing
 			'adults' => 0,
 			'children' => 0,
 			'total' => $invoice['rawcont']['totaltot'],
-			'country' => $customer['country'],
-			'country_name' => $customer['country_name'],
+			'country' => (isset($customer['country']) ? $customer['country'] : ''),
+			'country_name' => (isset($customer['country_name']) ? $customer['country_name'] : ''),
 			'country_2_code' => (isset($customer['country_2_code']) ? $customer['country_2_code'] : null),
 			'tot_taxes' => $invoice['rawcont']['totaltax'],
 			'tot_city_taxes' => 0,
@@ -2331,56 +2331,10 @@ class VikBookingEInvoicingAgenziaEntrate extends VikBookingEInvoicing
 			if ($this->dbo->getNumRows() > 0) {
 				$tar = $this->dbo->loadAssocList();
 				$tar = VikBooking::applySeasonsRoom($tar, $or['checkin'], $or['checkout']);
-				// different usage
-				if ($or['fromadult'] <= $or['adults'] && $or['toadult'] >= $or['adults']) {
-					$diffusageprice = VikBooking::loadAdultsDiff($or['idroom'], $or['adults']);
-					// Occupancy Override
-					$occ_ovr = VikBooking::occupancyOverrideExists($tar, $or['adults']);
-					$diffusageprice = $occ_ovr !== false ? $occ_ovr : $diffusageprice;
-					//
-					if (is_array($diffusageprice)) {
-						// set a charge or discount to the price(s) for the different usage of the room
-						foreach ($tar as $kpr => $vpr) {
-							$tar[$kpr]['diffusage'] = $or['adults'];
-							if ($diffusageprice['chdisc'] == 1) {
-								// charge
-								if ($diffusageprice['valpcent'] == 1) {
-									// fixed value
-									$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
-									$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $tar[$kpr]['days'] : $diffusageprice['value'];
-									$tar[$kpr]['diffusagecost'] = "+".$aduseval;
-									$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-									$tar[$kpr]['cost'] = $vpr['cost'] + $aduseval;
-								} else {
-									// percentage value
-									$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
-									$aduseval = $diffusageprice['pernight'] == 1 ? round(($vpr['cost'] * $diffusageprice['value'] / 100) * $tar[$kpr]['days'] + $vpr['cost'], 2) : round(($vpr['cost'] * (100 + $diffusageprice['value']) / 100), 2);
-									$tar[$kpr]['diffusagecost'] = "+".$diffusageprice['value']."%";
-									$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-									$tar[$kpr]['cost'] = $aduseval;
-								}
-							} else {
-								// discount
-								if ($diffusageprice['valpcent'] == 1) {
-									// fixed value
-									$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
-									$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $tar[$kpr]['days'] : $diffusageprice['value'];
-									$tar[$kpr]['diffusagecost'] = "-".$aduseval;
-									$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-									$tar[$kpr]['cost'] = $vpr['cost'] - $aduseval;
-								} else {
-									// percentage value
-									$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
-									$aduseval = $diffusageprice['pernight'] == 1 ? round($vpr['cost'] - ((($vpr['cost'] / $tar[$kpr]['days']) * $diffusageprice['value'] / 100) * $tar[$kpr]['days']), 2) : round(($vpr['cost'] * (100 - $diffusageprice['value']) / 100), 2);
-									$tar[$kpr]['diffusagecost'] = "-".$diffusageprice['value']."%";
-									$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-									$tar[$kpr]['cost'] = $aduseval;
-								}
-							}
-						}
-					}
-				}
-				//
+
+				// apply OBP rules
+				$tar = VBORoomHelper::getInstance()->applyOBPRules($tar, $or, $or['adults']);
+
 				$tars[$num] = $tar[0];
 			}
 		}

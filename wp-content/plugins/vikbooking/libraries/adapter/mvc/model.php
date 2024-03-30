@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.mvc
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -124,7 +124,7 @@ abstract class JModel extends JObject
 		 * @since 10.1.24
 		 */
 		if (preg_match("/model/i", $type)
-			|| (is_dir(WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $type) && !is_dir(WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $prefix)))
+			|| (is_dir(WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . $type) && !is_dir(WP_PLUGIN_DIR . DIRECTORY_SEPARATOR . strtolower($prefix))))
 		{
 			// swap name with prefix
 			$tmp    = $type;

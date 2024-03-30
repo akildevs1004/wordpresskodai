@@ -398,7 +398,19 @@
                     if (!$(this).data('colorpickerId')) {
                         var options = $.extend({}, opt);
                         options.origColor = opt.color;
-                        var id = 'collorpicker_' + parseInt(Math.random() * 1000);
+
+						/* start mod */
+
+						if (typeof $.ColorPickerCountId === 'undefined') {
+							$.ColorPickerCountId = 0;
+						}
+
+						// instead of using a random ID, just increase a counter
+						var id = 'vbo_colorpicker_' + (++$.ColorPickerCountId);
+						// var id = 'collorpicker_' + parseInt(Math.random() * 1000);
+
+						/* end mod */
+
                         $(this).data('colorpickerId', id);
                         var cal = $(tpl).attr('id', id);
                         if (options.flat) {

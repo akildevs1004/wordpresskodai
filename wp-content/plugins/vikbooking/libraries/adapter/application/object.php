@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.application
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -17,6 +17,7 @@ defined('ABSPATH') or die('No script kiddies please!');
  *
  * @since 10.0
  */
+#[\AllowDynamicProperties]
 class JObject
 {
 	/**
@@ -24,7 +25,7 @@ class JObject
 	 *
 	 * @var array
 	 */
-	protected $_errors = array();
+	protected $_errors = [];
 
 	/**
 	 * Class constructor, overridden in descendant classes.

@@ -71,6 +71,108 @@ $map_long_wday = array(
 	JText::translate('VBWEEKDAYSIX')
 );
 
+if ($this->code == 1 && count($this->suggestions) && count($this->solutions) && count($this->split_stay_solutions)) {
+	// parse split stay solutions first
+	?>
+<div id="vbo-splitstay-suggestions-container-<?php echo $this->code; ?>" class="vbo-search-suggestions-container vbo-splitstay-suggestions-container">
+	<h4><?php echo JText::translate('VBO_SPLIT_STAY_SOLS'); ?></h4>
+	<p class="vbo-search-suggestions-intro"><?php echo JText::translate('VBO_SPLIT_STAY_SOLS_DESCR'); ?></p>
+	<div class="vbo-booking-solutions vbo-splitstay-solutions">
+	<?php
+	// limits and general values
+	$max_splitstay_suggs = 4;
+	$splitstay_suggested = 0;
+	$orig_checkin_info  = getdate($this->checkin);
+	$orig_checkout_info = getdate($this->checkout);
+	$main_adults   = 0;
+	$main_children = 0;
+	foreach ($this->party as $guests) {
+		if (isset($guests['adults'])) {
+			$main_adults = (int)$guests['adults'];
+		}
+		if (isset($guests['children'])) {
+			$main_children = (int)$guests['children'];
+		}
+		break;
+	}
+
+	// loop throuh all split stay solutions available
+	foreach ($this->split_stay_solutions as $split_stay_sol) {
+		// count rooms in this split stay solutions
+		$sol_tot_rooms = count($split_stay_sol);
+		// build book now URI for this split stay solution
+		$split_stay_url_data = [
+			'option' 	 => 'com_vikbooking',
+			'task' 		 => 'showprc',
+			'roomsnum' 	 => $sol_tot_rooms,
+			'roomopt' 	 => [],
+			'adults'   	 => [],
+			'children' 	 => [],
+			'split_stay' => [],
+			'days' 	   	 => $this->nights,
+			'checkin' 	 => $this->checkin,
+			'checkout' 	 => $this->checkout,
+			'categories' => (!empty($pcategories) ? $pcategories : null),
+			'Itemid' 	 => (!empty($pitemid) ? $pitemid : null),
+		];
+		?>
+		<div class="vbo-booking-solution vbo-splitstay-solution">
+			<div class="vbo-booking-solution-dates">
+				<span class="vbo-booking-solution-checkin">
+					<span class="vbo-booking-solution-date-lbl"><?php echo JText::sprintf('VBOBOOKSOLSUGGCKIN', $map_long_wday[$orig_checkin_info['wday']]); ?></span>
+					<span class="vbo-booking-solution-date-dt"><?php echo date(str_replace("/", $datesep, $df), $orig_checkin_info[0]); ?></span>
+				</span>
+				<span class="vbo-booking-solution-checkout">
+					<span class="vbo-booking-solution-date-lbl"><?php echo JText::sprintf('VBOBOOKSOLSUGGCKOUT', $map_long_wday[$orig_checkout_info['wday']]); ?></span>
+					<span class="vbo-booking-solution-date-dt"><?php echo date(str_replace("/", $datesep, $df), $orig_checkout_info[0]); ?></span>
+				</span>
+			</div>
+			<div class="vbo-booking-solution-rooms">
+				<div class="vbo-booking-solution-totrooms"><?php echo $sol_tot_rooms . ' ' . ($sol_tot_rooms > 1 ? JText::translate('VBSEARCHRESROOMS') : JText::translate('VBSEARCHRESROOM')); ?></div>
+			<?php
+			foreach ($split_stay_sol as $split_stay) {
+				// get stay dates info
+				$split_checkin_info  = getdate(strtotime($split_stay['checkin']));
+				$split_checkout_info = getdate(strtotime($split_stay['checkout']));
+				// push split stay data to URL
+				$split_stay_copy = $split_stay;
+				unset($split_stay_copy['room_name']);
+				$split_stay_url_data['split_stay'][] = $split_stay_copy;
+				// push additional URL values
+				$split_stay_url_data['roomopt'][]  = $split_stay['idroom'];
+				$split_stay_url_data['adults'][]   = $main_adults;
+				$split_stay_url_data['children'][] = $main_children;
+				?>
+				<div class="vbo-booking-solution-room vbo-splitstay-solution-room">
+					<div class="vbo-booking-solution-rname">
+						<span><?php echo $split_stay['room_name']; ?></span>
+					</div>
+					<div class="vbo-splitstay-solution-details">
+						<span class="vbo-splitstay-solution-nights"><?php VikBookingIcons::e('moon'); ?> <?php echo $split_stay['nights'] . ' ' . ($split_stay['nights'] > 1 ? JText::translate('VBDAYS') : JText::translate('VBDAY')); ?></span>
+						<span class="vbo-splitstay-solution-checkin"><?php VikBookingIcons::e('plane-arrival'); ?> <?php echo $map_short_wday[$split_checkin_info['wday']] . ', ' . date(str_replace("/", $datesep, $df), $split_checkin_info[0]); ?></span>
+						<span class="vbo-splitstay-solution-checkout"><?php VikBookingIcons::e('plane-departure'); ?> <?php echo $map_short_wday[$split_checkout_info['wday']] . ', ' . date(str_replace("/", $datesep, $df), $split_checkout_info[0]); ?></span>
+					</div>
+				</div>
+				<?php
+			}
+			?>
+			</div>
+			<div class="vbo-booking-solution-book vbselectr">
+				<a class="btn vbo-pref-color-btn" href="<?php echo JRoute::rewrite('index.php?' . http_build_query($split_stay_url_data)); ?>"><?php echo JText::translate('VBBOOKNOW'); ?></a>
+			</div>
+		</div>
+		<?php
+		$splitstay_suggested++;
+		if ($splitstay_suggested >= $max_splitstay_suggs) {
+			break;
+		}
+	}
+	?>
+	</div>
+</div>
+	<?php
+}
+
 if (count($this->suggestions)) {
 	$sug_from_ts_info = getdate($this->sug_from_ts);
 	$begin_month = $sug_from_ts_info['mon'];
@@ -161,7 +263,7 @@ if (count($this->suggestions)) {
 	</div>
 	<?php
 	if ($this->code == 1 && count($this->solutions)) {
-		//(error code 1) closest bookings solutions with availability
+		// (error code 1) closest bookings solutions with availability
 		?>
 	<div class="vbo-search-solutions-container">
 		<h4><?php echo JText::sprintf('VBOBOOKSOLSUGGNIGHTS', $this->nights.' '.($this->nights > 1 ? JText::translate('VBSEARCHRESNIGHTS') : JText::translate('VBSEARCHRESNIGHT'))); ?></h4>
@@ -193,7 +295,7 @@ if (count($this->suggestions)) {
 					</span>
 				</div>
 				<div class="vbo-search-solution-book vbselectr">
-					<a href="<?php echo JRoute::rewrite('index.php?option=com_vikbooking&task=search&checkindate='.date($df, $day_info[0]).'&checkinh='.$hcheckin.'&checkinm='.$mcheckin.'&checkoutdate='.date($df, $out_info[0]).'&checkouth='.$hcheckout.'&checkoutm='.$mcheckout.'&roomsnum='.count($this->party).$aduchild_str.(!empty($pcategories) ? '&categories='.$pcategories : '').(!empty($pitemid) ? '&Itemid='.$pitemid : '')); ?>"><?php echo JText::translate('VBOBOOKSOLSEARCHROOMS'); ?></a>
+					<a href="<?php echo JRoute::rewrite('index.php?option=com_vikbooking&task=search&checkindate='.date($df, $day_info[0]).'&checkinh='.$hcheckin.'&checkinm='.$mcheckin.'&checkoutdate='.date($df, $out_info[0]).'&checkouth='.$hcheckout.'&checkoutm='.$mcheckout.'&roomsnum='.count($this->party).$aduchild_str.(!empty($pcategories) ? '&categories='.$pcategories : '').(!empty($pitemid) ? '&Itemid='.$pitemid : '')); ?>" class="btn vbo-pref-color-btn"><?php echo JText::translate('VBOBOOKSOLSEARCHROOMS'); ?></a>
 				</div>
 			</div>
 			<?php

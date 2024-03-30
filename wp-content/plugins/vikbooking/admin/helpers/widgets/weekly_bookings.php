@@ -73,6 +73,11 @@ class VikBookingAdminWidgetWeeklyBookings extends VikBookingAdminWidget
 			'unpublished_rooms' => VikBooking::getAdminWidgetsInstance()->getRoomsData('unpublished_rooms'),
 			'tot_rooms_units' => VikBooking::getAdminWidgetsInstance()->getRoomsData('tot_rooms_units'),
 		);
+		$no_av_rooms = false;
+		if (!$info_rooms['tot_rooms_units']) {
+			$no_av_rooms = true;
+			$info_rooms['tot_rooms_units'] = 1;
+		}
 
 		// chart for rooms sold today and all week
 		?>
@@ -103,7 +108,7 @@ class VikBookingAdminWidgetWeeklyBookings extends VikBookingAdminWidget
 			start: defparams.start,
 			end: defparams.tot_booked_today,
 			maxValue: defparams.tot_rooms_units,
-			size: defparams.tot_booked_today.size,
+			size: defparams.size,
 			unitText: defparams.unitText,
 			animationSpeed: defparams.animationSpeed,
 			textColor: defparams.textColor,
@@ -119,11 +124,21 @@ class VikBookingAdminWidgetWeeklyBookings extends VikBookingAdminWidget
 
 	<div class="vbo-admin-widget-wrapper">
 		<div class="vbo-admin-widget-head">
-			<h4 class="vbo-dash-chart-title">
-				<span class="vbo-dash-chart-current"><?php VikBookingIcons::e('calendar-check'); ?> <?php echo JText::translate('VBDASHWEEKGLOBAVAIL'); ?></span>
-				<span class="vbo-dash-chart-prev vbo-dash-chart-nav" style="display: none;"><?php VikBookingIcons::e('chevron-left'); ?></span>
-				<span class="vbo-dash-chart-next vbo-dash-chart-nav"><?php VikBookingIcons::e('chevron-right'); ?></span>
-			</h4>
+			<div class="vbo-admin-widget-head-inline">
+				<h4><?php echo $this->widgetIcon; ?> <span><?php echo JText::translate('VBDASHWEEKGLOBAVAIL'); ?></span></h4>
+				<div class="vbo-admin-widget-head-commands">
+					<div class="vbo-reportwidget-commands">
+						<div class="vbo-reportwidget-commands-main">
+							<div class="vbo-reportwidget-command-chevron vbo-dash-chart-prev" style="display: none;">
+								<span class="vbo-dash-chart-nav"><?php VikBookingIcons::e('chevron-left'); ?></span>
+							</div>
+							<div class="vbo-reportwidget-command-chevron vbo-dash-chart-next">
+								<span class="vbo-dash-chart-nav"><?php VikBookingIcons::e('chevron-right'); ?></span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 		<div class="vbo-dashboard-charts-wrapper">
 		<?php
@@ -148,7 +163,7 @@ class VikBookingAdminWidgetWeeklyBookings extends VikBookingAdminWidget
 					}
 				}
 			}
-			$percentage_booked = round((100 * $tot_booked_today / $info_rooms['tot_rooms_units']), 2);
+			$percentage_booked = $no_av_rooms ? 0 : round((100 * $tot_booked_today / $info_rooms['tot_rooms_units']), 2);
 
 			$outer_color = '#ff4d4d'; //red
 			if ($percentage_booked > 33 && $percentage_booked <= 66) {
@@ -179,7 +194,7 @@ class VikBookingAdminWidgetWeeklyBookings extends VikBookingAdminWidget
 			jQuery(document).ready(function() {
 				jQuery('.vbo-dash-chart-nav').click(function() {
 					var instance_elem = jQuery(this).closest('.vbo-admin-widget-wrapper');
-					var direction = jQuery(this).hasClass('vbo-dash-chart-prev') ? 'prev' : 'next';
+					var direction = jQuery(this).parent().hasClass('vbo-dash-chart-prev') ? 'prev' : 'next';
 					var jqxhr = jQuery.ajax({
 						type: "POST",
 						url: "<?php echo $this->getExecWidgetAjaxUri('index.php?option=com_vikbooking&task=donut_charts_data'); ?>",
@@ -190,7 +205,7 @@ class VikBookingAdminWidgetWeeklyBookings extends VikBookingAdminWidget
 						}
 					}).done(function(res) {
 						try {
-							var obj_res = JSON.parse(res);
+							var obj_res = typeof res === 'string' ? JSON.parse(res) : res;
 							// clean up current HTML
 							instance_elem.find('.vbo-dashboard-charts-wrapper').html('');
 							//

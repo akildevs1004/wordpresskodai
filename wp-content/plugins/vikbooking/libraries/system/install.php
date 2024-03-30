@@ -231,6 +231,11 @@ class VikBookingInstaller
 		$trace = '### VikBooking Automatic Update | ' . JHtml::fetch('date', new JDate(), 'Y-m-d H:i:s') . "\n\n";
 		$trace .= "```json\n" . json_encode($results, JSON_PRETTY_PRINT) . "\n```\n\n";
 
+		if (empty($results['plugin']))
+		{
+			$results['plugin'] = [];
+		}
+
 		// iterate all plugins
 		foreach ($results['plugin'] as $plugin)
 		{
@@ -469,6 +474,158 @@ class VikBookingInstaller
 						array('component' => 'com_vikbooking')
 					);
 				});
+			}
+		}
+	}
+
+	/**
+	 * Helper method used to obtain the list of breaking
+	 * changes registered within the wordpress options.
+	 *
+	 * @return 	array
+	 *
+	 * @since 	1.6.5
+	 */
+	public static function getBreakingChanges()
+	{
+		// get existing breaking changes
+		$files = get_option('vikbooking_breaking_changes');
+		// decode from JSON
+		return (array) ($files ? json_decode($files, true) : null);
+	}
+
+	/**
+	 * Helper method used to register a list of breaking
+	 * changes within the wordpress options.
+	 *
+	 * @param 	array 	$files  The files to register.
+	 *
+	 * @return 	void
+	 *
+	 * @since 	1.6.5
+	 */
+	public static function registerBreakingChanges(array $files)
+	{
+		if ($files)
+		{
+			// get existing files
+			$existing = static::getBreakingChanges();
+
+			foreach ($files as $client => $list)
+			{
+				if (!$list)
+				{
+					// ignore in case the list is empty
+					continue;
+				}
+
+				if (!isset($existing[$client]))
+				{
+					// no client set, register it right now
+					$existing[$client] = (array) $list;
+				}
+				else
+				{
+					// client already set, merge existing with new ones (get rid of duplicates)
+					$existing[$client] = array_values(array_unique(array_merge($existing[$client], (array) $list)));
+				}
+			}
+
+			// register within an option the breaking changes
+			update_option('vikbooking_breaking_changes', json_encode($existing));
+		}
+	}
+
+	/**
+	 * Helper method used to unregister a list of breaking
+	 * changes within the wordpress options.
+	 *
+	 * @param 	string|array|null  $files  The file(s) to unregister.
+	 *                                     Leave empty to clear all the files.
+	 *
+	 * @return 	void
+	 *
+	 * @since 	1.6.5
+	 */
+	public static function unregisterBreakingChanges($files = null)
+	{
+		if ($files)
+		{
+			$existing = static::getBreakingChanges();
+
+			// scan all the provided files
+			foreach ((array) $files as $file)
+			{
+				// search path under each client
+				foreach ($existing as $client => $list)
+				{
+					// get index of the specified file
+					$index = array_search($file, $list);
+
+					if ($index === false)
+					{
+						// path not found, ignore
+						continue;
+					}
+
+					// remove path at the specified index
+					array_splice($existing[$client], $index, 1);
+
+					if (!$existing[$client])
+					{
+						// remove client as there are no more pending overrides
+						unset($existing[$client]);
+					}
+				}
+			}
+
+			if ($existing)
+			{
+				// update breaking changes in case the list is not empty
+				update_option('vikbooking_breaking_changes', json_encode($existing));
+			}
+			else
+			{
+				// directly delete the breaking changes option otherwise
+				static::unregisterBreakingChanges();
+			}
+		}
+		else
+		{
+			// clear breaking changes
+			delete_option('vikbooking_breaking_changes');
+		}
+	}
+
+	/**
+	 * Helper method used to show the breaking changes to
+	 * the administrator. This method will have no effect
+	 * in case the logged-in user is not an administrator.
+	 *
+	 * @return 	void
+	 *
+	 * @since 	1.6.5
+	 */
+	public static function showBreakingChanges()
+	{
+		// make sure the user is an administrator
+		if (JFactory::getUser()->authorise('core.admin', 'com_vikbooking'))
+		{
+			// retieve breaking changes list, if any
+			$bc = static::getBreakingChanges();
+
+			if ($bc)
+			{
+				// use layout to render the warning message
+				$warn = JLayoutHelper::render(
+					'html.overrides.bc',
+					['files' => $bc],
+					null,
+					['component' => 'com_vikbooking']
+				);
+
+				// enqueue warning to be displayed
+				JFactory::getApplication()->enqueueMessage($warn, 'warning');
 			}
 		}
 	}

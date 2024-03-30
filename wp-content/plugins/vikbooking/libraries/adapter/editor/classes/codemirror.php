@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.editor
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -69,6 +69,18 @@ class JEditorCodeMirror extends JEditor
 			 * @since 10.1.35
 			 */
 			$syntax = !empty($params['syntax']) ? $params['syntax'] : 'php';
+
+			/**
+			 * Adjust the syntax according to the WordPress needs.
+			 * 
+			 * @since 10.1.48
+			 */
+			switch ($syntax)
+			{
+				case 'js':
+					$syntax = 'text/javascript';
+					break;
+			}
 
 			// enqueue code editor
 			wp_enqueue_code_editor([

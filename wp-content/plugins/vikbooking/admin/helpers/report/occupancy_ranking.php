@@ -19,42 +19,52 @@ class VikBookingReportOccupancyRanking extends VikBookingReport
 	 * Property 'defaultKeySort' is used by the View that renders the report.
 	 */
 	public $defaultKeySort = 'occupancy';
+
 	/**
 	 * Property 'defaultKeyOrder' is used by the View that renders the report.
 	 */
 	public $defaultKeyOrder = 'DESC';
+
 	/**
 	 * Property 'exportAllowed' is used by the View to display the export button.
 	 */
 	public $exportAllowed = 1;
+
 	/**
 	 * The script to render the Chart
 	 */
 	protected $chartScript;
+
 	/**
 	 * The current Chart title
 	 */
 	protected $chartTitle;
+
 	/**
 	 * The Chart meta data
 	 */
 	protected $chartMetaData;
+
 	/**
 	 * The Chart labels
 	 */
 	protected $chartJsLabels;
+
 	/**
 	 * The Chart Dataset label(s)
 	 */
 	protected $chartJsDataSetLabel;
+
 	/**
 	 * The Chart colors
 	 */
 	protected $chartJsColors;
+
 	/**
 	 * The Chart Data
 	 */
 	protected $chartJsData;
+
 	/**
 	 * Debug mode is activated by passing the value 'e4j_debug' > 0
 	 */
@@ -64,7 +74,7 @@ class VikBookingReportOccupancyRanking extends VikBookingReport
 	 * Class constructor should define the name of the report and
 	 * other vars. Call the parent constructor to define the DB object.
 	 */
-	function __construct()
+	public function __construct()
 	{
 		$this->reportFile = basename(__FILE__, '.php');
 		$this->reportName = JText::translate('VBOREPORT'.strtoupper(str_replace('_', '', $this->reportFile)));
@@ -83,6 +93,8 @@ class VikBookingReportOccupancyRanking extends VikBookingReport
 		$this->chartJsData = array();
 
 		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
+
+		$this->registerExportCSVFileName();
 
 		parent::__construct();
 	}
@@ -120,7 +132,7 @@ class VikBookingReportOccupancyRanking extends VikBookingReport
 		}
 
 		// get VBO Application Object
-		$vbo_app = new VboApplication();
+		$vbo_app = VikBooking::getVboApplication();
 
 		// load the jQuery UI Datepicker
 		$this->loadDatePicker();
@@ -320,7 +332,6 @@ class VikBookingReportOccupancyRanking extends VikBookingReport
 		);
 
 		// query to obtain the records
-		$records = array();
 		$q = "SELECT `o`.`id`,`o`.`ts`,`o`.`days`,`o`.`checkin`,`o`.`checkout`,`o`.`totpaid`,`o`.`roomsnum`,`o`.`total`,`o`.`idorderota`,`o`.`channel`,`o`.`country`,`o`.`tot_taxes`," .
 			"`o`.`tot_city_taxes`,`o`.`tot_fees`,`o`.`cmms`,`or`.`idorder`,`or`.`idroom`,`or`.`optionals`,`or`.`cust_cost`,`or`.`cust_idiva`,`or`.`extracosts`,`or`.`room_cost`,`r`.`name` AS `room_name` " .
 			"FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_ordersrooms` AS `or` ON `or`.`idorder`=`o`.`id` " .
@@ -330,11 +341,8 @@ class VikBookingReportOccupancyRanking extends VikBookingReport
 			(strlen($pchannel) ? "AND `o`.`channel` " . ($pchannel == '-1' ? 'IS NULL' : "LIKE " . $this->dbo->quote("%{$pchannel}%")) . ' ' : '') .
 			"ORDER BY `o`.`checkin` ASC, `o`.`id` ASC;";
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		if ($this->dbo->getNumRows()) {
-			$records = $this->dbo->loadAssocList();
-		}
-		
+		$records = $this->dbo->loadAssocList();
+
 		$dummy_values = false;
 		if (!count($records)) {
 			if ($pperiod != 'full') {
@@ -937,37 +945,16 @@ class VikBookingReportOccupancyRanking extends VikBookingReport
 	}
 
 	/**
-	 * Generates the report columns and rows, then it outputs a CSV file
-	 * for download. In case of errors, the process is not terminated (exit)
-	 * to let the View display the error message.
-	 *
-	 * @return 	mixed 	void on success with script termination, false otherwise.
+	 * Registers the name to give to the CSV file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
 	 */
-	public function exportCSV()
+	private function registerExportCSVFileName()
 	{
-		if (!count($this->rows) && !$this->getReportData()) {
-			return false;
-		}
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$ptodate = VikRequest::getString('todate', '', 'request');
-
-		$csvlines = array();
-
-		// push the head of the CSV file
-		$csvcols = array();
-		foreach ($this->cols as $col) {
-			array_push($csvcols, $col['label']);
-		}
-		array_push($csvlines, $csvcols);
-
-		// push the rows of the CSV file
-		foreach ($this->rows as $row) {
-			$csvrow = array();
-			foreach ($row as $field) {
-				array_push($csvrow, (isset($field['callback']) && is_callable($field['callback']) ? $field['callback']($field['value']) : $field['value']));
-			}
-			array_push($csvlines, $csvrow);
-		}
 
 		$report_extraname = '';
 		$pchannel = VikRequest::getString('channel', '', 'request');
@@ -980,16 +967,7 @@ class VikBookingReportOccupancyRanking extends VikBookingReport
 			}
 		}
 
-		// force CSV download
-		header("Content-type: text/csv");
-		header("Cache-Control: no-store, no-cache");
-		header('Content-Disposition: attachment; filename="' . $this->reportName . (!empty($report_extraname) ? '-' . $report_extraname : '') . '-' . str_replace('/', '_', $pfromdate) . '-' . str_replace('/', '_', $ptodate) . '.csv"');
-		$outstream = fopen("php://output", 'w');
-		foreach ($csvlines as $csvline) {
-			fputcsv($outstream, $csvline);
-		}
-		fclose($outstream);
-		exit;
+		$this->setExportCSVFileName($this->reportName . (!empty($report_extraname) ? '-' . $report_extraname : '') . '-' . str_replace('/', '_', $pfromdate) . '-' . str_replace('/', '_', $ptodate) . '.csv');
 	}
 
 	/**
@@ -1405,5 +1383,4 @@ jQuery("#' . $canvas_id . '").on("vbo_update_report_chart", function() {
 			'bottom' => $meta_bottom,
 		);
 	}
-
 }

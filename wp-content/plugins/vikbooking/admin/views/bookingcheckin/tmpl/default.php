@@ -14,8 +14,25 @@ $order = $this->row;
 $rooms = $this->rooms;
 $customer = $this->customer;
 
-$vbo_app = new VboApplication();
 $dbo = JFactory::getDbo();
+
+$vbo_app = VikBooking::getVboApplication();
+
+/**
+ * This view is usually rendered within a modal window, and with WordPress
+ * the modal window is loaded through AJAX by the "editorder" View. For this
+ * reason, with WP we should not load the JS assets for the contextual menu,
+ * or we would reset the default setup of the library. We load the assets in
+ * the parent View "editorder" to avoid issues of any kind.
+ * 
+ * @since 	1.16.0 (J) - 1.6.0 (WP)
+ */
+if ((!defined('ABSPATH') && defined('_JEXEC')) || (function_exists('wp_doing_ajax') && !wp_doing_ajax())) {
+	$vbo_app->loadContextMenuAssets();
+	JText::script('VBRENTALORD');
+	JText::script('VBPVIEWORDERSPEOPLE');
+}
+
 $currencysymb = VikBooking::getCurrencySymb();
 $nowdf = VikBooking::getDateFormat(true);
 if ($nowdf == "%d/%m/%Y") {
@@ -69,6 +86,9 @@ list($pre_pax_fields, $pre_pax_fields_attributes) = VikBooking::getPaxFields(tru
 
 // once the pax fields have been prepared, get the active driver instance
 $pax_fields_obj = VBOCheckinPax::getInstance();
+
+// load any previous checkin information from this customer
+$previous_checkins = VBOCheckinPax::getCustomerAllPaxData($order['id']);
 
 ?>
 <div class="vbo-info-overlay-block">
@@ -193,7 +213,7 @@ $pax_fields_obj = VBOCheckinPax::getInstance();
 			<?php
 			if ($order['checked'] < 0) {
 				//no show
-				$checked_status = '<span class="label label-error" style="background-color: #d9534f;">'.JText::translate('VBOCHECKEDSTATUSNOS').'</span>';
+				$checked_status = '<span class="label label-error">'.JText::translate('VBOCHECKEDSTATUSNOS').'</span>';
 				$set_parent_status = $pchanged > 0 ? '<span style="font-weight: bold; color: red;">'.strtoupper(JText::translate('VBOCHECKEDSTATUSNOS')).'</span>' : $set_parent_status;
 			} elseif ($order['checked'] == 1) {
 				//checked in
@@ -212,6 +232,104 @@ $pax_fields_obj = VBOCheckinPax::getInstance();
 				<?php echo $checked_status; ?>
 			</div>
 		</div>
+		<?php
+		if (is_array($previous_checkins) && count($previous_checkins) && $order['checked'] < 1) {
+			foreach ($previous_checkins as $k => $prev_checkin) {
+				$previous_checkins[$k]['checkin_dt'] = date(str_replace("/", $datesep, $df), $prev_checkin['checkin']);
+				$previous_checkins[$k]['checkout_dt'] = date(str_replace("/", $datesep, $df), $prev_checkin['checkout']);
+				$previous_checkins[$k]['ts_dt'] = date(str_replace("/", $datesep, $df), $prev_checkin['ts']);
+				$book_tot_guests = 0;
+				$prev_checkin['pax_data'] = empty($prev_checkin['pax_data']) || !is_array($prev_checkin['pax_data']) ? [] : $prev_checkin['pax_data'];
+				foreach ($prev_checkin['pax_data'] as $rnum => $room_pax) {
+					foreach ($room_pax as $guest_num => $guest_data) {
+						$book_tot_guests++;
+					}
+				}
+				$previous_checkins[$k]['tot_guests'] = $book_tot_guests;
+			}
+			?>
+		<div class="vbo-bookdet-wrap">
+			<div class="vbo-bookdet-head">
+				<span><?php echo JText::translate('VBO_PREVIOUS_CHECKINS'); ?></span>
+			</div>
+			<div class="vbo-bookdet-foot">
+				<button type="button" class="btn btn-small btn-primary vbo-context-menu-btn vbo-context-menu-prevchkins">
+					<span class="vbo-context-menu-lbl"><?php echo JText::translate('VBO_SELECT'); ?></span>
+					<span class="vbo-context-menu-ico"><?php VikBookingIcons::e('sort-down'); ?></span>
+				</button>
+			</div>
+		</div>
+
+		<script type="text/javascript">
+			var prev_checkins = <?php echo json_encode($previous_checkins); ?>;
+			var prev_checkins_btns = [];
+
+			function populatePreviousCheckin(pax_data) {
+				if (!pax_data || !pax_data.length) {
+					alert('Invalid previous check-in information');
+					return false;
+				}
+
+				var room_num = 0,
+					guest_num = 1,
+					guests_found = 0;
+
+				pax_data.forEach((room_pax, room_index) => {
+					for (let guest_num in room_pax) {
+						if (!room_pax.hasOwnProperty(guest_num)) {
+							continue;
+						}
+						if (jQuery('.vbo-roomdet-wrapper[data-roomnum="' + room_num + '"]').length && !jQuery('.vbo-roomdet-guest-details[data-guestnum="' + guest_num + '"]').length) {
+							// try to go to the first guest of the next room
+							room_num++;
+							guest_num = 1;
+						}
+						let guest_found = false;
+						for (let prop_name in room_pax[guest_num]) {
+							if (!room_pax[guest_num].hasOwnProperty(prop_name)) {
+								continue;
+							}
+							let field_name = 'guests[' + room_num + '][' + guest_num + '][' + prop_name + ']';
+							if (jQuery('[name="' + field_name + '"]').length) {
+								jQuery('[name="' + field_name + '"]').val(room_pax[guest_num][prop_name]).trigger('change');
+								if (!guest_found) {
+									guests_found++;
+									guest_found = true;
+								}
+							}
+						}
+						guest_num++;
+						if (jQuery('#vbo-roomdet-guests-details-' + room_num).length && !jQuery('#vbo-roomdet-guests-details-' + room_num).is(':visible')) {
+							jQuery('#vbo-roomdet-guests-details-' + room_num).slideDown();
+						}
+					}
+				});
+
+				return guests_found;
+			}
+
+			prev_checkins.forEach((prev_checkin, index) => {
+				prev_checkins_btns.push({
+					icon: '<?php echo VikBookingIcons::i('calendar-check'); ?>',
+					text: Joomla.JText._('VBRENTALORD') + ' #' + prev_checkin['idorder'] + ' - ' + Joomla.JText._('VBPVIEWORDERSPEOPLE') + ': ' + prev_checkin['tot_guests'],
+					separator: (index === prev_checkins.length - 1),
+					action: (root, config) => {
+						var guests_populated = populatePreviousCheckin(prev_checkins[index]['pax_data']);
+						console.log('guests_populated: ' + guests_populated);
+					},
+				});
+			});
+
+			jQuery(function() {
+				jQuery('.vbo-context-menu-prevchkins').vboContextMenu({
+					placement: 'bottom-left',
+					buttons: prev_checkins_btns,
+				});
+			});
+		</script>
+		<?php
+		}
+		?>
 	</div>
 		<?php
 		//rooms details and total information
@@ -284,7 +402,7 @@ $pax_fields_obj = VBOCheckinPax::getInstance();
 				// calculate the number of guests to register depending on settings
 				$guests_to_register = $pax_fields_obj->registerChildren() ? ($arrpeople[$num]['adults'] + $arrpeople[$num]['children']) : $arrpeople[$num]['adults'];
 				?>
-			<div class="vbo-roomdet-wrapper">
+			<div class="vbo-roomdet-wrapper" data-roomnum="<?php echo $ind; ?>">
 				<div class="vbo-roomdet-wrap">
 					<div class="vbo-roomdet-entry">
 						<div class="vbo-roomdet-head">
@@ -374,7 +492,7 @@ $pax_fields_obj = VBOCheckinPax::getInstance();
 							?>
 							<span><?php echo ucwords($or['otarplan']); ?></span>
 							<?php
-						} elseif ($row['closure'] < 1) {
+						} elseif ($this->row['closure'] < 1) {
 							?>
 							<span><?php echo JText::translate('VBOROOMNORATE'); ?></span>
 							<?php
@@ -505,7 +623,7 @@ $pax_fields_obj = VBOCheckinPax::getInstance();
 							$current_guest = $customer;
 						}
 						?>
-					<div class="vbo-roomdet-guest-details" data-roomind="<?php echo $ind; ?>" data-totguests="<?php echo $guests_to_register; ?>">
+					<div class="vbo-roomdet-guest-details" data-roomind="<?php echo $ind; ?>" data-guestnum="<?php echo $g; ?>" data-totguests="<?php echo $guests_to_register; ?>">
 						<div class="vbo-roomdet-guest-detail vbo-roomdet-guest-detail-num">
 							<span><?php echo JText::sprintf('VBOGUESTNUM', $g); ?></span>
 						</div>

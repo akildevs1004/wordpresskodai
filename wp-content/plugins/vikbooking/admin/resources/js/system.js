@@ -6,7 +6,7 @@ function JoomlaCore() {
 	// instantiate only once because iframe pages might invoke this method again
 	if (!JoomlaCore.instance) {
 		// init pagination handler
-		this.pagination = new JPagination();
+		this.paginations = {};
 		// init translations handler
 		this.JText = new JText();
 		// init editors instances
@@ -17,6 +17,17 @@ function JoomlaCore() {
 	}
 	
 	return JoomlaCore.instance;
+}
+
+JoomlaCore.prototype.getPagination = function(prefix) {
+	key = prefix || '__default__';
+
+	if (!this.paginations.hasOwnProperty(key)) {
+		this.paginations[key] = new JPagination();
+		this.paginations[key].setPrefix(prefix)
+	}
+
+	return this.paginations[key];
 }
 
 JoomlaCore.prototype.checkAll = function(checkbox) {
@@ -162,6 +173,7 @@ function JPagination(total, limit, start, listener) {
 	this.total 	= total;
 	this.limit 	= limit;
 	this.start 	= start;
+	this.prefix = '';
 
 	this.listener = listener;
 
@@ -192,26 +204,35 @@ JPagination.prototype.setListener = function(listener) {
 	return this;
 }
 
+JPagination.prototype.setPrefix = function(prefix) {
+	this.prefix = prefix || '';
+
+	return this;
+}
+
 JPagination.prototype.submit = function() {
 
-	if (this.listener.limitstart === undefined) {
+	if (this.listener[this.prefix + 'limitstart'] === undefined) {
 		var limitstart = document.createElement('input');
 		limitstart.type  = 'hidden';
-		limitstart.name  = 'limitstart';
+		limitstart.name  = this.prefix + 'limitstart';
 
 		this.listener.appendChild(limitstart);
 	}
 
-	if (this.listener.limit === undefined) {
+	if (this.listener[this.prefix + 'limit'] === undefined) {
 		var limit = document.createElement('input');
 		limit.type  = 'hidden';
-		limit.name  = 'limit';
+		limit.name  = this.prefix + 'limit';
 
 		this.listener.appendChild(limit);
 	}
 
-	this.listener.limitstart.value 	= this.start;
-	this.listener.limit.value 		= this.limit;
+	this.listener[this.prefix + 'limitstart'].value = this.start;
+	this.listener[this.prefix + 'limit'].value      = this.limit;
+
+	// submit through jQuery in order to
+	// properly emit the "submit" event
 	jQuery(this.listener).submit();
 }
 
@@ -236,7 +257,7 @@ JPagination.prototype.last = function() {
 }
 
 /**
- * Pagination
+ * Text
  */
 
 function JText() {

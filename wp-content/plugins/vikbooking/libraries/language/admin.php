@@ -903,7 +903,7 @@ class VikBookingLanguageAdmin implements JLanguageHandler
 				$result = __('Personal Details', 'vikbooking');
 				break;
 			case 'VBLIBTEN':
-				$result = __('Rooms Reserved', 'vikbooking');
+				$result = __('Rooms Booked', 'vikbooking');
 				break;
 			case 'VBLIBELEVEN':
 				$result = __('Check-in Date', 'vikbooking');
@@ -1611,7 +1611,7 @@ class VikBookingLanguageAdmin implements JLanguageHandler
 				$result = __('Value', 'vikbooking');
 				break;
 			case 'VBNEWSEASONVALUEOVERRIDEHELP':
-				$result = __('The default absoulte or percentage value can be different depending on the nights of stay. For example you can override the default value of the Special Price for 7 Nights of stay and set it to a lower charge or to a higher decrease. Do not override the default value for always applying the same charge or decrease regardless the length of stay in the days affected by this Special Price.', 'vikbooking');
+				$result = __('The default absolute or percentage value can be different depending on the nights of stay. For example you can override the default value of the Special Price for 7 Nights of stay and set it to a lower charge or to a higher decrease. Do not override the default value for always applying the same charge or decrease regardless the length of stay in the days affected by this Special Price.', 'vikbooking');
 				break;
 			case 'VBNEWSEASONADDOVERRIDE':
 				$result = __('Add Value Override', 'vikbooking');
@@ -1740,7 +1740,7 @@ class VikBookingLanguageAdmin implements JLanguageHandler
 				$result = __('MM/DD/YYYY', 'vikbooking');
 				break;
 			case 'VBCLOSEROOM':
-				$result = __('Close Room in These Dates', 'vikbooking');
+				$result = __('Close room in these dates', 'vikbooking');
 				break;
 			case 'VBDBTEXTROOMCLOSED':
 				$result = __('Room Closed', 'vikbooking');
@@ -3009,7 +3009,7 @@ class VikBookingLanguageAdmin implements JLanguageHandler
 				$result = __('%d Confirmed Bookings over %d days - coming from %d Channels', 'vikbooking');
 				break;
 			case 'VBSTATSOTACOMMISSIONS':
-				$result = __('OTAs Commissions', 'vikbooking');
+				$result = __('OTA Commissions', 'vikbooking');
 				break;
 			case 'VBOSTATSTOPCOUNTRIES':
 				$result = __('Top Countries', 'vikbooking');
@@ -3328,9 +3328,6 @@ class VikBookingLanguageAdmin implements JLanguageHandler
 				break;
 			case 'VBOINVCOLTOTAL':
 				$result = __('Total', 'vikbooking');
-				break;
-			case 'VBOINVCOLTAX':
-				$result = __('Taxes', 'vikbooking');
 				break;
 			case 'VBOINVCOLGRANDTOTAL':
 				$result = __('Grand Total', 'vikbooking');
@@ -3771,10 +3768,10 @@ class VikBookingLanguageAdmin implements JLanguageHandler
 				$result = __('Tags:', 'vikbooking');
 				break;
 			case 'VBOVERVIEWSTICKYTHEADON':
-				$result = __('Sticky Dates Headers ON', 'vikbooking');
+				$result = __('Sticky Date Headers ON', 'vikbooking');
 				break;
 			case 'VBOVERVIEWSTICKYTHEADOFF':
-				$result = __('Sticky Dates Headers OFF', 'vikbooking');
+				$result = __('Sticky Date Headers OFF', 'vikbooking');
 				break;
 			case 'VBOVERVIEWTOGGLESUBROOM':
 				$result = __('Toggle Availability by Units', 'vikbooking');
@@ -4864,9 +4861,6 @@ class VikBookingLanguageAdmin implements JLanguageHandler
 				break;
 			case 'VBOREPORTTRANSACTIONSREPORT':
 				$result = __('Transactions Report', 'vikbooking');
-				break;
-			case 'VBOSEEGUESTREVIEW':
-				$result = __('See Guest Review', 'vikbooking');
 				break;
 			case 'VBCONFIGPRECHECKINENABLED':
 				$result = __('Pre Check-in Enabled', 'vikbooking');
@@ -6364,6 +6358,412 @@ class VikBookingLanguageAdmin implements JLanguageHandler
 				break;
 			case 'VBO_CRONJOB_WEBHOOK_HANDLER_DESC':
 				$result = __('Depending on the type of webhook notification, enter the endpoint URL, the PHP callback (syntax: <code>function_name</code> or <code>object,method</code>) or the name of the WordPress hook.', 'vikbooking');
+				break;
+			case 'VBO_STATUS_PAID':
+				$result = __('Paid', 'vikbooking');
+				break;
+			case 'VBO_STATUS_UNPAID':
+				$result = __('Unpaid', 'vikbooking');
+				break;
+			case 'VBO_INV_TAX_SUMMARY':
+				$result = __('Tax Summary', 'vikbooking');
+				break;
+			case 'VBO_INV_TAX_ALIQUOTE':
+				$result = __('Tax Rate', 'vikbooking');
+				break;
+			case 'VBO_INV_VATGST':
+				$result = __('VAT/GST', 'vikbooking');
+				break;
+			case 'VBO_PREVIOUS_CHECKINS':
+				$result = __('Previous registrations', 'vikbooking');
+				break;
+			case 'VBO_SPLIT_STAYS':
+				$result = __('Split stays', 'vikbooking');
+				break;
+			case 'VBO_SPLIT_STAY':
+				$result = __('Split stay', 'vikbooking');
+				break;
+			case 'VBO_BOOK_SPLIT_STAYS':
+				$result = __('Booking split stays', 'vikbooking');
+				break;
+			case 'VBO_BOOK_SPLIT_STAYS_HELP':
+				$result = __('Split stays is a feature that allows you to split longer stays between multiple room types. In case the requested dates are not available in one same room, guests can choose to book a split stay with different rooms. Some nights of the stay will be assigned to one available room, while the other nights will be assigned to different rooms. This feature aims to maximize your rooms occupancy.', 'vikbooking');
+				break;
+			case 'VBO_SPLIT_STAYS_RATIO':
+				$result = __('Nights/Transfers ratio', 'vikbooking');
+				break;
+			case 'VBO_SPLIT_STAYS_RATIO_HELP':
+				$result = __('The ratio will be used to determine whether booking a split stay should be suggested. Thanks to this value, the system will understand if too many room transfers, depending on the number of nights of stay, are being suggested to the customers to satisfy their request.', 'vikbooking');
+				break;
+			case 'VBO_SPLIT_STAY_RATIO_TEST':
+				$result = __('According to the current ratio (%s), a stay for %d night(s) will allow up to %d room transfer(s).', 'vikbooking');
+				break;
+			case 'VBO_MULTITASK_PANEL':
+				$result = __('Multitask Panel', 'vikbooking');
+				break;
+			case 'VBO_BOOK_SPLIT_STAY_CANNOTDRAG':
+				$result = __('The booking ID %d is a split stay reservation for multiple rooms, and so you cannot change dates to just one room. Use the apposite page to modify the reservation instead.', 'vikbooking');
+				break;
+			case 'VBO_MODIFY_DATES':
+				$result = __('Modify dates', 'vikbooking');
+				break;
+			case 'VBO_MODIFY_DATES_HELP':
+				$result = __('It is possible to modify the stay dates of some rooms when multiple rooms are booked with the same reservation. However, the selectable dates are constrained by the booking global check-in and check-out dates. This function is helpful in case the guests of a room will arrive some days later or will leave some days before. It is important to note that the sole goal of this function is to free up the availability of some rooms before or after the booking check-out or check-in dates. Defining a lower number of nights of stay for a room will NOT affect the pricing, which will still be based on the total number of nights of stay of the main reservation. If you wish to adjust the pricing when a room needs to change the dates of stay, then you should remove this room from the main reservation and manually create a new booking for this room, for the same customer, by selecting the proper check-in and check-out dates. You basically need to move the room from one reservation to another.', 'vikbooking');
+				break;
+			case 'VBO_STATE_PROVINCE':
+				$result = __('State/Province', 'vikbooking');
+				break;
+			case 'VBO_3CHAR_CODE':
+				$result = __('3-char code', 'vikbooking');
+				break;
+			case 'VBO_2CHAR_CODE':
+				$result = __('2-char code', 'vikbooking');
+				break;
+			case 'VBMAINSTATESTITLE':
+				$result = __('Vik Booking - States/Provinces', 'vikbooking');
+				break;
+			case 'VBO_MANAGE':
+				$result = __('Manage', 'vikbooking');
+				break;
+			case 'VBO_NUMBER_USES':
+				$result = __('Number of uses', 'vikbooking');
+				break;
+			case 'VBO_CUSTOMERS_ASSIGNED':
+				$result = __('Customers assigned', 'vikbooking');
+				break;
+			case 'VBO_CUSTOMERS_ASSIGNED_HELP':
+				$result = __('It is possible to limit the discount to just some customers.', 'vikbooking');
+				break;
+			case 'VBO_APPLY_AUTOMATICALLY':
+				$result = __('Apply automatically', 'vikbooking');
+				break;
+			case 'VBO_APPLY_AUTOMATICALLY_HELP':
+				$result = __('If enabled, the discount will be applied automatically when an eligible customer is recognized.', 'vikbooking');
+				break;
+			case 'VBO_SEARCHING':
+				$result = __('Searching...', 'vikbooking');
+				break;
+			case 'VBO_ERR_LOAD_RESULTS':
+				$result = __('An error occurred while loading the results', 'vikbooking');
+				break;
+			case 'VBO_EMPTY_DATA':
+				$result = __('Empty data', 'vikbooking');
+				break;
+			case 'VBO_SET_STANDBY':
+				$result = __('Set to Pending (Standby)', 'vikbooking');
+				break;
+			case 'VBO_W_GUESTMESSAGES_TITLE':
+				$result = __('Guest messages', 'vikbooking');
+				break;
+			case 'VBO_W_GUESTMESSAGES_DESCR':
+				$result = __('Navigate through all your guest messages.', 'vikbooking');
+				break;
+			case 'VBO_NO_REPLY_NEEDED':
+				$result = __('No reply needed', 'vikbooking');
+				break;
+			case 'VBO_WANT_PROCEED':
+				$result = __('Do you want to proceed?', 'vikbooking');
+				break;
+			case 'VBO_W_FINANCE_TITLE':
+				$result = __('Finance', 'vikbooking');
+				break;
+			case 'VBO_W_FINANCE_DESCR':
+				$result = __('Metrics about occupancy, revenue and commission savings.', 'vikbooking');
+				break;
+			case 'VBO_GROSS_BOOKING_VALUE':
+				$result = __('Gross Booking Value', 'vikbooking');
+				break;
+			case 'VBO_AVG_COMMISSIONS':
+				$result = __('Average Commissions', 'vikbooking');
+				break;
+			case 'VBO_COMMISSION_SAVINGS':
+				$result = __('Commission Savings', 'vikbooking');
+				break;
+			case 'VBO_COMPARE_WITH_LAST_Y':
+				$result = __('Compare with last year', 'vikbooking');
+				break;
+			case 'VBO_COMPARE_WITH_PREV_Q':
+				$result = __('Compare with previous quarter', 'vikbooking');
+				break;
+			case 'VBO_COMPARE_WITH_PREV_M':
+				$result = __('Compare with previous month', 'vikbooking');
+				break;
+			case 'VBO_COMPARE_WITH_PREV_W':
+				$result = __('Compare with previous week', 'vikbooking');
+				break;
+			case 'VBO_COMPARE_WITH_PREV_D':
+				$result = __('Compare with previous day', 'vikbooking');
+				break;
+			case 'VBO_VS_LAST_Y':
+				$result = __('vs last year', 'vikbooking');
+				break;
+			case 'VBO_VS_PREV_Q':
+				$result = __('vs previous quarter', 'vikbooking');
+				break;
+			case 'VBO_VS_PREV_M':
+				$result = __('vs previous month', 'vikbooking');
+				break;
+			case 'VBO_VS_PREV_W':
+				$result = __('vs previous week', 'vikbooking');
+				break;
+			case 'VBO_VS_PREV_D':
+				$result = __('vs day before', 'vikbooking');
+				break;
+			case 'VBO_DAYS_AFTER_CHECKOUT':
+				$result = __('Days after check-out', 'vikbooking');
+				break;
+			case 'VBO_CRON_CUSTOMER_DISCOUNTS_TITLE':
+				$result = __('Customer discount', 'vikbooking');
+				break;
+			case 'VBO_MIN_BOOKINGS_DISC_HELP':
+				$result = __('If a customer has got a number of confirmed reservations equal to, or greater than this value, the account will be assigned to the selected coupon discount.', 'vikbooking');
+				break;
+			case 'VBOBOOKHISTORYTPC':
+				$result = __('Pre-checkin information received', 'vikbooking');
+				break;
+			case 'VBO_CANC_FEE':
+				$result = __('Cancellation fee', 'vikbooking');
+				break;
+			case 'VBO_ROOM_UPGRADE':
+				$result = __('Room Upgrade', 'vikbooking');
+				break;
+			case 'VBO_ROOM_UPGRADE_HELP':
+				$result = __('If enabled, guests will be able to upgrade to "better" rooms by editing their reservations. It is necessary to select the compatible rooms for the upgrade option (i.e. upgrade from "Double Room Standard" to "Double Room Deluxe").', 'vikbooking');
+				break;
+			case 'VBO_ELIGIBLE_ROOMS':
+				$result = __('Eligible rooms', 'vikbooking');
+				break;
+			case 'VBOBOOKHISTORYTGR':
+				$result = __('Guest review', 'vikbooking');
+				break;
+			case 'VBO_HISTORY_GROUPS':
+				$result = __('Groups', 'vikbooking');
+				break;
+			case 'VBO_HISTORY_GPM':
+				$result = __('Payments', 'vikbooking');
+				break;
+			case 'VBOBOOKHISTORYTUR':
+				$result = __('Room Upgrade', 'vikbooking');
+				break;
+			case 'VBO_ROOM_UPGRADE_CONDTEXT_H':
+				$result = __('Matches the available upgrade options depending on the nights and rooms booked', 'vikbooking');
+				break;
+			case 'VBO_ROOM_UPGRADE_ADDCONTMSG':
+				$result = __('Add upgrade details to message', 'vikbooking');
+				break;
+			case 'VBO_UPGRADE_CONFIRM':
+				$result = __('Confirm upgrade', 'vikbooking');
+				break;
+			case 'VBO_YOU_SAVE_PCENT':
+				$result = __('You save %s', 'vikbooking');
+				break;
+			case 'VBO_CRON_TESTMAIL':
+				$result = __('Test eMail Address', 'vikbooking');
+				break;
+			case 'VBO_CRON_TESTMAIL_HELP':
+				$result = __('If provided, the cron job will send the message to this email address, not to the customer. Useful for testing purposes.', 'vikbooking');
+				break;
+			case 'VBO_NEW_BOOKING':
+				$result = __('New Booking', 'vikbooking');
+				break;
+			case 'VBO_CHILDFEES_AGEBUCKETS_HELP':
+				$result = __('For a better compatibility with OTAs, it is recommended to define at most 3 age intervals (buckets), where the &quot;to age&quot; is inclusive, and the next from-age interval should be greater by one (i.e. from 0 to 3, from 4 to 8, from 9 to 16). Also, fixed amounts in your currency are way more compatible than percent values of the room/adults rate.', 'vikbooking');
+				break;
+			case 'VBO_MISSING_SUBUNIT':
+				$result = __('Missing sub-unit', 'vikbooking');
+				break;
+			case 'VBO_QUICK_ACTIONS':
+				$result = __('Quick Actions', 'vikbooking');
+				break;
+			case 'VBO_USEFUL_LONGSTAY_PROMOS':
+				$result = __('Useful for long-term stay promotions', 'vikbooking');
+				break;
+			case 'VBO_MAX_BOOK_TOTAL':
+				$result = __('Max. Booking Total', 'vikbooking');
+				break;
+			case 'VBO_WELCOME_ADMIN_USER':
+				$result = __('Welcome back, %s!', 'vikbooking');
+				break;
+			case 'VBO_BOOKINGS_YESTERDAY':
+				$result = __('Bookings collected yesterday: %d', 'vikbooking');
+				break;
+			case 'VBO_ADMIN_WIDGET':
+				$result = __('Admin widget', 'vikbooking');
+				break;
+			case 'VBO_CONGRATS':
+				$result = __('Congratulations!', 'vikbooking');
+				break;
+			case 'VBO_SHOW_CANCELLATIONS':
+				$result = __('Show cancellations', 'vikbooking');
+				break;
+			case 'VBO_CANCELLATIONS':
+				$result = __('Cancellations', 'vikbooking');
+				break;
+			case 'VBO_EXPORT_AS':
+				$result = __('Export as', 'vikbooking');
+				break;
+			case 'VBO_AUTO_EXPORT':
+				$result = __('Auto-Export', 'vikbooking');
+				break;
+			case 'VBO_AUTO_EXPORT_JSON_HELP':
+				$result = __('The JSON Payload will automatically set dynamic and required variables for the Report to generate the file to export.', 'vikbooking');
+				break;
+			case 'VBO_REMOVE_LOCAL_FILE':
+				$result = __('Remove local file', 'vikbooking');
+				break;
+			case 'VBO_AUTO_EXPORT_RMFILE_HELP':
+				$result = __('If you are sending the exported file to an email address, then after testing you can choose not to keep the file locally and have it removed automatically.', 'vikbooking');
+				break;
+			case 'VBO_MEAL_PLANS_INCL':
+				$result = __('Meal Plans Included', 'vikbooking');
+				break;
+			case 'VBO_MEAL_BREAKFAST':
+				$result = __('Breakfast', 'vikbooking');
+				break;
+			case 'VBO_MEAL_LUNCH':
+				$result = __('Lunch', 'vikbooking');
+				break;
+			case 'VBO_MEAL_DINNER':
+				$result = __('Dinner', 'vikbooking');
+				break;
+			case 'VBO_PET':
+				$result = __('Pet', 'vikbooking');
+				break;
+			case 'VBO_PETS':
+				$result = __('Pets', 'vikbooking');
+				break;
+			case 'VBO_MEAL_PLAN':
+				$result = __('Meal Plan', 'vikbooking');
+				break;
+			case 'VBO_MEALS':
+				$result = __('Meals', 'vikbooking');
+				break;
+			case 'VBO_SHORTM_BREAKFAST':
+				// @TRANSLATORS: Short for Breakfast
+				$result = _x('B', 'Short for Breakfast', 'vikbooking');
+				break;
+			case 'VBO_SHORTM_LUNCH':
+				// @TRANSLATORS: Short for Lunch
+				$result = _x('L', 'Short for Lunch', 'vikbooking');
+				break;
+			case 'VBO_SHORTM_DINNER':
+				// @TRANSLATORS: Short for Dinner
+				$result = _x('D', 'Short for Dinner', 'vikbooking');
+				break;
+			case 'VBO_CONF_SWAP_RNUMB':
+				// @TRANSLATORS: Confirmation for swapping a room number with another
+				$result = _x('Do you really want to swap the room number %s with the number %s?', 'Confirmation for swapping a room number with another', 'vikbooking');
+				break;
+			case 'VBO_SWAP_ROOMS_LOG':
+				// @TRANSLATORS: Room-name: unit number N was swapped with unit number N
+				$result = _x('%s: unit number %s was swapped with unit number %s', 'Room-name: unit number N was swapped with unit number N', 'vikbooking');
+				break;
+			case 'VBO_DRAG_SUBUNITS_SAMEDATE':
+				$result = __('Room sub-units cannot be moved onto a different date. You should rather modify the reservation.', 'vikbooking');
+				break;
+			case 'VBO_ERR_SUBUN_MOVE_SUBUN':
+				$result = __('Only room sub-units can be moved onto a sub-unit row.', 'vikbooking');
+				break;
+			case 'VBO_TAKINGS':
+				$result = __('Takings', 'vikbooking');
+				break;
+			case 'VBO_TOTAL_TAKINGS':
+				$result = __('Total Takings', 'vikbooking');
+				break;
+			case 'VBO_IS_PET_FEE':
+				$result = __('Pet Fee', 'vikbooking');
+				break;
+			case 'VBO_ASSIGN_BOOKING_TO_OTA_CONFIRM':
+				// @TRANSLATORS: Confirm the will to assign the reservation to the selected Channel/OTA by knowing that their policies or commissions may apply
+				$result = _x('Do you want to assign the reservation to the selected channel %s? The OTA will be notified and their policies will be applied.', 'Confirm the will to assign the reservation to the selected Channel/OTA by knowing that their policies or commissions may apply', 'vikbooking');
+				break;
+			case 'VBO_BOOKING_OTA_ASSIGNED':
+				// @TRANSLATORS: The name of the Channel/OTA assigned to the reservation
+				$result = _x('Channel assigned: %s', 'The name of the Channel/OTA assigned to the reservation', 'vikbooking');
+				break;
+			case 'VBO_MAX_ADV_BOOK_NOTICE':
+				$result = __('Maximum advance booking notice', 'vikbooking');
+				break;
+			case 'VBO_MAX_ADV_BOOK_NOTICE_HELP':
+				$result = __('Defines the maximum notice period allowed for booking. If not specified, the global configuration setting for the &quot;Maximum date in the future from today&quot; will be used.', 'vikbooking');
+				break;
+			case 'VBO_PAY_PROCESS_NO_DIRECT_CHARGE':
+				$result = __('The active payment processor does not support direct charges over credit card numbers.', 'vikbooking');
+				break;
+			case 'VBO_W_VIRTUALTERMINAL_TITLE':
+				$result = __('Virtual Terminal', 'vikbooking');
+				break;
+			case 'VBO_W_VIRTUALTERMINAL_DESCR':
+				$result = __('Manually charge credit card details for your OTA reservations. Only supported by some payment processors.', 'vikbooking');
+				break;
+			case 'VBO_CC_AMOUNT':
+				$result = __('Amount', 'vikbooking');
+				break;
+			case 'VBO_CC_NUMBER':
+				$result = __('Card Number', 'vikbooking');
+				break;
+			case 'VBO_CC_EXPIRY_DT':
+				$result = __('Expiration Date', 'vikbooking');
+				break;
+			case 'VBO_CC_CVV':
+				$result = __('CVV', 'vikbooking');
+				break;
+			case 'VBO_CC_DOCHARGE':
+				$result = __('Charge Credit Card', 'vikbooking');
+				break;
+			case 'VBO_CC_TN_ERROR':
+				$result = __('Transaction error', 'vikbooking');
+				break;
+			case 'VBO_NOPROMO_UPD_CHANNELS':
+				$result = __('The channels connected with the Channel Manager do not allow regular pricing rules to be converted into promotions. Please delete this special price and create a new one as a promotion.', 'vikbooking');
+				break;
+			case 'VBO_IMPORTANT':
+				$result = __('Important', 'vikbooking');
+				break;
+			case 'VBO_WARN_CM_RES_MOD':
+				$result = __('Warning: this is a Channel Manager reservation. Changes or cancellations should not be made manually. They should be made automatically by the Channel Manager itself, if requested by the guest.', 'vikbooking');
+				break;
+			case 'VBO_SEE_ALL':
+				$result = __('See all', 'vikbooking');
+				break;
+			case 'VBO_COPY':
+				$result = __('Copy', 'vikbooking');
+				break;
+			case 'VBO_COPIED':
+				$result = __('Copied', 'vikbooking');
+				break;
+			case 'VBO_READ_MORE':
+				$result = __('Read more', 'vikbooking');
+				break;
+			case 'VBOBOOKHISTORYTOB':
+				$result = __('Overbooking', 'vikbooking');
+				break;
+			case 'VBO_BTYPE_OVERBOOKING':
+				$result = __('Overbooking', 'vikbooking');
+				break;
+			case 'VBO_CONF_RM_OVERBOOKING_FLAG':
+				$result = __('Do you want to remove the overbooking flag? The action cannot be undone.', 'vikbooking');
+				break;
+			case 'VBO_OVERBOOKING_FLAG_REMOVED':
+				$result = __('The overbooking flag was removed.', 'vikbooking');
+				break;
+			case 'VBO_CHOOSE_CHILDREN_HELP':
+				$result = __('If enabled, every booking form will ask the guests to choose the number of children for each room party, beside the number of adults. Turn it off if children are not allowed or if they are charged like adults.', 'vikbooking');
+				break;
+			case 'VBO_GUESTS_LABEL':
+				$result = __('Guests label', 'vikbooking');
+				break;
+			case 'VBO_GUESTS_LABEL_HELP':
+				$result = __('The label to use for selecting the number of guests for each room. Choosing &quot;Guests&quot; over &quot;Adults&quot; can be helpful if children are not allowed or if they are charged like adults regardless of their age.', 'vikbooking');
+				break;
+			case 'VBO_GUESTS_POLICY':
+				$result = __('Guests allowed policy', 'vikbooking');
+				break;
+			case 'VBO_GUESTS_POLICY_HELP':
+				$result = __('An optional text that will be displayed in the booking forms. Useful to provide information such as infants allowed, children rates, minimum guests age etc..', 'vikbooking');
+				break;
+			case 'VBO_MARK_UNITS_CLOSED':
+				$result = __('Mark the units as closed?', 'vikbooking');
 				break;
 		}
 

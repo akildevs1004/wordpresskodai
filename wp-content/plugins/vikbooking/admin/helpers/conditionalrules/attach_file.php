@@ -81,7 +81,7 @@ class VikBookingConditionalRuleAttachFile extends VikBookingConditionalRule
 		 * @since 1.5
 		 */
 		// $serv_base_path = $this->getServerBasePath();
-		if (defined('ABSPATH'))
+		if (VBOPlatformDetection::isWordPress())
 		{
 			$serv_base_path = ABSPATH;
 		}

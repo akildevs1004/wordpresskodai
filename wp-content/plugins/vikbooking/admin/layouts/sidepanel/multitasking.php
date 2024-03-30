@@ -22,8 +22,9 @@ extract($displayData);
 // make sure the current page name is set and it's a string
 $vbo_page = isset($vbo_page) ? htmlspecialchars($vbo_page, ENT_QUOTES) : '';
 
-// get the current page uri
+// get the current page and root URIs
 $vbo_page_uri = htmlspecialchars((string) JUri::getInstance(), ENT_QUOTES);
+$root_uri 	  = htmlspecialchars(JUri::root(), ENT_QUOTES);
 
 // get admin widgets helper
 $widgets_helper = VikBooking::getAdminWidgetsInstance();
@@ -41,10 +42,27 @@ $active_widgets = [];
 $notif_audio_path = implode(DIRECTORY_SEPARATOR, [VCM_ADMIN_PATH, 'assets', 'css', 'audio', 'new_notification.mp3']);
 $notif_audio_url  = is_file($notif_audio_path) ? (VCM_ADMIN_URI . implode('/', ['assets', 'css', 'audio', 'new_notification.mp3'])) : null;
 
+// theme color preferences
+$color_scheme = VikBooking::getAppearancePref();
+$scheme_name  = JText::translate('VBO_APPEARANCE_PREF_AUTO');
+$current_mode = 'magic';
+if ($color_scheme == 'light') {
+	$scheme_name = JText::translate('VBO_APPEARANCE_PREF_LIGHT');
+	$current_mode = 'sun';
+} elseif ($color_scheme == 'dark') {
+	$scheme_name = JText::translate('VBO_APPEARANCE_PREF_DARK');
+	$current_mode = 'moon';
+}
+
 // JS lang vars
 JText::script('VBO_BROWSER_NOTIFS_ON');
 JText::script('VBO_BROWSER_NOTIFS_OFF');
 JText::script('VBO_BROWSER_NOTIFS_OFF_HELP');
+JText::script('VBO_ADMIN_WIDGET');
+JText::script('VBO_CONGRATS');
+JText::script('VBO_APPEARANCE_PREF_AUTO');
+JText::script('VBO_APPEARANCE_PREF_LIGHT');
+JText::script('VBO_APPEARANCE_PREF_DARK');
 
 ?>
 
@@ -58,6 +76,20 @@ JText::script('VBO_BROWSER_NOTIFS_OFF_HELP');
 			</div>
 			<div class="vbo-sidepanel-notifications">
 				<button type="button" class="vbo-sidepanel-notifications-btn"><?php VikBookingIcons::e('bell'); ?></button>
+			</div>
+			<div class="vbo-sidepanel-colorscheme">
+				<span class="vbo-tooltip vbo-tooltip-bottom vbo-sidepanel-colorscheme-current" data-tooltiptext="<?php echo JHtml::fetch('esc_attr', $scheme_name); ?>"><?php VikBookingIcons::e($current_mode); ?></span>
+				<div class="vbo-sidepanel-colorscheme-list">
+					<div class="vbo-sidepanel-colorscheme-option<?php echo $color_scheme == 'auto' ? ' vbo-sidepanel-colorscheme-option-active' : ''; ?>" data-scheme="auto">
+						<span><?php VikBookingIcons::e('magic'); ?> <?php echo JText::translate('VBO_APPEARANCE_PREF_AUTO'); ?></span>
+					</div>
+					<div class="vbo-sidepanel-colorscheme-option<?php echo $color_scheme == 'light' ? ' vbo-sidepanel-colorscheme-option-active' : ''; ?>" data-scheme="light">
+						<span><?php VikBookingIcons::e('sun'); ?> <?php echo JText::translate('VBO_APPEARANCE_PREF_LIGHT'); ?></span>
+					</div>
+					<div class="vbo-sidepanel-colorscheme-option<?php echo $color_scheme == 'dark' ? ' vbo-sidepanel-colorscheme-option-active' : ''; ?>" data-scheme="dark">
+						<span><?php VikBookingIcons::e('moon'); ?> <?php echo JText::translate('VBO_APPEARANCE_PREF_DARK'); ?></span>
+					</div>
+				</div>
 			</div>
 			<div class="vbo-sidepanel-layout-type">
 				<span class="vbo-sidepanel-layout-large">
@@ -73,7 +105,7 @@ JText::script('VBO_BROWSER_NOTIFS_OFF_HELP');
 
 			<div class="vbo-sidepanel-search">
 				<?php VikBookingIcons::e('search', 'vbo-sidepanel-search-input-icn'); ?>
-				<input id="vbo-sidepanel-search-input" type="text" placeholder="<?php echo htmlspecialchars(JText::translate('VBO_SEARCH_ADMIN_WIDGETS')); ?>" value="" />
+				<input id="vbo-sidepanel-search-input" type="text" placeholder="<?php echo htmlspecialchars(JText::translate('VBO_SEARCH_ADMIN_WIDGETS')); ?>" value="" autocomplete="off" />
 			</div>
 
 			<div class="vbo-sidepanel-add-widgets">
@@ -91,7 +123,8 @@ JText::script('VBO_BROWSER_NOTIFS_OFF_HELP');
 							<span class="vbo-sidepanel-widget-name"><?php echo $admin_widget->name; ?></span>
 						</div>
 						<div class="vbo-sidepanel-widget-add">
-							<span><?php echo VikBookingIcons::e('plus-circle'); ?></span>
+							<span class="vbo-widget-render-modal"><?php echo VikBookingIcons::e('far fa-window-restore'); ?></span>
+							<span class="vbo-widget-render-regular"><?php echo VikBookingIcons::e('plus-circle'); ?></span>
 						</div>
 					</div>
 					<div class="vbo-sidepanel-widget-tags" style="display: none;"><?php echo strtolower($admin_widget->name . ' ' . $admin_widget->descr); ?></div>
@@ -125,6 +158,7 @@ JText::script('VBO_BROWSER_NOTIFS_OFF_HELP');
 			$active_widgets[] = $widget_info;
 			?>
 			<div class="vbo-admin-widgets-widget-output vbo-admin-widgets-container-small" data-vbowidgetid="<?php echo $widget_info->id; ?>">
+				<div class="vbo-admin-widgets-widget-detach"><?php VikBookingIcons::e('window-restore'); ?></div>
 				<?php $widget_instance->render($multitask_data); ?>
 			</div>
 			<?php
@@ -147,18 +181,28 @@ JText::script('VBO_BROWSER_NOTIFS_OFF_HELP');
 
 		// inject core properties
 		VBOCore.setOptions({
+			is_vbo: 			true,
+			cms: 				"<?php echo VBOPlatformDetection::isWordPress() ? 'wordpress' : 'joomla'; ?>",
 			widget_ajax_uri:    "<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=exec_admin_widget'); ?>",
+			assets_ajax_uri: 	"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=widgets_get_assets'); ?>",
 			multitask_ajax_uri: "<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=exec_multitask_widgets'); ?>",
 			watchdata_ajax_uri: "<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=widgets_watch_data'); ?>",
 			current_page: 	    "<?php echo $vbo_page; ?>",
 			current_page_uri:   "<?php echo $vbo_page_uri; ?>",
+			root_uri:   		"<?php echo $root_uri; ?>",
 			admin_widgets: 	    <?php echo json_encode($active_widgets); ?>,
 			notif_audio_url: 	"<?php echo $notif_audio_url; ?>",
 			tn_texts: 			{
 				notifs_enabled: 		Joomla.JText._('VBO_BROWSER_NOTIFS_ON'),
 				notifs_disabled: 		Joomla.JText._('VBO_BROWSER_NOTIFS_OFF'),
 				notifs_disabled_help: 	Joomla.JText._('VBO_BROWSER_NOTIFS_OFF_HELP'),
+				admin_widget: 			Joomla.JText._('VBO_ADMIN_WIDGET'),
+				congrats: 				Joomla.JText._('VBO_CONGRATS'),
 			},
+			default_loading_body: '<?php VikBookingIcons::e('circle-notch', 'fa-spin fa-fw'); ?>',
+			service_worker_path:  '<?php echo VBOWebappServiceworker::getUri(); ?>',
+			service_worker_scope: '<?php echo VBOWebappServiceworker::getScope(); ?>',
+			push: 				  <?php echo json_encode(VBOWebappPush::getConfig()); ?>,
 		});
 
 		// initialize multitasking events
@@ -185,9 +229,109 @@ JText::script('VBO_BROWSER_NOTIFS_OFF_HELP');
 			editmode_class:  "vbo-admin-widgets-widget-editing",
 			rmwidget_class:  "vbo-admin-widgets-widget-remove",
 			rmwidget_icn:  	 '<?php VikBookingIcons::e('times'); ?>',
+			dtcwidget_class: "vbo-admin-widgets-widget-detach",
+			dtctarget_class: "vbo-admin-widget-head",
+			dtcwidget_icn: 	 '<?php VikBookingIcons::e('far fa-window-restore'); ?>',
 			notif_selector:  ".vbo-sidepanel-notifications-btn",
 			notif_on_class:  "vbo-sidepanel-notifications-on",
 			notif_off_class: "vbo-sidepanel-notifications-off",
+		});
+
+		// install Service Worker
+		VBOCore.installServiceWorker().then((registration) => {
+			VBOCore.handlePushSubscription(registration).then((subscription) => {
+				console.info('Push notifications are enabled');
+			}).catch((error) => {
+				console.warn(error);
+			});
+		}).catch((error) => {
+			console.warn(error);
+		});
+
+		// color scheme preferences
+		jQuery('.vbo-sidepanel-colorscheme-current').on('click', function() {
+			jQuery('.vbo-sidepanel-colorscheme-list').toggleClass('vbo-sidepanel-colorscheme-list-show');
+		});
+
+		// color scheme selection
+		jQuery('.vbo-sidepanel-colorscheme-option').on('click', function() {
+			let set_mode = jQuery(this).attr('data-scheme');
+
+			let vbo_css_base_uri = '<?php echo VBO_ADMIN_URI . (VBOPlatformDetection::isWordPress() ? 'resources/' : '') . 'vbo-appearance-%s.css'; ?>';
+			let vbo_css_base_id  = 'vbo-css-appearance-';
+			let vbo_css_modes 	 = {
+				auto: vbo_css_base_uri.replace('%s', 'auto'),
+				dark: vbo_css_base_uri.replace('%s', 'dark'),
+				light: null,
+			};
+			let vbo_mode_texts = {
+				auto: Joomla.JText._('VBO_APPEARANCE_PREF_AUTO'),
+				dark: Joomla.JText._('VBO_APPEARANCE_PREF_DARK'),
+				light: Joomla.JText._('VBO_APPEARANCE_PREF_LIGHT'),
+			};
+			let vbo_mode_icons = {
+				auto: '<?php VikBookingIcons::e('magic') ?>',
+				dark: '<?php VikBookingIcons::e('moon') ?>',
+				light: '<?php VikBookingIcons::e('sun') ?>',
+			};
+
+			if (!vbo_css_modes.hasOwnProperty(set_mode)) {
+				return false;
+			}
+
+			// toggle active class
+			jQuery('.vbo-sidepanel-colorscheme-option').removeClass('vbo-sidepanel-colorscheme-option-active');
+			jQuery(this).addClass('vbo-sidepanel-colorscheme-option-active');
+
+			// adjust current preference content
+			jQuery('.vbo-sidepanel-colorscheme-current')
+				.attr('data-tooltiptext', vbo_mode_texts[set_mode])
+				.html(vbo_mode_icons[set_mode]);
+
+			// set/unset CSS files from DOM
+			for (let app_mode in vbo_css_modes) {
+				if (!vbo_css_modes.hasOwnProperty(app_mode) || !vbo_css_modes[app_mode]) {
+					continue;
+				}
+				if (app_mode == set_mode) {
+					// set this CSS file
+					jQuery('head').append('<link rel="stylesheet" id="' + vbo_css_base_id + app_mode + '" href="' + vbo_css_modes[app_mode] + '" media="all">');
+				} else {
+					// unset this CSS file
+					if (jQuery('link#' + vbo_css_base_id + app_mode).length) {
+						jQuery('link#' + vbo_css_base_id + app_mode).remove();
+					} else if (jQuery('link#' + vbo_css_base_id + app_mode + '-css').length) {
+						// WP framework may add "-css" as suffix to the given ID
+						jQuery('link#' + vbo_css_base_id + app_mode + '-css').remove();
+					}
+				}
+			}
+
+			// close menu-list
+			jQuery('.vbo-sidepanel-colorscheme-list').removeClass('vbo-sidepanel-colorscheme-list-show');
+
+			// silently update configuration value
+			VBOCore.doAjax(
+				"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=configuration.update'); ?>",
+				{
+					settings: {
+						appearance_pref: set_mode,
+					}
+				},
+				(success) => {
+					// do nothing
+				},
+				(error) => {
+					console.error(error);
+				}
+			);
+		});
+
+		// subscribe to the multitask-panel-close event to dismiss the color scheme selection menu
+		document.addEventListener(VBOCore.multitask_close_event, function() {
+			if (jQuery('.vbo-sidepanel-colorscheme-list-show').length) {
+				jQuery('.vbo-sidepanel-colorscheme-list-show').removeClass('vbo-sidepanel-colorscheme-list-show');
+			}
 		});
 
 	});

@@ -19,7 +19,6 @@ class VikBookingViewPrices extends JViewVikBooking {
 		// Set the toolbar
 		$this->addToolBar();
 
-		$rows = "";
 		$navbut = "";
 		$dbo = JFactory::getDbo();
 		$mainframe = JFactory::getApplication();
@@ -50,9 +49,8 @@ class VikBookingViewPrices extends JViewVikBooking {
 		$lim0 = VikRequest::getVar('limitstart', 0, '', 'int');
 		$q = "SELECT SQL_CALC_FOUND_ROWS * FROM `#__vikbooking_prices`";
 		$dbo->setQuery($q, $lim0, $lim);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$rows = $dbo->loadAssocList();
+		$rows = $dbo->loadAssocList();
+		if ($rows) {
 			$dbo->setQuery('SELECT FOUND_ROWS();');
 			jimport('joomla.html.pagination');
 			$pageNav = new JPagination( $dbo->loadResult(), $lim0, $lim );

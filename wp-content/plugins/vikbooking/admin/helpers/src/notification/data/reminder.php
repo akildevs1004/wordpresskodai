@@ -50,6 +50,37 @@ final class VBONotificationDataReminder extends VBONotificationAdapter
 	}
 
 	/**
+	 * Checks whether some reminder object properties should be adjusted
+	 * in case of an important reminder not yet displayed, but expired.
+	 * This is helpful in order to allow the dispatching of the notification.
+	 * 
+	 * @param 	object 	$reminder 	the reminder object to parse.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function parseReminderImportance($reminder)
+	{
+		if (!is_object($reminder) || empty($reminder->important) || $reminder->displayed) {
+			return;
+		}
+
+		if (is_string($reminder->duedate) && strcasecmp($reminder->duedate, 'now')) {
+			// must be a date string
+			if (strtotime($reminder->duedate) < time()) {
+				// let the reminder be dispatched immediately
+				$reminder->duedate = 'now';
+				return;
+			}
+		} elseif (($reminder->duedate instanceof DateTime) && $dtime->getTimestamp() < time()) {
+			// let the reminder be dispatched immediately
+			$reminder->duedate = 'now';
+			return;
+		}
+	}
+
+	/**
 	 * Returns the URL to build the notification display data.
 	 * Method is declared as protected.
 	 * Checks if the reminder exists and returns the default build URL.

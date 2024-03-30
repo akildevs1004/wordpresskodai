@@ -46,10 +46,16 @@ class VikBookingCron
 		 */
 		add_filter('cron_schedules', function($schedules)
 		{
-			// add support for "every 30 minutes" recurrence
+			// add support for "every 5 minutes" recurrence
 			$schedules['every_5_minutes'] = array(
 				'interval' => MINUTE_IN_SECONDS * 5,
 				'display'  => __('Every 5 Minutes', 'vikbooking'),
+			);
+
+			// add support for "every 15 minutes" recurrence
+			$schedules['every_15_minutes'] = array(
+				'interval' => MINUTE_IN_SECONDS * 15,
+				'display'  => __('Every 15 Minutes', 'vikbooking'),
 			);
 
 			// add support for "every 30 minutes" recurrence
@@ -189,11 +195,22 @@ class VikBookingCron
 		// require the main library in case WPCron runs the job
 		require_once VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'lib.vikbooking.php';
 
+		$app = JFactory::getApplication();
+
+		/**
+		 * Initialize timezone handler when WP-Cron executes the job to make sure we
+		 * set the proper timezone. This is just for the scheduled cron job execution.
+		 * 
+		 * @since 	1.6.3
+		 */
+		JDate::getDefaultTimezone();
+		date_default_timezone_set($app->get('offset', 'UTC'));
+
 		$error  = null;
 		$status = false;
 
 		// force the option in request to prevent weird behaviors
-		JFactory::getApplication()->input->set('option', 'com_vikbooking');
+		$app->input->set('option', 'com_vikbooking');
 
 		// get CRON JOB model
 		$model = VBOMvcModel::getInstance('cronjob');
@@ -232,6 +249,14 @@ class VikBookingCron
 				$model->save($item);
 			}
 		}
+
+		/**
+		 * Restore standard timezone when WP-Cron executes the job to make sure we
+		 * set the proper timezone. This is just for the scheduled cron job execution.
+		 * 
+		 * @since 	1.6.3
+		 */
+		date_default_timezone_set(JDate::getDefaultTimezone());
 
 		return $status;
 	}

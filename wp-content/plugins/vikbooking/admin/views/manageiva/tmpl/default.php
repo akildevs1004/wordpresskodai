@@ -12,7 +12,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 $row = $this->row;
 
-$vbo_app = new VboApplication();
+$vbo_app = VikBooking::getVboApplication();
 $breakdown = array();
 if (count($row) && !empty($row['breakdown'])) {
 	$get_breakdown = json_decode($row['breakdown'], true);

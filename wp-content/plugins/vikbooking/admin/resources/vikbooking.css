@@ -1,3 +1,10 @@
+/** 
+ * @package   	VikBooking
+ * @subpackage 	back-end styles
+ * @author    	E4J s.r.l.
+ * @link 		https://vikwp.com
+ */
+
 /* Variable declarations
  * Guidelines input elements:
  * -- Config Input and Select: 
@@ -12,7 +19,7 @@
 	  Background: --vbo-basic-btn / --vbo-config-border-color
  */
 
- :root {
+:root {
 	/* body color */
 	--vbo-body-bg-color: #fff;
 	--vbo-body-text-color: #444;
@@ -26,8 +33,11 @@
 	--vbo-link-text-color: #2271b1;
 	--vbo-basic-btn: #eee;
 	--vbo-basic-btn-hover: #ddd;
+	--vbo-basic-btn-focus: #cacaca;
 	--vbo-light-color-btn: #e9f3fa;
 	--vbo-middle-color-btn: #999;
+	--vbo-grey-blue-bg: #E4EAF4;
+	--vbo-light-blue: #f0f6fc;
 
 	/* Config bg and text color */
 	--vbo-config-bg-color: #fff;
@@ -49,17 +59,77 @@
 	/* General Colors */
 	--vbo-red-color: #b90c0d;
 	--vbo-red-color-hover: #e61717;
+	--vbo-red-color-focus: #9d0101;
 	--vbo-orange-color: #ffab48;
 	--vbo-orange-color-hover: #ad6704;
 	--vbo-green-color: #46a546;
-	--vbo-green-color-hover: #398639;
+	--vbo-green-color-hover: #428242;
+	--vbo-green-color-focus: #65c265;
 	--vbo-blue-color: #31708f;
 	--vbo-blue-color-hover: #498fb3;
+	
+	/* Notification Status */
+	--vbo-info-bg: #c8e4fb;
+	--vbo-info-border: #72abcc;
+	--vbo-warning-bg: #fbf3c8;
+	--vbo-warning-border: #d69b3c;
+	--vbo-error-bg: #ffe3e3;
+	--vbo-error-border: #ea6060;
 }
+
 legend.adminlegend {
 	color: var(--vbo-config-title-color);
 	border-bottom: 1px solid var(--vbo-config-border-color);
 }
+
+/*
+* Classes .label and .badge
+*/
+.label, .badge {
+	display: inline-block;
+	padding: 2px 4px;
+	font-size: 10.998px;
+	font-weight: bold;
+	line-height: 14px;
+	color: var(--vbo-contrast-text-color);
+	vertical-align: baseline;
+	white-space: nowrap;
+	background-color: var(--vbo-middle-color-btn);
+}
+.label {
+	border-radius: 3px;
+}
+.badge {
+	border-radius: 9px;
+}
+.label-success, .badge-success {
+	background-color: var(--vbo-green-color);
+}
+a.label-success:hover, a.badge-success:hover {
+	background-color: var(--vbo-green-color-hover);
+}
+.label-warning, .badge-warning {
+	background-color: var(--vbo-orange-color);
+}
+a.label-warning:hover, a.badge-warning:hover {
+	background-color: var(--vbo-orange-color-hover);
+}
+.label-info, .badge-info {
+	background-color: var(--vbo-blue-color);
+}
+a.label-info:hover, a.badge-info:hover {
+	background-color: var(--vbo-blue-color-hover);
+}
+a.label, a.badge, a.label:hover, a.badge:hover {
+	color: var(--vbo-contrast-text-color);
+}
+.vbo-label-nested {
+	padding: 1px 4px !important;
+	font-weight: 500;
+	line-height: 12px;
+	font-size: 11px;
+}
+
 /* @joomlaonly - forced border color for the Joomla top toolbar */
 .subhead .btn-toolbar .btn {
 	border: 1px solid var(--vbo-config-border-color);
@@ -70,6 +140,9 @@ legend.adminlegend {
 }
 
 /*** @WPonly - Load Reservation from other booking plugins ***/
+.vbo-modal-lock-scroll {
+	overflow: hidden !important;
+}
 .vbo-importbftpp-plugins-list {
 	border-radius: 4px;
 	padding: 20px;
@@ -188,6 +261,18 @@ a:focus, a:hover {
 	padding: 10px 10px;
 	border-color: var(--vbo-config-border-color);
 }
+.vbo-btn-wide, .btn-group .vbo-btn-wide, .btn-wrapper .vbo-btn-wide, .vbo-param-setting .vbo-btn-wide {
+	padding: 10px 30px;
+}
+.btn-secondary {
+	color: var(--vbo-config-title-color);
+	background-color: var(--vbo-basic-btn);
+	border-color: var(--vbo-config-border-color);
+}
+.btn-secondary:hover {
+	color: var(--vbo-config-title-color);
+	background-color: var(--vbo-basic-btn-hover);
+}
 .btn.btn-secondary, .btn-group .btn.btn-secondary, .btn-wrapper .btn.btn-secondary, .vbo-param-setting .btn.btn-secondary {
 	border-radius: 3px;
 	padding: 10px 14px;
@@ -196,46 +281,60 @@ a:focus, a:hover {
 .btn-group input[type="text"], .input-append input[type="text"], .input-prepend input[type="text"] {
 	height: auto;
 }
+.btn i.fas:not(.no-margin), .btn i.far:not(.no-margin) {
+	margin-right: 5px;
+}
 body #content .input-append > input, body #wpcontent .input-append > input {
 	border-color: var(--vbo-config-border-color);
 }
-body #content .btn-success, .vbo-param-setting .btn-success, body #wpcontent .btn-success {
+body #content .btn-success, .vbo-param-setting .btn-success, body #wpcontent .btn-success, .vbo-modal-overlay-block .btn-success {
 	color: #fff;
 	background-color: var(--vbo-green-color);
 	border: 1px solid var(--vbo-green-color);
 }
-body #content .btn-success:hover, body #wpcontent .btn-success:hover {
+body #content .btn-success:hover, body #wpcontent .btn-success:hover, .vbo-modal-overlay-block .btn-success:hover {
 	color: #fff;
 	font-weight: normal;
 	background-color: var(--vbo-green-color-hover);
 	border-color: var(--vbo-green-color-hover);
 }
-body #content .btn-danger, body #wpcontent .btn-danger {
+body #content .btn-success:focus, body #wpcontent .btn-success:focus, .vbo-modal-overlay-block .btn-success:focus, body #content .btn-success:active, body #wpcontent .btn-success:active, .vbo-modal-overlay-block .btn-success:active {
+	color: #fff;
+	font-weight: normal;
+	background-color: var(--vbo-green-color-focus);
+	border-color: var(--vbo-green-color-focus);
+}
+body #content .btn-danger, body #wpcontent .btn-danger, .vbo-modal-overlay-block .btn-danger {
 	color: #fff;
 	background-color: var(--vbo-red-color);
 	border: 1px solid var(--vbo-red-color);
 }
-body #content .btn-danger:hover, body #wpcontent .btn-danger:hover {
+body #content .btn-danger:hover, body #wpcontent .btn-danger:hover, .vbo-modal-overlay-block .btn-danger:hover {
 	color: #fff;
 	background-color: var(--vbo-red-color-hover);
 	border-color: var(--vbo-red-color-hover)
 }
-body #content .btn.btn-primary, body #wpcontent .btn.btn-primary {
+body #content .btn-danger:focus, body #wpcontent .btn-danger:focus, .vbo-modal-overlay-block .btn-danger:focus, body #content .btn-danger:active, body #wpcontent .btn-danger:focus, .vbo-modal-overlay-block .btn-danger:active {
+	color: #fff;
+	background-color: var(--vbo-red-color-focus);
+	border-color: var(--vbo-red-color-focus)
+}
+body #content .btn.btn-primary, body #wpcontent .btn.btn-primary, body .vbo-checkin-update-wrap .btn.btn-primary, .vbo-modal-overlay-content .btn.btn-primary {
 	color: #fff;
 	background-color: var(--vbo-blue-color);
 	border: 1px solid var(--vbo-blue-color);
 }
-body #content .btn.btn-primary:hover, body #wpcontent .btn.btn-primary:hover {
+body #content .btn.btn-primary:hover, body #wpcontent .btn.btn-primary:hover, body .vbo-checkin-update-wrap .btn.btn-primary:hover, .vbo-modal-overlay-content .btn.btn-primary:hover {
 	color: #fff;
 	background-color: var(--vbo-blue-color-hover);
 	border: 1px solid var(--vbo-blue-color-hover);
 }
-body #content .btn-warning, body #wpcontent .btn-warning {
+body #content .btn-warning, body #wpcontent .btn-warning, .vbo-modal-overlay-block .btn-warning {
 	color: #fff;
 	background-color: var(--vbo-orange-color);
 	border: 1px solid var(--vbo-orange-color);
 }
-body #content .btn-warning:hover, body #wpcontent .btn-warning:hover {
+body #content .btn-warning:hover, body #wpcontent .btn-warning:hover, .vbo-modal-overlay-block .btn-warning:hover {
 	color: #fff;
 	background-color: var(--vbo-orange-color-hover);
 	border: 1px solid var(--vbo-orange-color-hover);
@@ -247,14 +346,22 @@ body #content .btn-warning:hover, body #wpcontent .btn-warning:hover {
 .select2-container--open.select2-container--default .select2-results__option--highlighted[aria-selected] {
 	background-color: var(--vbo-blue-color);
 }
+.select2-container.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 38px;
+}
 .select2-container--open.select2-container--default .select2-results__option[aria-selected="true"] {
-	background-color: #fff;
+	background-color: var(--vbo-config-bg-color);
 	color: var(--vbo-base-color);
 	border: 1px solid var(--vbo-base-color);
 }
 .select2-container.select2-container--default .select2-selection--single {
 	background-color: var(--vbo-input-style);
 	border: 1px solid var(--vbo-config-border-color) !important;
+	height: 40px;
+	border-radius: 2px;
+}
+.select2-container.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 40px;
 }
 .select2-container.select2-container--default .select2-selection--single .select2-selection__rendered {
 	color: var(--vbo-config-titles-color-light);
@@ -267,6 +374,10 @@ body #content .btn-warning:hover, body #wpcontent .btn-warning:hover {
 	height: 36px !important;
 }
 /***/
+
+.input-append .btn.vbo-btn-dont-append {
+	margin-left: 5px;
+}
 
 /* Skeleton structure */
 .vbo-skeleton-loading {
@@ -309,6 +420,7 @@ body #content .btn-warning:hover, body #wpcontent .btn-warning:hover {
 	color: var(--vbo-green-color);
 	background:url("./images/ok.png") no-repeat scroll 10px center var(--vbo-config-bg-color);
 	border: 2px solid var(--vbo-green-color);
+	background-size: 20px;
 }
 .info {
 	margin: 10px 0px;
@@ -321,14 +433,16 @@ body #content .btn-warning:hover, body #wpcontent .btn-warning:hover {
 	padding: 12px 12px 12px 40px;
 	border: 2px solid var(--vbo-red-color);
 	background:url("./images/no.png") no-repeat scroll 10px center var(--vbo-config-bg-color);
+	background-size: 20px;
 }
 .warn {
 	margin: 10px 0px;
 	padding: 12px 12px 12px 40px;
 	border: 2px solid var(--vbo-orange-color);
 	background: url("./images/warning.png") no-repeat scroll 10px center var(--vbo-config-bg-color);
+	background-size: 20px;
 }
-.label-error {
+.label-error, .badge-error, .label-danger, .badge-danger {
 	background-color: var(--vbo-red-color) !important;
 }
 .ui-datepicker-multi .ui-datepicker-group-first {
@@ -342,21 +456,23 @@ body #content .btn-warning:hover, body #wpcontent .btn-warning:hover {
 	text-align: center;
 	margin: 20px 0;
 }
+.vbo-calendar-costs-wrapper .vbo-calendar-avg-daycost {
+	margin-top: 5px;
+}
 .vbo-avcalendars-wrapper .vbo-calendar-cals-container {
-	display: flex;
-	flex-wrap: wrap;
+	margin-top: 15px;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	display: grid;
 }
 .vbo-avcalendars-wrapper .vbo-calendar-cal-container {
-	border-top: 0;
-	flex: 33%;
+	background-color: var(--vbo-config-bg-color);
+	border-radius: 10px;
+	border: 1px solid var(--vbo-basic-btn);
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
+	margin: 10px;
 }
 .vbo-avcalendars-wrapper .vbo-calendar-cal-container .vbadmincaltable {
-	margin: 10px;
-	height: 94%;
-	width: calc(100% - 20px);
-	background-color: var(--vbo-config-bg-color);
-	box-shadow: 0 0 10px rgba(0,0,0,.1);
-	border-radius: 4px;
+	height: 100%;
 }
 .vbadmincaltable td {
 	border: 1px solid var(--vbo-input-style-nested-deactive) !important;
@@ -367,6 +483,21 @@ body #content .btn-warning:hover, body #wpcontent .btn-warning:hover {
 	height: 30px;
 	box-sizing: content-box;
 	vertical-align: middle !important;
+}
+.vbadmincaltable tr:last-child td {
+	border-bottom: 0 !important;
+}
+.vbadmincaltable tr:last-child td:first-child {
+	border-bottom-left-radius: 10px;
+}
+.vbadmincaltable tr:last-child td:last-child {
+	border-bottom-right-radius: 10px;
+}
+.vbadmincaltable td:last-child {
+	border-right: 0 !important;
+}
+.vbadmincaltable td:first-child {
+	border-left: 0 !important;
 }
 .vbadmincaltable td:hover {
 	background-color: var(--vbo-config-border-color);
@@ -546,16 +677,19 @@ div.vborderpartot {
 	margin:10px 0 0 0;
 	cursor:pointer;
 }
-.container-main .btn.btn-success, .vbo-checkin-commands-wrap .btn.btn-success {
-	border: 1px solid var(--vbo-green-color);
-	background-color: var(--vbo-green-color);		
-	border-radius: 3px;
+.vbo-checkin-commands-wrap .btn.btn-success {
 	padding: 8px 14px;
+}
+.vbo-checkin-commands-wrap .btn.btn-success, .container-main .btn.btn-success {
+	border: 1px solid var(--vbo-green-color);
+	background-color: var(--vbo-green-color);
+	color: #fff;		
+	border-radius: 3px;
 	margin-bottom: 0;
 	font-size: inherit;
 }
-.container-main .vbo-bookingdet-command .btn.btn-primary {
-	padding: 8px 14px;
+.container-main .vbo-bookingdet-command .btn.btn-primary, .container-main .btn.btn-danger, .container-main .btn.btn-success {
+	padding: 10px 14px;
 }
 .container-main .btn.btn-success:hover, .vbo-checkin-commands-wrap .btn.btn-success:hover,
 body.admin #content .container-main .btn.btn-success:hover, body.admin #content .vbo-checkin-commands-wrap .btn.btn-success:hover{
@@ -566,28 +700,34 @@ body.admin #content .container-main .btn.btn-success:hover, body.admin #content 
 	border: 1px solid var(--vbo-orange-color);
 	background-color: var(--vbo-orange-color);		
 	border-radius: 3px;
-	padding: 9px 14px;
+	padding: 10px 14px;
 	margin-bottom: 0;
 }
 .container-main .btn.btn-warning:hover, .container-main .btn.btn-warning:active {
 	background-color: var(--vbo-orange-color-hover) !important;
 	border: 1px solid var(--vbo-orange-color-hover) !important;
 }
-.container-main .btn.btn-danger, .vbo-checkin-commands-wrap .btn.btn-danger {
+.vbo-checkin-commands-wrap .btn.btn-danger {
+	padding: 8px 14px;
+}
+.vbo-checkin-commands-wrap .btn.btn-danger, .container-main .btn.btn-danger {
 	border: 1px solid var(--vbo-red-color);
 	background-color: var(--vbo-red-color);		
 	border-radius: 3px;
-	padding: 8px 14px;
 	margin-bottom: 0;
 	font-size: inherit;
 }
 .container-main *:not(.joomla-toolbar-button) .btn.btn-danger {
 	color: #fff;
 }
-.container-main .btn.btn-danger:hover, .container-main .btn.btn-danger:active, 
-.vbo-checkin-commands-wrap .btn.btn-danger:hover, .vbo-checkin-commands-wrap .btn.btn-danger:active {
+.container-main .btn.btn-danger:hover, .vbo-checkin-commands-wrap .btn.btn-danger:hover {
 	background-color: var(--vbo-red-color-hover) !important;
 	border: 1px solid var(--vbo-red-color-hover) !important;
+}
+.container-main .btn.btn-danger:active, .container-main .btn.btn-danger:focus,
+.vbo-checkin-commands-wrap .btn.btn-danger:active, .vbo-checkin-commands-wrap .btn.btn-danger:focus {
+	background-color: var(--vbo-red-color-focus) !important;
+	border: 1px solid var(--vbo-red-color-focus) !important;
 }
 /* UI Calendar */
 .ui-widget-content {
@@ -653,6 +793,9 @@ body.admin #content .container-main .btn.btn-success:hover, body.admin #content 
 }
 .vbo-overview-redday, .vbo-overview-subredday {
 	color: #fff;
+}
+.vboverviewtablerow .busy:not(.vbo-checkinday) {
+	cursor: pointer;
 }
 .vbo-checkinday {
 	border-top: 3px solid var(--vbo-green-color); 
@@ -733,15 +876,23 @@ body.admin #content .container-main .btn.btn-success:hover, body.admin #content 
 td.roomname {
 	background: var(--vbo-config-child-bg-color);
 	height: 40px;
-	padding: 0 10px 0 6px;
+	padding: 5px 10px 5px 6px;
 	text-align: left;
 }
 td.roomname.subroomname {
 	background: var(--vbo-config-bg-color) !important;
 }
+.vbo-overview-room-info {
+	display: flex;
+}
+.vbo-overview-room-info > span {
+	align-self: center;
+}
 .vbo-overview-roomname {
 	font-weight: bold;
-	font-size: 105%;
+	font-size: 14px;
+	display: inline-block;
+	max-width: 185px;
 }
 .vbo-overview-roomunits {
 	display: inline-block;
@@ -758,7 +909,7 @@ td.roomname.subroomname {
 }
 .vbo-overview-subroomname {
 	font-weight: bold;
-	font-size: 101%;
+	font-size: 13px;
 }
 .vbo-overview-subroomunits {
 	display: inline-block;
@@ -792,11 +943,21 @@ td.roomname.subroomname {
 	color:var(--vbo-green-color);
 	background:var(--vbo-input-style-nested-deactive);
 }
-#pt4 .vbo-config-tab-container > .adminform {
-	width: 100%;
-}
 .vbo-admin-container .vbo-param-container .vbo-param-label .maxninety {
 	border-radius: 4px;
+}
+.vbo-admin-widgets-section .vbo-admin-widgets-container-small .vbo-admin-container .vbo-param-container {
+	flex-wrap: wrap;
+}
+.vbo-admin-widgets-section .vbo-admin-widgets-container-small .vbo-widget-booskcal-newbook-wrap .vbo-param-container {
+	margin: 15px 0;
+}
+.vbo-admin-widgets-section .vbo-widget-bookdets-wrap .vbo-admin-container .vbo-param-container {
+	margin: 0;
+}
+.vbo-admin-widgets-section .vbo-admin-widgets-container-small .vbo-admin-container .vbo-param-container .vbo-param-label {
+	flex-basis: 100%;
+	font-weight: 500;
 }
 .vbo-tariffs-params-container .vbo-param-setting > h4 {
 	margin-top: 0;
@@ -835,6 +996,9 @@ td.roomname.subroomname {
 }
 .vbo-insertrates-bottom .vbo-ratestable-newprice .vbo-ratestable-newprice-name {
     align-self: center;
+}
+.vbo-insertrates-bottom .vbo-ratestable-newprice > .vbo-ratestable-newprice-name {
+	font-weight: 500;
 }
 .vbo-insertrates-bottom .vbo-ratestable-newprice .vbo-ratestable-newprice-cost {
 	margin-left: auto;
@@ -883,6 +1047,14 @@ td.roomname.subroomname {
 	padding: 5px 10px;
 	margin-bottom: 0;
 	width: 120px !important;
+}
+.vbo-tariffs-updaterates-cont + .table-responsive .vbo-tariffs-rplan-attr {
+	display: block;
+	text-transform: initial;
+	max-width: 200px;
+  	white-space: normal;
+	margin: 0 auto;
+	font-weight: 600;
 }
 .vbo-config-maintab-right .vbo-list-table-container .vbo-tariffs-los-badge {
 	font-size: 10px;
@@ -1001,36 +1173,45 @@ td.roomname.subroomname {
 }
 #vbadultsdiffbox p {
 	margin: 0px 0 10px;
+	border: 1px solid var(--vbo-basic-btn);
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
+	border-radius: 10px;
+	padding: 10px;
 }
 #vbadultsdiffbox p:last-child {
 	margin-bottom: 0;
 }
 #vbadultsdiffbox .vbo-adults-usage {
 	margin-right: 15px;
+	display: block;
+	margin-bottom: 4px;
+	font-weight: 500;
 }
 
 .vbplusminus {
 	cursor: pointer;
 	vertical-align: middle;
 	display: inline-block;
-	height: 20px;
-	margin: 7px 0 0 5px;
+	margin: -7px 0 0 5px;
 	text-align: center;
 	width: 20px;
+	height: 20px;
 	font-size: 20px;
 }
 
 .vbplusminuscont {
 	display: inline-block;
 	text-align: right;
-	vertical-align: middle;
 }
 .vbplusminuscont > span {
 	display: inline-block;
 	min-width: 35px;
 	text-align: left;
 }
-
+.vbo-admin-container .vbo-param-container .vbo-param-setting .vbo-param-setting-group .vbplusminus-btns {
+	display: inline-block;
+	vertical-align: middle;
+}
 p.vbpfiltconfnumb {
 	text-align: right;
 }
@@ -1066,11 +1247,36 @@ p.vbpfiltconfnumb {
 .vboverviewtablerowone {
 	height: 30px;
 }
-.vbo-roverview-table .vboverviewtablerowone td.bluedays, .vbo-roverview-table .vboverviewtablerowone th.bluedays {
-	min-width: 30px;
+.vbo-overv-montable-wrap {
+	margin-bottom: 20px;
 }
-.vbo-roverview-table .vboverviewtablerowone td.vbo-overview-month, .vbo-roverview-table .vboverviewtablerowone th.vbo-overview-month {
+.vbo-roverview-table .vboverviewtablerowone td.bluedays {
+	min-width: 80px;
+}
+.vbo-overv-sticky-table-head-off.vbo-roverview-table .vboverviewtablerowone th.bluedays {
+	min-width: 80px;
+	max-width: 80px;
+}
+.vbo-roverview-table .vboverviewtablerowone td.vbo-overview-month, .vboverviewtable.vbo-roverview-table .vboverviewtablerowone th.vbo-overview-month {
 	min-width: 250px;
+}
+.vboverviewtable.vbo-roverview-table .vboverviewtablerowone th.bluedays > span {
+	display: block;
+}
+.vbo-overv-sticky-table-head-off.vbo-roverview-table .vboverviewtablerowone th.bluedays .vbo-overw-tablewday {
+	color: #fff;
+	font-size: 12px;
+}
+.vbo-overv-sticky-table-head-off.vbo-roverview-table .vboverviewtablerowone th.bluedays .vbo-overw-tablemday {
+	font-size: 24px;
+	margin: 3px 0;
+}
+.vbo-overv-sticky-table-head-off .vboverviewtablerowone th:first-child, .vbo-overv-sticky-table-head-off .vboverviewtablerow td:first-child {
+	position: sticky;
+	left: 0;
+	box-shadow: 5px 0 10px rgba(0,0,0,.05);
+	z-index: 10;
+	background-clip: padding-box !important;
 }
 .vboverviewtablerow {
 	height: 30px;
@@ -1096,6 +1302,7 @@ p.vbpfiltconfnumb {
 	display: inline-block;
 	white-space: nowrap;
 	text-overflow: ellipsis;
+	font-size: 14px;
 }
 .vbo-roverv-rplan-haslosrates {
 	bottom: 3px;
@@ -1190,6 +1397,9 @@ p.vbpfiltconfnumb {
 	display: inline-block;
 	float: left;
 }
+.vbo-allbookings-fm .vbo-btn-toolbar .btn-group.pull-right > a {
+	margin: 0 2px;
+}
 .vbicsexport {
 	cursor: pointer;
 	background: var(--vbo-config-bg-color);
@@ -1199,7 +1409,6 @@ p.vbpfiltconfnumb {
 	font-weight: bold;
 	border: 1px solid var(--vbo-orange-color);
 	font-size: 12px;
-	margin: 3px;
 }
 .vbicsexport > i {
 	background: var(--vbo-orange-color);
@@ -1352,7 +1561,7 @@ p.vbroomparamp span {
 	color: #FFFFFF;
 	display: inline-block;
 	font-size: 12px;
-	padding: 10px 12px;
+	padding: 4px 12px;
 	border-radius: 4px;
 	text-decoration: none;
 }
@@ -1432,7 +1641,6 @@ p.vbroomparamp span {
 .vbmodelink {
 	border: 1px solid var(--vbo-config-border-color);
 	border-radius: 3px;
-	background: var(--vbo-main-bg-color);
 	display: inline-block;
 	color: var(--vbo-config-titles-color-light);
 }
@@ -1727,6 +1935,9 @@ p.vbroomparamp span {
 	border: 0;
 	position: relative;
 	display: inline-block;
+	-webkit-transform: translateZ(0); 
+	-moz-transform: translateZ(0);
+	transform: translateZ(0);
 }
 .vbo-menu-left a {
 	position: relative;
@@ -1779,12 +1990,12 @@ p.vbroomparamp span {
 .vbo-menu-right {
 	flex: 1;
 	background: #22485d;
-	border-radius: 2px;
+	border-radius: 6px;
 }
 .vbo-menu-right ul {
 	list-style-type: none;
 	margin: 0;
-	padding:0;
+	padding: 0 0 0 2px;
 }
 .vbo-menu-right > .vbo-menu-ul {
 	display: inline-block;
@@ -1800,7 +2011,7 @@ p.vbroomparamp span {
 	color: #fff;
 	font-weight: bold;
 	border: 1px solid #3f708b;
-	padding: 12px 15px;
+	padding: 13px 15px;
 	border-radius: 36px;
 	margin: 7px 8px 6px 2px;
 }
@@ -1814,7 +2025,7 @@ p.vbroomparamp span {
 }
 .vbo-menu-updates button i {
 	display: inline-block;
-	vertical-align: top;
+	vertical-align: middle;
 	margin-right: 5px;
 }
 .vbo-menu-updates button.vbo-multitasking-apps i {
@@ -1822,48 +2033,95 @@ p.vbroomparamp span {
 	vertical-align: middle;
 }
 .vbo-menu-updates.vbo-menu-needupdate button {
-	background: #1fc36a;
-	border: 1px solid #1fc36a;
+	background: var(--vbo-green-color);
+	border: 1px solid var(--vbo-green-color);
 }
-.vbo-submenu-ul {
+.vbo-submenu-wrap {
+	background: var(--vbo-config-bg-color);
+	box-shadow: 0 6px 12px rgba(0, 0, 0, 0.176);
+	min-width: 180px;
+	padding: 5px 0;
+	border-radius: 10px;
 	margin: 0;
-	display: none;
 	position: absolute;
 	z-index: 100;
+
+	visibility: hidden;
+	opacity: 0;
+	transform: scale(0.99) translateY(-0.7em);
+	transform-origin: top;
+	transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+	transition-duration: 500ms;
+	transition-property: opacity,transform;
+}
+@media screen and (min-width: 1012px) {
+	.vbo-submenu-wrap {
+		width: 230px;
+		padding: 22px;
+	}
+	.vbo-submenu-wrap-multi {
+		width: 400px;
+		display: flex;
+	}
+	.vbo-submenu-wrap-multi .vbo-submenu-ul {
+		padding-right: 10px;
+		min-width: 45%;
+		border-right: 1px solid var(--vbo-config-border-color);
+	}
+	.vbo-submenu-wrap-multi .vbo-submenu-helper-ul {
+		padding-left: 22px;
+	}
+	.vbo-menu-ul .vbo-menu-parent-li:last-child .vbo-submenu-wrap-multi {
+		right: 0;
+	}
+}
+@media screen and (max-width: 1012px) {
+	.vbo-submenu-wrap {
+		padding: 15px 20px;
+	}
+	.vbo-submenu-wrap-multi .vbo-submenu-ul {
+		border-bottom: 1px solid var(--vbo-config-border-color);
+		padding-bottom: 10px;
+	}
+	.vbo-submenu-wrap-multi .vbo-submenu-helper-ul {
+		margin-top: 10px;
+	}
+}
+.vbo-menu-ul > li:hover .vbo-submenu-wrap {
+	visibility: visible;
+    opacity: 1;
+    transform: scale(1) translateY(0);
 }
 .vbo-menu-ul li {
 	display: inline-block;
 	text-align: left;
-	line-height: 21px;
+	position: relative;
+	padding: 5px 4px;
 }
-.vbo-submenu-ul {
-	background: #fff;
-	box-shadow: 0 6px 12px rgba(0, 0, 0, 0.176);
-	/*border: 1px solid rgba(0, 0, 0, 0.15);*/
-	min-width: 180px;
-	padding: 5px 0;
-	border-radius: 4px;
-	z-index: 1;
-	border-top-left-radius: 0;
-	border-top-right-radius: 0;
-}
-.vbo-submenu-ul li {
+.vbo-submenu-wrap ul li {
 	display: block;
-	float: none;
 	width: 100%;
+	line-height: initial;
+	padding: 0;
 }
-.vbo-submenu-ul li span {
+.vbo-submenu-wrap li > div {
 	display: block;
-	/*padding: 5px 2px;*/
+	font-size: 14px;
+}
+.vbo-submenu-wrap-multi .vbo-submenu-helper-lbl-li {
+	font-weight: bold;
+	font-size: 15px;
+	margin-bottom: 5px;
 }
 .vbo-menu-parent-li > span {
 	display: inline-block;
 	color:#ffffff;
 	cursor: pointer;
-	padding: 18px 32px 18px 22px;
+	padding: 14px 22px;
 	font-size: 14px;
 	font-weight: bold;
 	position: relative;
+	border-radius: 8px;
 }
 .vbo-menu-parent-li > span a {
 	color: #fff !important;
@@ -1871,19 +2129,16 @@ p.vbroomparamp span {
 .vbo-menu-parent-li > span a:hover {
 	text-decoration: none !important;
 }
-.vbo-menu-parent-li > span:after {
-	border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid;
-    color: #fff;
-    content: "";
-    display: inline-block;
-    height: 0;
-    position: absolute;
-    right: 14px;
-    top: 48%;
-    vertical-align: middle;
-    width: 0;
+.vbo-menu-parent-li > span .vbo-submenu-chevron {
+	transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    transition-duration: 500ms;
+    transition-property: opacity,transform;
+	font-size: 12px;
+	opacity: .7;
+	margin-left: 4px;
+}
+.vbo-menu-parent-li:hover > span .vbo-submenu-chevron {
+    transform: translateY(2px);
 }
 .vbo-menu-parent-li-active > span {
 	background: #c2880e;
@@ -1892,46 +2147,110 @@ p.vbroomparamp span {
 .vbo-menu-parent-li-opened:not(.vbo-menu-parent-li-active) > span {
 	background: #3f708b;
 }
-.vbo-menu-parent-li span i {
+.vbo-menu-parent-li > span > i {
 	margin-left: -2px;
 	margin-right: 7px;
 	font-size: 17px;
 }
-.vbo-submenu-ul li {
-	/*margin: 0 0 4px;*/
+.vbo-submenu-wrap li {
 	margin: 0;
 }
-.vbo-submenu-ul li span a {
-	padding: 8px 12px 8px 16px;
+.vbo-submenu-wrap li > div a {
+	padding: 8px 0;
+	display: flex;
+}
+.vbo-submenu-wrap li > div a i {
+	margin-right: 6px;
+	margin-top: 2px;
+	font-size: 16px;
+	color: var(--vbo-config-titles-color-light);
+	min-width: 22px;
+}
+.vbo-submenu-wrap li > div .vbo-submenu-item-helper-link .vbo-submenu-item-helper-avatar {
+	display: inline-block;
+	margin-right: 8px;
+}
+.vbo-submenu-wrap li > div .vbo-submenu-item-helper-link .vbo-submenu-item-helper-avatar img {
+	max-width: 100%;
+	border-radius: 50%;
+	object-fit: cover;
+	height: 20px;
+	width: 20px;
+}
+.vbo-submenu-wrap li .vbo-submenu-item {
+	line-height: 1.4em;
+}
+.vbo-submenu-wrap li .vbo-submenu-item .vbo-submenu-item-txt {
+	display: block;
+}
+.vbo-submenu-wrap li .vbo-submenu-item .vbo-submenu-item-title {
+	font-weight: bold;
+	font-size: 16px;
+}
+.vbo-submenu-wrap li .vbo-submenu-item .vbo-submenu-item-help {
+	font-size: 14px;
+	color: var(--vbo-config-titles-color-light);
+}
+.vbo-submenu-wrap li:first-child a {
+	padding-top: 0;
+}
+.vbo-submenu-wrap li:last-child a {
+	padding-bottom: 0;
 }
 .vmenulink a {
 	display: block;
 }
-.vmenulink a:not(.vcmlink) {
-	color: #333 !important;
+.vmenulink a {
+	color: var(--vbo-body-text-color) !important;
 }
 .vmenulinkactive a {
 	display: block;
-	color:#fff !important;
+	color: var(--vbo-contrast-text-color) !important;
 }
-.vbo-submenu-ul li span {
-	border-left: 3px solid #fff;
-}
-.vbo-submenu-ul li span:hover,
-.vbo-submenu-ul li span.vmenulinkactive {
-	background: #eee;
-	border-left: 3px solid #3f708b;
-}
-.vbo-submenu-ul li span:hover a,
-.vbo-submenu-ul li span.vmenulinkactive a {
+.vbo-submenu-wrap li:hover a, .vbo-submenu-wrap li .vmenulinkactive a, .vbo-submenu-wrap li:hover a *, .vbo-submenu-wrap li .vmenulinkactive a * {
 	text-decoration: none;
-	color: #3f708b !important;
-	font-weight: bold;
+	color: var(--vbo-base-color) !important;
 }
-.vbo-submenu-ul li:last-child span:hover,
-.vbo-submenu-ul li:last-child span.vmenulinkactive {
-	border-bottom-right-radius: 4px;
+.vbo-submenu-helper-ul > li > .vmenulink {
+	display: flex;
+	padding: 8px 0;
 }
+.vbo-submenu-helper-ul > li div a {
+	padding: 0;
+	margin-right: 13px;
+}
+.vbo-submenu-helper-ul > li > .vmenulink .vbo-submenu-item-helper-setpin {
+	align-self: center;
+	margin-left: auto;
+	font-size: 12px;
+	display: inline-block;
+	padding: 2px 3px;
+	cursor: pointer;
+}
+.vbo-submenu-helper-ul > li.vbo-submenu-item-helper-unpinned .vmenulink .vbo-submenu-item-helper-setpin {
+	opacity: 0;
+}
+.vbo-submenu-item-helper-pinned .vbo-submenu-item-helper-setpin {
+	color: var(--vbo-base-color);
+	opacity: .7;
+}
+.vbo-submenu-helper-ul > li:hover .vmenulink .vbo-submenu-item-helper-setpin {
+	opacity: 1;
+
+	transition: all 200ms ease-in-out 200ms;
+	-moz-transition: all 200ms ease-in-out 200ms;
+	-webkit-transition: all 200ms ease-in-out 200ms;
+	-o-transition: all 200ms ease-in-out 200ms;
+} 
+.vbo-submenu-item-helper-unpinned .vbo-submenu-item-helper-setpin {
+	color: var(--vbo-config-text-color-light);
+}
+.vbo-submenu-helper-ul > li:hover .vmenulink .vbo-submenu-item-helper-setpin:hover {
+	opacity: 1;
+	color: var(--vbo-base-color);
+}
+
+
 /* END Back-end Menu */
 .vbo-config-warn {
 	display: block;
@@ -1945,6 +2264,17 @@ table.vbo-bookingslist-table tbody tr td, table.vbo-list-table tbody tr td {
 }
 table.vbo-list-table tbody tr .vbo-highlighted-td {
 	font-weight: bold;
+}
+.vbo-coupon-use-count a {
+	display: inline-block;
+	background: var(--vbo-base-color);
+	padding: 0 5px;
+	border-radius: 4px;
+	color: var(--vbo-contrast-text-color);
+}
+.vbo-coupon-use-count a:hover {
+	background: var(--vbo-base-color-hover);
+	color: var(--vbo-contrast-text-color);
 }
 .vbo-list-table .btn {
 	white-space: nowrap;
@@ -1963,6 +2293,7 @@ a.vbo-bookingslist-viewdet-link:hover {
 }
 .vbo-room-channels-mapped-wrap .vbo-room-channels-mapped-ch {
 	border-radius: 50%;
+	object-fit: cover;
 	border: 1px solid var(--vbo-config-border-color);
 	display: inline-block;
 	vertical-align: top;
@@ -1980,9 +2311,22 @@ a.vbo-bookingslist-viewdet-link:hover {
 	width: 20px;
 	height: 20px;
 	vertical-align: middle;
+	object-fit: cover;
 }
 .vbo-room-channels-mapped-wrap .vbo-room-channels-mapped-ch-lbl span {
 	line-height: 34px;
+}
+.vbo-promo-channels-involved-wrap .vbo-room-channels-mapped-ch {
+	border-radius: 50%;
+	margin: 2px;
+	width: 32px;
+	height: 32px;
+	text-align: center;
+}
+.vbo-promo-channels-involved-wrap .vbo-room-channels-mapped-ch img {
+	width: 20px;
+	height: 20px;
+	object-fit: cover;
 }
 .vbo-room-sharedcalendar {
 	border: 1px solid var(--vbo-config-border-color);
@@ -2198,6 +2542,18 @@ form[name="invoicesform"] .btn-toolbar {
 .vbo-orders-review-link a {
 	color: #ffbd3f;
 }
+.vbo-bookslist-snapshot {
+	cursor: pointer;
+}
+.vbo-bookslist-snapshot:hover {
+	background-color: var(--vbo-blue-color-hover);
+}
+.vbo-orders-substatus {
+	margin-top: 2px;
+}
+.vbo-orders-substatus .label {
+	border-radius: 10px;
+}
 /* Search Tools Caret - Start */
 .btn-primary .caret {
 	border-top: 0;
@@ -2247,6 +2603,11 @@ form[name="invoicesform"] .btn-toolbar {
 	display: inline-block;
 	min-width: 60px;
 }
+.vbo-bookingslist-roomunit {
+	display: block;
+	font-size: smaller;
+	color: var(--vbo-config-titles-color-light);
+}
 .vbo-bookingslist-booktime-checkedin {
 	display: inline-block;
 	color: var(--vbo-green-color);
@@ -2265,6 +2626,10 @@ form[name="invoicesform"] .btn-toolbar {
 }
 .vbo-bookingslist-viewdet-open {
 	float: right;
+}
+.vbo-booking-with-splitstay .vbo-booking-has-splitstay {
+	min-width: 20px;
+	margin-right: -3px;
 }
 .vbo-provenience {
     display: inline-block;
@@ -2290,6 +2655,11 @@ span.label.vbo-status-label {
 span.label.vbo-status-label.label-success, span.label.vbo-status-label.badge-success {
 	background-color: var(--vbo-green-color);
 }
+span.vbo-label-small, .vbo-label-small {
+	padding: 5px 8px !important;	
+	font-size: 11px;
+  	line-height: 14px;
+}
 .vbo-bookingslist-total-totpaid {
 	font-size: 11px;
 	font-weight: bold;
@@ -2302,6 +2672,9 @@ span.label.vbo-status-label.label-success, span.label.vbo-status-label.badge-suc
 .vbo-admin-tipsicon i {
 	font-size: 20px;
 	color: var(--vbo-config-titles-color-light);
+}
+.vbo-admin-notes-icn {
+	cursor: pointer;
 }
 .vbo-admin-invoiceicon i {
 	font-size: 20px;
@@ -2577,6 +2950,12 @@ span.label.vbo-status-label.label-success, span.label.vbo-status-label.badge-suc
 	margin-bottom: 9px;
 	min-width: 200px;
 }
+.vbo-ratesoverview-top-container.collapsed .vbo-ratesoverview-roomsel-entry-calc, .vbo-ratesoverview-top-container.collapsed .vbo-ratesoverview-roomsel-entry-forecast {
+	display: none;
+}
+.vbo-ratesoverview-top-container.collapsed .vbo-ratesoverview-roomsel-entry-chrooms {
+	flex-basis: 100%;
+}
 .vbo-ratesoverview-entryinline {
 	display: inline-block;
 	margin-right: 5px;
@@ -2841,16 +3220,15 @@ tr.vbo-seasons-calendar-seasonrow td:nth-child(n+2) {
 }
 .vbo-calcrates-rateblock > span {
 	display: inline-block;
-	width: 20%;
+	flex: 1;
 	margin-right: 15px;
 	font-size: 15px;
-	font-weight: bold;
 	color: var(--vbo-config-titles-color-light);
 }
 .vbo-calcrates-rateblock > .vbo-calcrates-ratename {
 	font-weight: bold;
 	font-size: 17px;
-	width: 100%;
+	flex-basis: 100%;
 	margin-bottom: 8px;
 	vertical-align: top;
 	align-self: center;
@@ -3116,6 +3494,8 @@ label.vbo-roverw-setnewrate-currency, label.vbo-roverw-setnewrestr-lbl {
 	border-radius: 5px;
 	padding: 15px 20px; 
 	margin: 0;
+	color: #fff;
+	font-weight: normal;
 }
 .vbo-roverw-closeopenrp-btns {
 	display: none;
@@ -3286,7 +3666,8 @@ label.vbo-roverw-setnewrate-currency, label.vbo-roverw-setnewrestr-lbl {
 .vbo-roverviewtableavrow td:first-child, .vbo-roverviewtablerow-restrs td:first-child, .vbo-roverviewtablerow-occupancy td:first-child {
 	background: var(--vbo-config-bg-color) !important;
 	font-weight: bold;
-	padding: 10px 10px;
+	padding: 10px;
+	font-size: 14px;
 }
 .vbo-roverviewtablerow:last-child td:first-child, .vbo-roverviewtableavrow:last-child td:first-child {
 	border: 0;
@@ -3470,7 +3851,7 @@ input.new_depovr_nights, input.new_depovr_amounts, select.new_depovr_more {
 .vbo-timeline-container {
 	display: block;
 	width: 100%;
-	margin: auto auto 20px;
+	margin: auto auto 0;
 	overflow: auto;
 }
 #vbo-timeline {
@@ -3484,6 +3865,7 @@ input.new_depovr_nights, input.new_depovr_amounts, select.new_depovr_more {
 }
 #vbo-timeline li {
 	display: table-cell;
+	height: 160px;
 }
 #vbo-timeline li .vbo-timeline-relative {
 	position: relative;
@@ -3518,11 +3900,11 @@ input.new_depovr_nights, input.new_depovr_amounts, select.new_depovr_more {
 .vbo-timeline-content {
 	border-color: var(--vbo-main-bg-color);
 	width: 180px;
-	max-height: 0;
+	max-height: 120px;
 	margin-top: 25px;
 	vertical-align: top;
 	padding: 35px 15px 15px;
-	transition: width 0.4s linear, max-height 0.4s linear;
+	transition: width 0.2s linear, max-height 0.2s linear;
 	border-width: 2px;
 	border-style: solid;
 	border-radius: 0.5em;
@@ -3600,8 +3982,6 @@ label.vbo-timeline-label {
 .vbo-timeline-radio:checked + .vbo-timeline-relative label {
 	cursor: auto;
 	width: 300px;
-	transition: width 0.3s linear 0.2s;
-	-webkit-transition: width 0.3s linear 0.2s;
 }
 .vbo-timeline-radio:checked + .vbo-timeline-relative .vbo-timeline-circle {
 	background: var(--vbo-green-color);
@@ -3944,9 +4324,9 @@ label.vbo-timeline-label {
 	position: absolute;
 	right: -24px;
 	top: -24px;
-	background: #222;
-	border: 2px solid #eee;
-	color: #eee;
+	background: var(--vbo-config-title-color);
+	border: 2px solid var(--vbo-basic-btn);
+	color: var(--vbo-basic-btn);
 	width: 20px;
 	height: 20px;
 	text-align: center;
@@ -4041,12 +4421,13 @@ label.vbo-timeline-label {
 .vbo-reportwidget-filters {
 	display: none;
 	position: absolute;
-	right: 50px;
+	right: 30px;
 	background: var(--vbo-config-bg-color);
 	padding: 20px;
 	border-radius: 10px;
 	box-shadow: 0 4px 18px rgba(0,0,0,.15);
 	z-index: 1;
+	min-width: 150px;
 }
 .vbo-reportwidget-filters .vbo-reportwidget-datepicker {
 	background-color: var(--vbo-input-style);
@@ -4082,6 +4463,9 @@ label.vbo-timeline-label {
 .vbo-reportwidget-filters .vbo-reportwidget-filter {
 	margin: 5px 0 8px;
 }
+.vbo-admin-widgets-widget[data-vbowidgetid="latest_events"] .vbo-reportwidget-filters, .vbo-admin-widgets-widget-output[data-vbowidgetid="latest_events"] .vbo-reportwidget-filters {
+	width: 240px;
+}
 .vbo-reportwidget-filter-confirm button {
 	width: 100%;	
 }
@@ -4102,7 +4486,8 @@ label.vbo-timeline-label {
 	margin: 0 10px 15px;
 }
 .vbo-reportwidget-chart-meta {
-	flex-basis: 33%;
+	flex-basis: calc(33% - 10px);
+	flex-grow: 1;
 }
 .vbo-reportwidget-chart-meta-inner {
 	background: var(--vbo-config-bg-color);
@@ -4131,7 +4516,7 @@ label.vbo-timeline-label {
 .vbo-reportwidget-chart-meta-lbl {
 	font-weight: bold;
 	color: var(--vbo-config-titles-color-light);
-	margin-bottom: 10px;
+	margin-bottom: 6px;
 }
 .vbo-reportwidget-chart-meta-val {
 	font-size: 26px;
@@ -4141,7 +4526,7 @@ label.vbo-timeline-label {
 	display: inline-block;
 	margin: 4px 0 6px;
 	white-space: nowrap;
-	font-size: 23px;
+	font-size: 20px;
 	font-weight: bold;
 }
 .vbo-guestactivitywidget-commands {
@@ -4182,6 +4567,232 @@ label.vbo-timeline-label {
 .vbo-guestactivitywidget-command-chevron > span:active {
 	background: var(--vbo-config-bg-color);
 }
+.vbo-widget-finance-wrap .vbo-widget-finance-data-blocks, .vbo-widget-finance-list .vbo-widget-finance-skeleton-blocks {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 10px;
+	padding: 10px;
+	width: 100%;
+	box-sizing: border-box;
+}
+.vbo-widget-finance-skeleton-blocks .vbo-widget-finance-skeleton-block {
+	background: var(--vbo-config-bg-color);
+	border: 1px solid var(--vbo-basic-btn);
+	border-bottom: 3px solid var(--vbo-basic-btn);
+	padding: 15px;
+	border-radius: 16px;
+}
+.vbo-widget-finance-wrap .vbo-widget-finance-data-block, .vbo-widget-finance-wrap .vbo-widget-finance-data-block-rank  {
+	background: var(--vbo-config-bg-color);
+	border: 1px solid var(--vbo-basic-btn);
+	border-bottom: 3px solid var(--vbo-basic-btn);
+	padding: 15px;
+	border-radius: 16px;
+	position: relative;
+}
+.vbo-widget-finance-wrap .vbo-widget-finance-data-block[data-typestat="cmm_savings"] {
+	border-color: #4e9b0059;
+	background: #4e9b000f;
+}
+.vbo-widget-finance-stat-info {
+	display: flex;
+}
+.vbo-widget-finance-stat-cmd {
+	margin-left: auto;
+	cursor: pointer;
+	display: inline-block;
+	padding: 0 0 0px 10px;
+}
+
+.vbo-widget-finance-stat-cmd:hover i {
+	color: var(--vbo-base-color);
+}
+.vbo-widget-finance-stat-name {
+	font-weight: 500;
+	margin-bottom: 6px;
+}
+.vbo-widget-finance-stat-amount {
+	margin-top: 6px;
+}
+.vbo-widget-finance-stat-amount .vbo-widget-finance-stat-amount-value {
+	font-weight: bold;
+	font-size: 18px;
+}
+.vbo-widget-finance-stat-compare .vbo-widget-finance-compare-amount {
+	margin-top: 8px;
+	font-size: 14px;
+	margin-bottom: 3px;
+	font-weight: 500;
+	border-top: 1px solid var(--vbo-config-border-color);
+	padding-top: 8px;
+}
+.vbo-widget-finance-stat-compare .vbo-widget-finance-compare-pcent .vbo-widget-finance-compare-txt {
+	font-size: 12px;
+	display: inline-block;
+	margin-left: 2px;
+	color: var(--vbo-config-titles-color-light);
+}
+.vbo-widget-finance-stat-compare .vbo-widget-finance-compare-pcent-up .vbo-widget-finance-compare-val {
+	color: var(--vbo-green-color);
+}
+.vbo-widget-finance-stat-compare .vbo-widget-finance-compare-pcent-down .vbo-widget-finance-compare-val {
+	color: var(--vbo-red-color);
+}
+.vbo-widget-finance-stat-compare .vbo-widget-finance-compare-pcent-equal .vbo-widget-finance-compare-val {
+	color: var(--vbo-blue-color);
+}
+.vbo-widget-finance-data-block-rankings {
+	padding: 0 10px 10px 10px;
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 10px;
+}
+.vbo-widget-finance-data-block-rankings .vbo-widget-finance-stat-name {
+	font-size: 14px;
+	margin-bottom: 10px;
+}
+.vbo-widget-finance-stat-rank {
+	display: flex;
+	margin-bottom: 10px;
+}
+.vbo-widget-finance-stat-rank .vbo-widget-finance-stat-rank-logo {
+	margin-right: 10px;
+}
+.vbo-widget-finance-stat-rank .vbo-widget-finance-stat-rank-logo i {
+	width: 25px;
+	text-align: center;
+	height: 25px;
+	line-height: 25px !important;
+	border: 1px solid var(--vbo-config-border-color);
+	border-radius: 50%;
+	background: var(--vbo-config-child-bg-color);
+	font-size: 11px;
+}
+.vbo-widget-finance-stat-rank .vbo-widget-finance-stat-rank-logo img {
+	width: 25px;
+	height: 25px;
+	object-fit: cover;
+	border-radius: 50%;
+}
+.vbo-widget-finance-stat-rank-score {
+	display: flex;
+	flex-wrap: wrap;
+	width: 100%;
+}
+.vbo-widget-finance-stat-rank-score .vbo-widget-finance-stat-rank-pcent {
+	flex-basis: 100%;
+}
+.vbo-widget-finance-stat-rank-score .vbo-widget-finance-stat-rank-pcent progress,
+.vbo-upload-progress progress {
+	width: 100%;
+	border-radius: 20px;
+	height: 10px;
+	-webkit-appearance: none;
+	appearance: none;
+}
+.vbo-upload-progress progress {
+	width: 200px;
+}
+.vbo-widget-finance-stat-rank-score .vbo-widget-finance-stat-rank-pcent progress::-webkit-progress-bar,
+.vbo-upload-progress progress::-webkit-progress-bar {
+	background: var(--vbo-basic-btn);
+	border-radius: 20px;
+}
+.vbo-widget-finance-stat-rank-score .vbo-widget-finance-stat-rank-pcent progress::-webkit-progress-value,
+.vbo-upload-progress progress::-webkit-progress-value {
+	background: var(--vbo-base-color);
+	border-radius: 20px;
+}
+.vbo-widget-finance-stat-rank-score .vbo-widget-finance-stat-rank-pcent progress::-moz-progress-bar,
+.vbo-upload-progress progress::-moz-progress-bar {
+	background: var(--vbo-base-color);
+	border-radius: 20px;
+}
+.vbo-widget-finance-stat-rank-score .vbo-widget-finance-stat-rank-pcent progress::-moz-progress-value,
+.vbo-upload-progress progress::-moz-progress-value {
+	background: var(--vbo-basic-btn);
+	border-radius: 20px;
+}
+.vbo-widget-finance-stat-rank-amount {
+	margin-left: auto;
+	font-weight: bold;
+}
+.vbo-widget-finance-skeleton-block {
+
+}
+
+/* Tooltip - Start **/
+.vbo-tooltip {
+	position: relative;
+}
+.vbo-tooltip::before,
+.vbo-tooltip::after {
+	position: absolute;
+	opacity: 0;
+	visibility: hidden;
+	-webkit-transition:
+		opacity 0.3s ease-in-out,
+		visibility 0.3s ease-in-out,
+		-webkit-transform 0.3s cubic-bezier(0.71, 1.7, 0.77, 1.24);
+	-moz-transition:
+		opacity 0.3s ease-in-out,
+		visibility 0.3s ease-in-out,
+		-moz-transform 0.3s cubic-bezier(0.71, 1.7, 0.77, 1.24);
+	transition:
+		opacity 0.3s ease-in-out,
+		visibility 0.3s ease-in-out,
+		transform 0.3s cubic-bezier(0.71, 1.7, 0.77, 1.24);
+	-webkit-transform: translate3d(0, 0, 0);
+	-moz-transform: translate3d(0, 0, 0);
+	transform: translate3d(0, 0, 0);
+	pointer-events: none;
+}
+.vbo-tooltip:hover::before,
+.vbo-tooltip:hover::after,
+.vbo-tooltip:focus::before,
+.vbo-tooltip:focus::after {
+	opacity: 1;
+	visibility: visible;
+}
+.vbo-tooltip::before {
+	content: attr(data-tooltiptext);
+	z-index: 10001;
+	width: calc(100% + 40px);
+	color: var(--vbo-body-text-color);
+	background: var(--vbo-body-bg-color);
+	border-radius: 15px;
+	border: 1px solid var(--vbo-config-border-color);
+	padding: 5px;
+	font-size: 12px;
+	line-height: 1.2;
+	text-align: center;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
+	font-weight: normal;
+}
+.vbo-inspector-hover.vbo-tooltip::before {
+	width: auto;
+	font-weight: bold;
+}
+.vbo-tooltip::after {
+	content: "";
+	width: 0;
+	height: 0;
+}
+.vbo-tooltip.vbo-tooltip-top::before,
+.vbo-tooltip.vbo-tooltip-top::after {
+	bottom: 100%;
+	left: 50%;
+	transform: translate(-50%);
+	margin-bottom: 2px;
+}
+.vbo-tooltip.vbo-tooltip-bottom::before,
+.vbo-tooltip.vbo-tooltip-bottom::after {
+	top: 100%;
+	left: 50%;
+	transform: translate(-50%);
+	margin-top: 2px;
+}
+/* Tooltip - End **/
 
 .vbo-dashboard-firstsetup-container {
 	width: 80%;
@@ -4212,9 +4823,10 @@ label.vbo-timeline-label {
 	border-radius: 8px;
 	margin: 10px;
 	padding: 20px;
+	font-size: 14px;
 	background: var(--vbo-config-bg-color);
 	box-shadow: 0 0 10px rgba(0,0,0,.05);
-	height: 88%;
+	height: 94%;
 }
 .vbo-dashboard-firstsetup-task-number {
 	color: #82b8d5;
@@ -4313,7 +4925,7 @@ label.vbo-timeline-label {
 .vbo-admin-widgets-widget {
 	display: block;
 	border-radius: 16px;
-	margin: 12px 8px;
+	margin: 12px 0;
 	box-shadow: 0 0px 20px rgba(0,0,0,.1);
 	background: var(--vbo-config-bg-color);
 }
@@ -4321,11 +4933,13 @@ label.vbo-timeline-label {
 	border-top-right-radius: 16px;
 	border-top-left-radius: 16px;
 	border-bottom: 1px solid var(--vbo-config-border-color);
+	display: inline-block;
+	width: 100%;
+	box-sizing: border-box;
 }
 .vbo-admin-widget-head .btn-toolbar {
-	margin: 10px 15px 0 10px;
+	margin: 10px 15px 10px 10px;
 	display: inline-block;
-	float: right;
 }
 .vbo-admin-widget-head .btn-toolbar .btn-wrapper {
 	margin-top: 4px;
@@ -4346,22 +4960,160 @@ label.vbo-timeline-label {
 .vvbo-admin-widget-head .btn i {
 	margin-right: 0;
 }
+.btn.btn-small {
+    padding: 2px 10px;
+    font-size: 12px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+}
+body #content .btn.vbo-context-menu-btn, body #wpcontent .btn.vbo-context-menu-btn, body.wp-admin .btn.vbo-context-menu-btn, .btn.vbo-context-menu-btn {
+	padding: 0 !important;
+	height: 40px;
+}
+body #content .btn-small.vbo-context-menu-btn, body #wpcontent .btn-small.vbo-context-menu-btn, body.wp-admin .btn-small.vbo-context-menu-btn, .btn-small.vbo-context-menu-btn {
+	padding: 0 !important;
+	background: var(--vbo-base-color);
+	border: 1px solid var(--vbo-base-color) !important;
+	color: var(--vbo-contrast-text-color);
+	display: flex;
+	height: auto;
+}
+body #content .btn-small.vbo-context-menu-btn:hover, body #wpcontent .btn-small.vbo-context-menu-btn:hover, body.wp-admin .btn-small.vbo-context-menu-btn:hover, .btn-small.vbo-context-menu-btn:hover, .btn-small.vbo-context-menu-btn:focus, .btn-small.vbo-context-menu-btn:active {
+	background: var(--vbo-base-color) !important;
+	border: 1px solid var(--vbo-base-color);
+	color: var(--vbo-contrast-text-color);
+}
+.vbo-context-menu-btn .vbo-context-menu-lbl {
+	padding: 10px;
+	display: inline-block;
+}
+.vbo-context-menu-btn.btn-small .vbo-context-menu-lbl {
+	padding: 3px 10px 3px;
+}
+.btn-small.vbo-context-menu-btn .vbo-context-menu-lbl:hover {
+	background: var(--vbo-base-color-hover);
+	color: var(--vbo-contrast-text-color);
+	border: 0;
+	border-top-left-radius: 3px;
+	border-bottom-left-radius: 3px;
+}
+body #content .btn-warning.vbo-context-menu-btn, body #wpcontent .btn-warning.vbo-context-menu-btn, body.wp-admin .btn-warning.vbo-context-menu-btn, .btn-warning.vbo-context-menu-btn {
+	background: var(--vbo-orange-color);
+}
+.btn-warning.vbo-context-menu-btn .vbo-context-menu-lbl:hover, .btn-warning.vbo-context-menu-btn .vbo-context-menu-ico:hover {
+	background: var(--vbo-orange-color-hover);
+	color: var(--vbo-contrast-text-color);
+	border: 0;
+}
+body #content .btn-danger.vbo-context-menu-btn, body #wpcontent .btn-danger.vbo-context-menu-btn, body.wp-admin .btn-danger.vbo-context-menu-btn, .btn-danger.vbo-context-menu-btn {
+	background: var(--vbo-red-color);
+}
+.btn-danger.vbo-context-menu-btn .vbo-context-menu-lbl:hover, .btn-danger.vbo-context-menu-btn .vbo-context-menu-ico:hover {
+	background: var(--vbo-red-color-hover);
+	color: var(--vbo-contrast-text-color);
+	border: 0;
+}
+body #content .btn-success.vbo-context-menu-btn, body #wpcontent .btn-success.vbo-context-menu-btn {
+	background-color: var(--vbo-green-color);
+	border-color: var(--vbo-green-color);
+}
+body #content .btn-success.vbo-context-menu-btn .vbo-context-menu-lbl:hover, body #wpcontent .btn-success.vbo-context-menu-btn .vbo-context-menu-lbl:hover, body #wpcontent .btn-success.vbo-context-menu-btn .vbo-context-menu-ico:hover, body #content .btn-success.vbo-context-menu-btn .vbo-context-menu-ico:hover {
+	background-color: var(--vbo-green-color-hover);
+	border-color: var(--vbo-green-color-hover);
+}
+body #content .btn-success.vbo-context-menu-btn .vbo-context-menu-lbl:focus, body #wpcontent .btn-success.vbo-context-menu-btn .vbo-context-menu-lbl:focus, body #wpcontent .btn-success.vbo-context-menu-btn .vbo-context-menu-ico:focus, body #content .btn-success.vbo-context-menu-btn .vbo-context-menu-ico:focus {
+	background-color: var(--vbo-green-color-focus);
+	border-color: var(--vbo-green-color-focus);
+}
+.vbo-context-menu-btn .vbo-context-menu-ico {
+	padding: 12px 8px;
+	text-align: center;
+	border-top-right-radius: 3px;
+	border-bottom-right-radius: 3px;
+}
+.vbo-context-menu-btn.btn-small .vbo-context-menu-ico {
+	padding: 3px 8px 3px;
+}
+.btn.vbo-context-menu-btn .vbo-context-menu-ico i {
+	margin-right: 0;
+	position: relative;
+	top: -1px;
+	vertical-align: initial;
+}
+.vbo-context-menu-btn .vbo-context-menu-ico:hover {
+	background: var(--vbo-base-color-hover);
+}
+.vbo-context-menu-btn.vbo-widget-bookdets-searchtype:hover {
+	background: var(--vbo-base-color-hover);
+	border-color: var(--vbo-base-color-hover);
+}
+.vbo-context-menu-btn.vbo-widget-bookdets-searchtype .vbo-context-menu-ico {
+	border-radius: 3px;
+	display: initial;
+  	vertical-align: initial;
+} 
+.vik-context-menu.vbo-dropdown-cxmenu {
+	background: var(--vbo-config-bg-color);
+	box-shadow: 0 3px 3px rgba(0,0,0,0.1);
+	z-index: 2147483647 !important;
+	border: 1px solid rgba(0,0,0,.15);
+	border-radius: .25rem;
+}
+.vik-context-menu.vbo-dropdown-cxmenu li a:not(.disabled):hover {
+	color: var(--vbo-contrast-text-color);
+	background: var(--vbo-base-color);
+	cursor: pointer;
+}
+.vik-context-menu.vbo-dropdown-cxmenu li, .vik-context-menu.vbo-dropdown-cxmenu li:last-child, .vik-context-menu.vbo-dropdown-cxmenu li:first-child {
+	padding: 0;
+	margin: 0;
+}
+.vik-context-menu.vbo-dropdown-cxmenu li a {
+	color: var(--vbo-body-text-color);
+	padding: 8px 12px;
+}
+.vik-context-menu.vbo-dropdown-cxmenu li a.vbo-context-menu-entry-danger:hover {
+	background: var(--vbo-red-color);	
+}
+.vik-context-menu.vbo-dropdown-cxmenu li a.vbo-context-menu-entry-danger:focus, .vik-context-menu.vbo-dropdown-cxmenu li a.vbo-context-menu-entry-danger:active {
+	background: var(--vbo-red-color-focus);	
+}
+.vik-context-menu.vbo-dropdown-cxmenu li a.vbo-context-menu-entry-warning:hover {
+	background: var(--vbo-orange-color-hover);	
+}
+.vik-context-menu.vbo-dropdown-cxmenu li .button-icon {
+	color: var(--vbo-config-text-color-light);
+	font-size: 14px;
+	min-width: 16px;
+}
+.vik-context-menu.vbo-dropdown-cxmenu li a:hover .button-icon {
+	color: var(--vbo-contrast-text-color);
+}
+.btn-group-inline .vbo-context-menu-btn.vbo-widget-bookdets-searchtype {
+	border-radius: 3px;
+}
 .vbo-admin-widget-head h4 {
-	font-size: 20px;
+	font-size: 18px;
 	font-weight: bold;
-	padding: 10px 0 3px 15px;
+	padding: 7px 0 3px 15px;
 	margin: 12px 0;
 	position: relative;
 	display: inline-block;
 }
-.vbo-admin-widget-head .vbo-dash-chart-current {
-	display: inline-block;
-	margin-right: 7px;
+.vbo-admin-widget-head h4 > i, .vbo-admin-widget-head h4 > span {
+	vertical-align: middle;
 }
-.vbo-admin-widget-head-inline > div {
+.vbo-admin-widget-head-inline > div:not(.vbo-dashboard-search-input) {
 	display: inline-block;
 	float: right;
 	margin-top: 10px;
+}
+.vbo-dashboard-search-input {
+	display: inline-block;
+	vertical-align: middle;
+	margin-left: 10px;
+	margin-bottom: 2px;
 }
 .vbo-admin-widget-body {
 	padding: 10px;
@@ -4395,6 +5147,7 @@ label.vbo-timeline-label {
 .vbo-dashboard-guests-latest .vbo-dashboard-guest-activity-avatar img {
 	max-width: 100%;
 	border-radius: 50%;
+	object-fit: cover;
 } 
 .vbo-dashboard-guests-latest .vbo-dashboard-guest-activity-content {
 	flex: 1;
@@ -4407,17 +5160,115 @@ label.vbo-timeline-label {
 }
 .vbo-dashboard-guest-activity-content-info-details {
 	margin-bottom: 7px;
+	flex: 1;
+}
+.vbo-w-guestmessages-message-staydates {
+	font-size: 12px;
+	position: relative;
+	padding-left: 10px;
+	color: var(--vbo-config-titles-color-light);
+}
+.vbo-w-guestmessages-message-staydates:after {
+	content: "";
+	width: 2px;
+	height: 2px;
+	background: var(--vbo-config-titles-color-light);
+	top: 7px;
+	left: 2px;
+	position: absolute;
+	border-radius: 50%;
+}
+.vbo-w-guestmessages-message-new {
+	background: var(--vbo-toolbar-bg-color);
+}
+.vbo-w-guestmessages-message-new .vbo-w-guestmessages-message-gtitle i {
+	color: var(--vbo-base-color);
+	font-size: 18px;
+	margin: 0 0 0 5px;
+}
+.vbo-bookings-status-separator {
+	margin-top: 5px;
+	text-align: center;
+}
+.vbo-modal-nofooter .vbo-modal-overlay-content-body-scroll {
+	height: calc(100% - 100px);
+}
+.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head {
+	display: flex;
+	padding: 12px 20px 6px;
+	background: transparent;
+	border-bottom: 1px solid var(--vbo-config-border-color);
+}
+.vbo-modal-wguestmessages-chat-wrap {
+	height: 100%;
+}
+.vbo-modal-wguestmessages-chat-wrap .chat-conversation {
+	max-height: 540px;
+}
+.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head span:first-child:not(.vbo-modal-overlay-close-times) {
+	flex: 1;
+}
+.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head span:first-child:not(.vbo-modal-overlay-close-times) span {
+	display: inline-block;
+	vertical-align: middle;
+}
+.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head span:first-child:not(.vbo-modal-overlay-close-times) span.vbo-modal-wguestmessages-chat-info-booking {
+	display: block;
+}
+.vbo-modal-wguestmessages-chat-info-booking .vbo-w-guestmessages-message-staydates {
+	display: inline-block;
+	vertical-align: middle;
+	line-height: 1em;
+}
+.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head span.vbo-modal-wguestmessages-chat-info-booking .label {
+	margin-left: 10px;
+}
+.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head span.vbo-modal-wguestmessages-chat-info-booking .label:hover {
+	background-color: var(--vbo-red-color);
+}
+.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head .vbo-modal-wguestmessages-chat-guestname {
+	margin-right: 10px;
+	font-weight: bold;
+}
+.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head .vbo-modal-wguestmessages-chat-guestavatar {
+	margin-right: 10px;
+}
+.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head .vbo-modal-wguestmessages-chat-guestavatar img {
+	width: 40px;
+	height: 40px;
+	object-fit: cover;
+	border-radius: 50%;
+} 
+.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head .vbo-modal-overlay-close-times {
+	margin-left: auto;
+	align-self: center;
 }
 .vbo-dashboard-guests-latest .vbo-dashboard-guest-activity-content-info-icon {
 	margin-right: 10px;
 	margin-top: 2px;
+	display: inline-block;
+	width: 100%;
 }
 .vbo-dashboard-guest-activity-content-info-icon i {
-	color: #32a5f9;
+	color: var(--vbo-base-color);
 	font-size: 14px;
 }
 .vbo-dashboard-guest-activity-review .vbo-dashboard-guest-activity-content i {
-	color: #ffbd3f;
+	color: var(--vbo-orange-color);
+}
+.vbo-rdaybooking-subunits {
+	margin-top: 6px;
+}
+.vbo-rdaybooking-subunits .label-warning {
+	padding: 10px 6px !important;
+}
+.vbo-rdaybooking-subunits .vbo-rdaybooking-subunits-list {
+	display: inline-block;
+}
+.vbo-rdaybooking-subunits .vbo-rdaybooking-subunits-list select {
+	min-height: 34px;
+	line-height: 1.3em;
+	margin: 3px 0;
 }
 .vbo-dashboard-guest-activity-content-info-icon .vbo-dashboard-guest-activity-content-info-rate {
 	font-weight: bold;
@@ -4427,12 +5278,14 @@ label.vbo-timeline-label {
 	margin-left: auto;
 	font-size: .9em;
 	text-align: right;
+	color: var(--vbo-config-titles-color-light);
 }
 .vbo-dashboard-guest-activity-content-info-date span {
 	display: block;
 }
 .vbo-dashboard-guest-activity-content-info-msg {
 	color: var(--vbo-config-titles-color-light);
+	font-size: 13px;
 }
 .vbo-dashboard-guest-activity-content-info-msg p {
 	margin: 0;
@@ -4444,10 +5297,19 @@ label.vbo-timeline-label {
 	width: 40px;
 	height: 40px;
 	border-radius: 50%;
+	object-fit: cover;
 }
 .vbo-dashboard-guest-activity-skeleton .vbo-skeleton-loading-title, .vbo-dashboard-guest-activity-skeleton .vbo-skeleton-loading-title:after {
 	width: 150px;
 	height: 15px;
+}
+.vbo-skeleton-loading-finance-top, .vbo-skeleton-loading-finance-top:after {
+	width: 70%;
+	height: 15px;
+}
+.vbo-skeleton-loading-finance-bottom, .vbo-skeleton-loading-finance-bottom:after {
+	width: 100%;
+	height: 22px;
 }
 .vbo-dashboard-guest-activity-skeleton .vbo-skeleton-loading-subtitle, .vbo-dashboard-guest-activity-skeleton .vbo-skeleton-loading-subtitle:after {
 	width: 50px;
@@ -4457,12 +5319,12 @@ label.vbo-timeline-label {
 	width: 100%;
 	height: 22px;
 }
-.vbo-dashboard-guest-activity-skeleton .vbo-skeleton-loading {
+.vbo-dashboard-guest-activity-skeleton .vbo-skeleton-loading, .vbo-widget-finance-skeleton-block .vbo-skeleton-loading {
 	position: relative;
 	overflow: hidden;
 	display: inline-block;
 }
-.vbo-dashboard-guest-activity-skeleton .vbo-skeleton-loading:after {
+.vbo-dashboard-guest-activity-skeleton .vbo-skeleton-loading:after, .vbo-widget-finance-skeleton-block .vbo-skeleton-loading:after {
 	position: absolute;	
     top: 0;
     right: 0;
@@ -4497,6 +5359,7 @@ label.vbo-timeline-label {
 .vbo-widget-ratesflow-list .vbo-widget-ratesflow-record .vbo-widget-ratesflow-avatar img, .vbo-widget-latestevents-list .vbo-widget-history-avatar img {
 	max-width: 100%;
 	border-radius: 50%;
+	object-fit: cover;
 }
 .vbo-widget-ratesflow-list .vbo-widget-ratesflow-record .vbo-widget-ratesflow-avatar .vbo-widget-ratesflow-avatar-icon, .vbo-widget-latestevents-list .vbo-widget-history-avatar .vbo-widget-history-avatar-icon {
 	width: 40px;
@@ -4523,7 +5386,7 @@ label.vbo-timeline-label {
 }
 .vbo-widget-ratesflow-list .vbo-widget-ratesflow-record .vbo-widget-ratesflow-content-info-details h4, .vbo-widget-latestevents-list .vbo-widget-history-content .vbo-widget-history-content-info-details h4 {
 	margin: 0;
-	font-size: 1.2em;
+	font-size: 16px;
 }
 .vbo-widget-ratesflow-list .vbo-widget-ratesflow-record .vbo-widget-ratesflow-content-info-details .vbo-widget-ratesflow-content-info-dates, .vbo-widget-latestevents-list .vbo-widget-history-content .vbo-widget-history-content-info-details .vbo-widget-history-content-info-dates {
 	margin-right: 10px;
@@ -4574,6 +5437,11 @@ label.vbo-timeline-label {
 }
 .vbo-widget-latestevents-list .vbo-widget-history-content .vbo-widget-history-content-info-details .label {
 	float: right;
+	margin: 1px;
+}
+.vbo-widget-latestevents-list .vbo-widget-history-content .vbo-widget-history-content-info-details .vbo-label-small {
+	font-size: 12px;
+	padding: 5px 8px !important;
 }
 .vbo-widget-latestevents-list .vbo-widget-history-content .vbo-widget-history-content-head {
 	margin-bottom: 3px;
@@ -4584,7 +5452,20 @@ label.vbo-timeline-label {
 }
 .vbo-widget-latestevents-list .vbo-widget-history-content .vbo-widget-history-content-head .vbo-widget-history-booking-checkin {
 	margin-left: auto;
+	text-align: right;
 }
+.vbo-widget-latestevents-list .vbo-widget-history-content .vbo-widget-history-content-head .vbo-widget-history-booking-checkin i {
+	margin-right: 3px;
+	color: var(--vbo-middle-color-btn);
+}
+.vbo-admin-widgets-widget .vbo-dashboard-today-checkin-head, .vbo-admin-widgets-widget .vbo-dashboard-today-checkout-head {
+	display: flex;
+	flex-wrap: wrap;
+}
+.vbo-admin-widgets-widget .vbo-dashboard-today-checkin-head .vbo-admin-widget-head-inline, .vbo-admin-widgets-widget .vbo-dashboard-today-checkout-head .vbo-admin-widget-head-inline {
+	flex: 1;
+}
+
 .vbo-widget-latestevents-list .vbo-widget-history-record:hover {
 	cursor: pointer;
 	background: var(--vbo-light-color-btn);
@@ -4606,6 +5487,7 @@ label.vbo-timeline-label {
 .vbo-widget-currconv-filters label {
 	display: block;
 	margin-bottom: 5px;
+	font-weight: 500;
 }
 .vbo-widget-currconv-filters-main {
 	display: flex;
@@ -4676,6 +5558,52 @@ label.vbo-timeline-label {
 .vbo-widget-checkav-results {
 	margin-top: 5px;
 }
+.vbo-dashboard-fullcontainer .vbo-admin-widgets-container-large .vbo-widget-checkav-result-splitstays-wrap,
+.vbo-dashboard-fullcontainer .vbo-admin-widgets-container-fullwidth .vbo-widget-checkav-result-splitstays-wrap {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+}
+.vbo-widget-checkav-result-splitstays-wrap {
+	width: 100%;
+}
+.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-rooms {
+	border: 1px solid var(--vbo-basic-btn);
+	margin: 5px;
+	border-radius: 6px;
+}
+.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-rooms:hover {
+	border-color: var(--vbo-base-color);
+}
+.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-rooms-inner {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+}
+.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-room {
+	padding: 8px;
+}
+.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-room .vbo-widget-checkav-result-room-name {
+	font-weight: bold;
+	font-size: 1.2em;
+	margin-bottom: 4px;
+} 
+.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-room .vbo-widget-checkav-result-room-name i {
+	color: var(--vbo-base-color);
+	margin-right: 3px;
+	width: 16px;
+}
+.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-room .vbo-widget-checkav-result-alt-date > span {
+	display: block;
+	margin-bottom: 3px;
+}
+.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-room .vbo-widget-checkav-result-alt-date > span i {
+	margin-right: 3px;
+	width: 16px;
+	color: var(--vbo-config-text-color-light);
+}
+.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-rooms-book {
+	text-align: center;
+	margin-bottom: 10px;
+}
 .vbo-admin-widgets-container-fullwidth .vbo-widget-checkav-results,
 .vbo-admin-widgets-container-large .vbo-widget-checkav-results {
 	display: flex;
@@ -4741,9 +5669,26 @@ label.vbo-timeline-label {
 	.vbo-admin-widgets-container-fullwidth .vbo-widget-checkav-result-altdates-wrap .vbo-widget-checkav-result-room-rates {
 		flex-basis: calc(33% - 30px);
 	}
-	.vbo-admin-widgets-container-small .vbo-widget-checkav-result-altdates-wrap .vbo-widget-checkav-result-room-rates, .vbo-admin-widgets-container-large .vbo-widget-checkav-result-altdates-wrap .vbo-widget-checkav-result-room-rates.vbo-admin-widgets-container-medium .vbo-widget-checkav-results .vbo-widget-checkav-result-room-rate {
+	.vbo-admin-widgets-container-small .vbo-widget-checkav-result-altdates-wrap .vbo-widget-checkav-result-room-rates, .vbo-admin-widgets-container-large .vbo-widget-checkav-result-altdates-wrap .vbo-widget-checkav-result-room-rates.vbo-admin-widgets-container-medium .vbo-widget-checkav-results .vbo-widget-checkav-result-room-rate, .vbo-modal-overlay-content .vbo-widget-checkav-result-altdates-wrap .vbo-widget-checkav-result-room-rates {
 		flex-basis: calc(50% - 30px);
 		margin: 5px;
+	}
+	.vbo-admin-widgets-container-large .vbo-widget-checkav-result-splitstays-wrap, .vbo-admin-widgets-container-medium .vbo-admin-widgets-container-large .vbo-widget-checkav-result-splitstays-wrap {
+		width: 100%;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+	}
+	.vbo-admin-widgets-container-large .vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-rooms-inner, .vbo-admin-widgets-container-medium .vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-rooms-inner {
+		grid-template-columns: repeat(3, 1fr);
+	}
+	.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-rooms:only-child {
+		border-color: var(--vbo-input-style);
+	}
+	.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-rooms:only-child:hover {
+		border-color: var(--vbo-base-color);
+	}
+	.vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-rooms:only-child .vbo-widget-checkav-result-alt-date > span {
+		display: inline-block;	
 	}
 	.vbo-admin-widgets-container-small .vbo-widget-checkav-result-altdates-wrap .vbo-widget-checkav-result-room-rates .vbo-widget-checkav-result-alt-date > span {
 		display: block;
@@ -4835,15 +5780,34 @@ label.vbo-timeline-label {
 }
 .vbo-widget-checkav-result-altdates .vbo-widget-checkav-result-altdates-info {
 	display: flex;
-	flex: wrap;
+	flex-wrap: wrap;
 }
 .vbo-widget-checkav-result-altdates .vbo-widget-checkav-result-altdates-info .vbo-widget-checkav-result-alt-date {
 	align-self: center;
 	margin-right: 10px;
 	flex: 1;
 }
+.vbo-sidepanel-active-widgets .vbo-admin-widgets-container-small .vbo-widget-checkav-result-altdates .vbo-widget-checkav-result-altdates-info .vbo-widget-checkav-result-alt-date {
+	flex-basis: 100%;
+}
+.vbo-admin-widgets-container-small .vbo-widget-checkav-result-altdates-wrap .vbo-widget-checkav-result-room-rates .vbo-widget-checkav-result-alt-date > span {
+	margin-bottom: 3px;
+}
+.vbo-sidepanel-active-widgets .vbo-admin-widgets-container-small .vbo-widget-checkav-result-altdates .vbo-widget-checkav-result-altdates-info .vbo-widget-checkav-result-alt-choose {
+	margin-top: 8px;
+	width: 100%;
+	text-align: center;
+}
+.vbo-sidepanel-active-widgets .vbo-admin-widgets-container-small .vbo-widget-checkav-result-altdates .vbo-widget-checkav-result-altdates-info .vbo-widget-checkav-result-alt-choose .btn {
+	width: 100%;
+}
 .vbo-widget-checkav-result-altdates .vbo-widget-checkav-result-altdates-info .vbo-widget-checkav-result-alt-date .vbo-widget-checkav-result-alt-date-in {
 	margin-right: 10px;
+}
+.vbo-widget-checkav-result-altdates .vbo-widget-checkav-result-altdates-info .vbo-widget-checkav-result-alt-date i {
+	color: var(--vbo-config-text-color-light);
+	width: 16px;
+	margin-right: 3px;
 }
 .vbo-widget-checkav-result-altdates .vbo-widget-checkav-result-altdates-info .vbo-widget-checkav-result-alt-choose {
 	margin-left: auto;
@@ -5070,9 +6034,8 @@ label.vbo-timeline-label {
 	margin-top: -5px;
 }
 .vbo-admin-widget-wrapper h4 i {
-	vertical-align: middle;
 	margin-right: 8px;
-	font-size: 20px;
+	font-size: 17px;
 }
 .vbo-dash-chart-title .vbo-dash-chart-nav i {
 	margin-right: 0;
@@ -5105,9 +6068,8 @@ label.vbo-timeline-label {
 .vbo-dashboard-charts-wrapper {
 	margin: 0 auto 20px;
 	padding: 18px;
-	display: flex;
-	flex-wrap: wrap;
-	align-content: center;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 .vbo-dashboard-chart-container {
 	background: none repeat scroll 0 0 var(--vbo-config-bg-color);
@@ -5115,24 +6077,8 @@ label.vbo-timeline-label {
 	margin: 8px;
 	padding: 0;
 	border-radius: 16px;
-	box-shadow: 0 0 20px rgba(0,0,0,.1);
-	flex: 1;
-}
-.vbo-dashboard-charts-wrapper {
-	flex-basis: calc(20% - 16px);
-	flex-grow: 0;
-}
-.vbo-admin-widgets-container-large .vbo-dashboard-chart-container {
-	flex-basis: calc(20% - 16px);
-	flex-grow: 0;
-}
-.vbo-admin-widgets-container-medium .vbo-dashboard-chart-container {
-	flex-basis: calc(33% - 16px);
-	flex-grow: 0;
-}
-.vbo-admin-widgets-container-small .vbo-dashboard-chart-container {
-	flex-basis: 100%;
-	flex-grow: 0;
+	border: 1px solid var(--vbo-basic-btn);
+	box-shadow: 0 1.5px 4px rgba(0,0,0,.08);
 }
 .vbo-dashboard-chart-container .vbo-dashboard-chart-date {
     display: inline-block;
@@ -5172,6 +6118,12 @@ label.vbo-timeline-label {
 	text-decoration: none;
 	background: var(--vbo-base-color-hover);
 	color: #fff;
+}
+.vbo-dashboard-today-checkout.table-responsive > .table > tbody > tr > td, .vbo-dashboard-today-checkin.table-responsive > .table > tbody > tr > td, .vbo-dashboard-today-checkout.table-responsive > .table > thead > tr > th, .vbo-dashboard-today-checkin.table-responsive > .table > thead > tr > th {
+	white-space: initial;
+}
+.vbo-dashboard-today-checkout.table-responsive > .table > tbody > tr > td:first-child, .vbo-dashboard-today-checkin.table-responsive > .table > tbody > tr > td:first-child {
+	word-break: inherit;
 }
 .vbo-dashboard-next-bookings .table {
 	margin-bottom: 0;
@@ -5298,18 +6250,12 @@ label.vbo-timeline-label {
 	background: var(--vbo-config-child-bg-color);
 }
 .vbo-dashboard-today-occ-listcont {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
 	padding: 10px;
+	grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
 }
-.vbo-dashboard-today-occ-listcont .vbo-dashboard-today-roomocc {
-	flex-basis: 25%;
-}
-.vbo-admin-widgets-container-medium .vbo-dashboard-today-occ-listcont .vbo-dashboard-today-roomocc {
-	width: 50%;
-}
-.vbo-admin-widgets-container-small .vbo-dashboard-today-occ-listcont .vbo-dashboard-today-roomocc {
-	width: 100%;
+.vbo-dashboard-today-roomocc-rows td {
+	background: transparent !important;
 }
 .vbo-admin-widgets-container-small .vbo-dashboard-today-occ-listcont {
 	padding: 0;
@@ -5327,17 +6273,31 @@ label.vbo-timeline-label {
 	padding-right: 15px;
 }
 .vbo-dashboard-today-occ-listcont .vbo-dashboard-today-roomocc-det {
-	border-radius: 16px;
-	border: 1px solid var(--vbo-config-border-color);
 	margin: 10px;
 	background: var(--vbo-config-bg-color);
+	border-radius: 10px;
+	border: 1px solid var(--vbo-basic-btn);
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
+}
+.vbo-dashboard-today-roomocc-row-checkout {
+	display: flex;
+	margin-left: auto;
+	justify-content: end;
+}
+.vbo-dashboard-today-roomocc-row-checkout .vbo-dashboard-today-roomocc-checkout-dt {
+	align-self: center;
+}
+.vbo-dashboard-today-roomocc-row-checkout .vbo-dashboard-today-roomocc-checkout-do .btn {
+	padding: 5px 8px;
+	margin-left: 5px;
 }
 .vbo-dashboard-today-roomocc-det-rname {
 	display: inline-block;
-	width: 60%;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	vertical-align: middle;
+	max-width: 82%;
 }
 .vbo-dashboard-today-occ-block {
 	margin: 0 0 30px 0;
@@ -5376,7 +6336,6 @@ label.vbo-timeline-label {
 	margin-right: 0;
 }
 .vbo-dashboard-today-roomocc-det > h5 {
-	background: var(--vbo-config-child-bg-color);
 	font-weight: bold;
 	padding: 15px;
 	margin: 0;
@@ -5400,6 +6359,9 @@ label.vbo-timeline-label {
 .vbo-dashboard-today-roomocc-rows td {
 	padding: 11px 15px !important;
 }
+.vbo-dashboard-today-roomocc-rows td .vbo-country-flag {
+	width: 15px;
+}
 .vbo-dashboard-today-roomocc-rows td.left a {
 	font-weight: bold;
 	color: var(--vbo-config-title-color);
@@ -5409,28 +6371,46 @@ label.vbo-timeline-label {
 }
 .vbo-dashboard-today-roomocc-det > h5 .vbo-dashboard-roomocc-units-fromto {
 	display: inline-block;
-	border: 1px solid var(--vbo-base-color);
-	border-radius: 14px;
-	padding: 2px 10px;
-	background: var(--vbo-config-bg-color);
-	color: var(--vbo-config-titles-color-light);
+	border-radius: 6px;
+	padding: 2px 7px;
 	margin-top: -5px;
 	margin-left: 10px;
+	float: right;
+}
+.vbo-roomocc-units-free {
+	background: #e5ffd6;
+	border: 1px solid #8fd569;
+	color: #639448;
+}
+.vbo-roomocc-units-half {
+	color: #a88706;
+	background: #fff6a9;
+	border: 1px solid #e1c903;
+}
+.vbo-roomocc-units-threefourth {
+	background: #ffdfbe;
+	border: 1px solid #ffbd79;
+	color: #e27300;
+}
+.vbo-roomocc-units-full {
+	background: #ffdbd3;
+	border: 1px solid #ffa7a7;
+	color: #d44b2d;
 }
 .vbo-dashboard-today-roomocc-det > h5 .vbo-dashboard-roomocc-units-fromto > span {
-    font-size: 15px;
 	display: inline-block;
 	text-align: center;
 	border-radius: 4px;
 	padding: 2px 0;
 }
-.vbo-dashboard-today-roomocc-det > h5 .vbo-dashboard-roomocc-units-fromto .vbo-dashboard-roomocc-units-from {
-	font-size: 18px;
-}
 .vbo-dashboard-today-roomocc-customers.table-responsive {
     height: 200px;
     overflow-y: scroll;
     width: 100%;
+}
+.vbo-dashboard-today-roomocc-customers.table-responsive > .table > tbody > tr > td {
+	white-space: normal;
+	vertical-align: middle;
 }
 th.vbo-tdright, td.vbo-tdright {
 	text-align: right !important;
@@ -5454,30 +6434,33 @@ tr.no-results > td {
 	color: #cc0000;
 }
 .vbo-info-overlay-content-orphans .vbo-orphans-info-list {
-	display: flex;
-	flex-wrap: wrap;
-	flex-basis: 33%;
-	justify-content: center;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 .vbo-info-overlay-content-orphans .vbo-orphans-info-room {
-    background: var(--vbo-config-child-bg-color);
-    padding: 15px;
     margin: 5px;
-    border: 1px solid var(--vbo-config-border-color);
+    border-radius: 10px;
+	border: 1px solid var(--vbo-config-border-color);
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
     display: flex;
     flex-wrap: wrap;
     flex-direction: column;
-    border-radius: 4px;
+}
+.vbo-info-overlay-content-orphans .vbo-orphans-info-room:hover {
+	border-color: var(--vbo-base-color);
 }
 .vbo-info-overlay-content-orphans .vbo-orphans-info-room h4 {
 	margin: 0 0 5px;
-	padding: 0;
+	padding: 10px;
+	font-size: 1.1em;
+	border-bottom: 1px solid var(--vbo-basic-btn);
 }
 .vbo-info-overlay-content-orphans .vbo-orphans-info-dates {
 	margin-bottom: 10px;
 	max-height: 150px;
 	overflow: hidden;
 	overflow-y: scroll;
+	padding: 10px;
 }
 .vbo-info-overlay-content-orphans .vbo-orphans-info-list {
 	margin-top: 10px;
@@ -5485,6 +6468,7 @@ tr.no-results > td {
 .vbo-info-overlay-content-orphans .vbo-orphans-info-btn {
 	margin-top: auto;
 	text-align: center;
+	padding: 0 10px 10px;
 }
 .vbo-info-overlay-content-orphans .vbo-orphans-info-cmds {
 	text-align: center;
@@ -5597,6 +6581,10 @@ span.label {
 	display: inline-block;
 	margin: 9px 5px 0 0;
 }
+.vbo-admin-container .vbo-param-container .vbo-quickres-aduchi-wrap:first-child  {
+	margin-right: 5px;
+}
+
 .vbo-admin-container .vbo-param-container .vbo-param-setting .js-editor-tinymce iframe {
 	height: 350px !important;
 }
@@ -5609,16 +6597,100 @@ span.label {
 .vbo-admin-container .vbo-param-container .vbo-param-setting .vbo-smstpl-bgroup button:hover {
 	border: 1px solid var(--vbo-base-color);
 }
+.vbo-params-fieldset .vbo-params-block .vbo-params-fieldset:first-child {
+	margin-top: 15px;
+}
+.vbo-params-fieldset-label {
+	font-weight: bold;
+  	margin-bottom: 5px;
+}
+.vbo-params-fieldset-label .label.label-success {
+	font-size: 13px;
+  	display: inline-block;
+  	font-weight: 500;
+  	line-height: initial;
+}
+.vbo-params-fieldset-label .label.label-success i {
+	margin-right: 3px;
+}
+textarea.vbo-textarea-copyable {
+	width: 0 !important;
+	height: 0 !important;
+	opacity: 0 !important;
+	min-height: 0 !important;
+  	padding: 0 !important;
+	float: right;
+	cursor: default;
+}
+.vbo-params-block {
+	border: 1px solid var(--vbo-input-style-nested-deactive);
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
+	border-radius: 10px;
+	padding: 0 20px 10px;
+	margin-bottom: 20px;
+}
+.vbo-params-block-nested {
+	padding: 10px;
+	margin: 10px 0 10px 10px;
+	border-radius: 6px;
+	background: var(--vbo-config-bg-color);
+}
+.vbo-param-container:not(.vbo-param-container-tmp-disabled) .vbo-param-setting input.vbo-input-validation:invalid:not(:placeholder-shown) {
+	background: rgba(255, 143, 143, 0.60) !important;
+	border-color: #900;
+}
+.vbo-params-block > .vbo-param-container:first-child .vbo-param-label {
+	align-self: center;
+}
+.vbo-params-block .vbo-param-container {
+	border-top: 1px solid var(--vbo-main-bg-color);
+	padding: 10px 0px;
+}
+.vbo-admin-container .vbo-params-block-nested .vbo-param-nested-nested:first-child, .vbo-params-block > .vbo-param-container:first-child {
+	border-top: 0;
+}
+.vbo-params-block > .vbo-param-container:only-child {
+	margin-bottom: 0;
+}
+.vbo-admin-container .vbo-params-block-nested .vbo-param-nested-nested {
+	background: var(--vbo-config-bg-color);
+	border-top: 1px solid var(--vbo-main-bg-color);	
+}
+.vbo-cal-splitstay-details {
+	display: inline-block;
+	border-radius: 10px;
+	border: 1px solid var(--vbo-basic-btn);
+	min-width: 400px;
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
+}
+.vbo-cal-splitstay-details > div {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+}
+.vbo-cal-splitstay-details > div > span {
+	padding: 8px 14px;
+	display: inline-block;
+}
+.vbo-cal-splitstay-details > div > span i {
+	margin-right: 3px;
+	color: var(--vbo-config-text-color-light);
+}
+.vbo-cal-splitstay-details .vbo-cal-splitstay-room .vbo-cal-splitstay-room-name, .vbo-cal-splitstay-details .vbo-cal-splitstay-dates .vbo-cal-splitstay-dates-in {
+	border-right: 1px solid var(--vbo-basic-btn);
+}
+.vbo-bookdet-splitstay-details.vbo-bookdet-roomdatesmod-details > div > span i {
+	color: var(--vbo-red-color);
+}
 #vbo-geo-map .gm-style .gm-style-iw-c {
 	background: var(--vbo-config-bg-color);
 }
-#vbo-website-rates-cont .vbo-cal-wbrate-wrap {
+#vbo-website-rates-cont .vbo-cal-wbrate-wrap, .vbo-website-rates-cont .vbo-cal-wbrate-wrap {
     display: inline-block;
 }
-#vbo-website-rates-cont .vbo-cal-wbrate-wrap:hover {
+#vbo-website-rates-cont .vbo-cal-wbrate-wrap:hover, .vbo-website-rates-cont .vbo-cal-wbrate-wrap:hover {
 	cursor: pointer;
 }
-#vbo-website-rates-cont .vbo-cal-wbrate-wrap .vbo-cal-wbrate-inner {
+#vbo-website-rates-cont .vbo-cal-wbrate-wrap .vbo-cal-wbrate-inner, .vbo-website-rates-cont .vbo-cal-wbrate-wrap .vbo-cal-wbrate-inner {
 	text-align: center;
 	padding: 10px 15px;
 	margin: 5px;
@@ -5626,10 +6698,10 @@ span.label {
 	border-radius: 2px;
 	position: relative;
 }
-#vbo-website-rates-cont .vbo-cal-wbrate-wrap-selected .vbo-cal-wbrate-inner {
+#vbo-website-rates-cont .vbo-cal-wbrate-wrap-selected .vbo-cal-wbrate-inner, .vbo-website-rates-cont .vbo-cal-wbrate-wrap-selected .vbo-cal-wbrate-inner {
 	border-color: var(--vbo-base-color);
 }
-#vbo-website-rates-cont .vbo-cal-wbrate-wrap-selected .vbo-cal-wbrate-inner:before {
+#vbo-website-rates-cont .vbo-cal-wbrate-wrap-selected .vbo-cal-wbrate-inner:before, .vbo-website-rates-cont .vbo-cal-wbrate-wrap-selected .vbo-cal-wbrate-inner:before {
 	position: absolute;
 	content: "";
 	width: 10px;
@@ -5640,14 +6712,14 @@ span.label {
 	background-color: var(--vbo-base-color);
 	border-radius: 50%;
 }
-#vbo-website-rates-cont .vbo-cal-wbrate-wrap .vbo-cal-wbrate-inner > span {
+#vbo-website-rates-cont .vbo-cal-wbrate-wrap .vbo-cal-wbrate-inner > span, .vbo-website-rates-cont .vbo-cal-wbrate-wrap .vbo-cal-wbrate-inner > span {
 	display: block;
 }
-#vbo-website-rates-cont .vbo-cal-wbrate-wrap .vbo-cal-wbrate-cost {
+#vbo-website-rates-cont .vbo-cal-wbrate-wrap .vbo-cal-wbrate-cost, .vbo-website-rates-cont .vbo-cal-wbrate-wrap .vbo-cal-wbrate-cost {
 	font-weight: bold;
 	font-size: 1.2em;
 }
-#vbo-website-rates-cont .vbo-cal-wbrate-wrap-selected .vbo-cal-wbrate-cost, #vbo-website-rates-cont .vbo-cal-wbrate-wrap:hover .vbo-cal-wbrate-cost {
+#vbo-website-rates-cont .vbo-cal-wbrate-wrap-selected .vbo-cal-wbrate-cost, #vbo-website-rates-cont .vbo-cal-wbrate-wrap:hover .vbo-cal-wbrate-cost, .vbo-website-rates-cont .vbo-cal-wbrate-wrap-selected .vbo-cal-wbrate-cost, .vbo-website-rates-cont .vbo-cal-wbrate-wrap:hover .vbo-cal-wbrate-cost {
 	color: var(--vbo-base-color);
 }
 .vbo-avcalendars-wrapper {
@@ -5668,49 +6740,14 @@ span.label {
 	max-height: 250px;
 	border-radius: 4px;
 }
-.vbo-calendar-cfields-filler-overlay {
-	background-color: rgba(0, 0, 0, 0.5);
-    bottom: 0;
-    display: none;
-    height: 100%;
-    left: 0;
-    position: fixed;
-    right: 0;
-    top: 0;
-    width: 100%;
-    z-index: 9000;
-}
-.vbo-calendar-cfields-filler {
-	display: none;
-	position: absolute;
-	left: 50%;
-	top: 10%;
-	transform: translate(-50%, 0%);
-	width: 40%;
-	height: 80%;
-	padding: 20px;
-	background: var(--vbo-config-bg-color);
-	border-radius: 5px;
-	box-shadow: 0px 4px 10px rgba(0,0,0, .5);
-	overflow: auto;
-}
-.vbo-calendar-cfields-filler .vbo-calendar-cfields-topcont h4 {
-	font-size: 18px;
-	text-align: left;
-	padding-bottom: 10px;
-	margin-top: 8px;
-}
 .vbo-calendar-cfields-filler .vbo-calendar-cfields-topcont {
-	display: inline-block;
-	width: 100%;
 	margin-bottom: 10px;
-}
-.vbo-calendar-cfields-filler .vbo-calendar-cfields-custinfo {
-	display: inline-block;
+	margin-bottom: 5px;
+	border-bottom: 1px solid var(--vbo-config-border-color);
+	padding-bottom: 10px;
 }
 .vbo-calendar-cfields-topcont .vbo-calendar-cfields-search {
 	display: inline-block;
-	float: right;
 	margin-right: 10px;
 	position: relative;
 }
@@ -5718,16 +6755,20 @@ span.label {
 	margin-bottom: 5px;
 	font-weight: bold;
 }
-.vbo-calendar-cfields-topcont .vbo-calendar-cfields-search #vbo-searchcust {
+.vbo-calendar-cfields-topcont .vbo-calendar-cfields-search #vbo-searchcust, .vbo-calendar-cfields-topcont .vbo-calendar-cfields-search .vbo-searchcust {
 	width: auto !important;
 }
-.vbo-calendar-cfields-topcont .vbo-calendar-cfields-search #vbo-searchcust-loading {
-	margin-right: 5px;
+.vbo-calendar-cfields-topcont .vbo-calendar-cfields-search #vbo-searchcust-loading, .vbo-calendar-cfields-topcont .vbo-calendar-cfields-search .vbo-searchcust-loading {
+	float: right;
+	margin-left: 5px;
+	margin-top: 10px;
 }
 .vbo-calendar-cfields-inner {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: repeat(2, auto);
+	gap: 10px 50px;
 	width: 100%;
+	padding: 5px 0;
 }
 .vbo-calendar-cfields-bottom {
 	margin: 10px 0 15px 0;
@@ -5752,8 +6793,6 @@ span.label {
 }
 .vbo-calendar-cfields-filler .vbo-calendar-cfield-entry {
 	display: inline-block;
-	flex: 40%;
-	margin: 5px 10px;
 }
 .vbo-calendar-cfields-filler .vbo-calendar-cfield-entry > span {
 	width: 100%;
@@ -5762,7 +6801,7 @@ span.label {
 .vbo-calendar-cfields-filler .vbo-calendar-cfield-entry select {
 	max-width: 100%;
 }
-.vbo-calendar-cfields-filler-overlay .vbo-calendar-cfields-filler input, .vbo-calendar-cfields-filler .vbo-calendar-cfield-entry textarea {
+.vbo-calendar-cfield-entry input[type="number"], .vbo-calendar-cfield-entry input[type="text"], .vbo-calendar-cfield-entry textarea {
 	border: 1px solid var(--vbo-config-border-color);
 	border-radius: 2px;
 	padding: 5px 10px;
@@ -5771,7 +6810,7 @@ span.label {
 	box-sizing: border-box;
 	height: auto;
 }
-.vbo-calendar-cfields-filler-overlay .vbo-calendar-cfields-filler input:focus, .vbo-calendar-cfields-filler .vbo-calendar-cfield-entry textarea:focus {
+.vbo-calendar-cfields-filler input:focus, .vbo-calendar-cfields-filler .vbo-calendar-cfield-entry textarea:focus {
 	background-color: var(--vbo-input-style-deactive);
 }
 .vbo-calendar-cfields-filler .vbo-calendar-cfield-entry select {
@@ -5785,14 +6824,14 @@ span.label {
 .vbo-assign-customer {
 	cursor: pointer;
 	background: var(--vbo-config-bg-color);
-	color: var(--vbo-blue-color);
+	color: var(--vbo-base-color);
 	border-radius: 3px;
 	display: inline-block;
 	font-weight: bold;
-	border: 1px solid var(--vbo-blue-color);
+	border: 1px solid var(--vbo-base-color);
 }
 .vbo-assign-customer > i {
-	background: var(--vbo-blue-color);
+	background: var(--vbo-base-color);
 	color: var(--vbo-config-bg-color);
 	padding: 8px 10px;
 	font-size: 18px;
@@ -5803,11 +6842,11 @@ span.label {
 	vertical-align: middle;
 }
 .vbo-assign-customer:hover {
-	background: var(--vbo-blue-color);
+	background: var(--vbo-base-color);
 	color: #fff;
 }
 .vbo-assign-customer:active, .vbo-assign-customer:active > i {
-	background: var(--vbo-blue-color-hover);
+	background: var(--vbo-base-color-hover);
 }
 #vbfillcustfields .icon-edit::before {
 	color: #fff;
@@ -5839,18 +6878,19 @@ span.label {
 	color: var(--vbo-config-titles-color-light);
 	margin-bottom: 4px;
 }
-#vbo-searchcust-loading {
+#vbo-searchcust-loading, .vbo-searchcust-loading {
 	display: none;
 }
-#vbo-searchcust-res {
+#vbo-searchcust-res, .vbo-searchcust-res {
 	position: absolute;
 	z-index: 2;
 	width: 100%;
+	max-width: 300px;
 }
-.vbo-bookingdet-admin-entry #vbo-searchcust-res {
+.vbo-bookingdet-admin-entry #vbo-searchcust-res, .vbo-bookingdet-admin-entry .vbo-searchcust-res {
 	width: 90%;
 }
-#vbo-searchcust-res .vbo-custsearchres-inner {
+#vbo-searchcust-res .vbo-custsearchres-inner, .vbo-searchcust-res .vbo-custsearchres-inner {
 	list-style: none;
 	text-align: left;
 	padding: 0;
@@ -5863,24 +6903,25 @@ span.label {
 	width: 100%;
 	overflow-y: scroll;
 }
-.vbo-custsearchres-entry {
+.vbo-custsearchres-entry, .vbo-widget-custsearchres-entry {
 	padding: 6px 10px;
 	outline: none;
 	cursor: pointer;
 }
-.vbo-custsearchres-entry-highligthed {
+.vbo-custsearchres-entry-highligthed, .vbo-widget-custsearchres-entry-highligthed {
 	background: rgba(0,0,0,0.05);
 }
-.vbo-custsearchres-entry .vbo-custsearchres-cflag {
+.vbo-custsearchres-entry .vbo-custsearchres-cflag, .vbo-widget-custsearchres-entry .vbo-custsearchres-cflag {
 	margin-right: 8px;
 	display: inline-block;
 	vertical-align: top;
 }
-.vbo-custsearchres-entry .vbo-custsearchres-cflag img {
+.vbo-custsearchres-entry .vbo-custsearchres-cflag img, .vbo-widget-custsearchres-entry .vbo-custsearchres-cflag img {
 	display: inline-block;
 	vertical-align: top;
 }
-#vbo-searchcust-res .vbo-custsearchres-entry:last-child {
+#vbo-searchcust-res .vbo-custsearchres-entry:last-child, .vbo-searchcust-res .vbo-custsearchres-entry:last-child, 
+#vbo-searchcust-res .vbo-widget-custsearchres-entry:last-child, .vbo-searchcust-res .vbo-widget-custsearchres-entry:last-child {
 	border-bottom-right-radius: 4px;
 	border-bottom-left-radius: 4px;
 }
@@ -5888,7 +6929,7 @@ span.label {
 	display: inline-block;
 	min-width: 130px;
 }
-.vbo-custsearchres-entry span {
+.vbo-custsearchres-entry span, .vbo-widget-custsearchres-entry span {
 	margin-right: 5px;
 }
 /* Calendar - End */
@@ -5926,7 +6967,15 @@ span.label {
 	margin: 0 5px 0 0;
 }
 .vbo-country-flag {
-	width: 20px;
+	width: 16px;
+	height: 16px;
+	object-fit: cover;
+}
+.vbo-country-flag.vbo-customer-avatar-flag {
+	border-radius: 50%;
+}
+.vbo-customer-info-box .vbo-customer-info-box-avatar.vbo-customer-avatar-small img {
+	object-fit: cover;
 }
 .vbo-roomentries-cont {
 	float: left;
@@ -6467,6 +7516,7 @@ a.vbo-info-overlay-close {
 	margin-top: -6px;
 	background: var(--vbo-main-bg-color);
 	border-radius: 50%;
+	object-fit: cover;
 	border: 1px solid var(--vbo-config-border-color);
 	height: 22px;
 	line-height: 22px;
@@ -7014,17 +8064,6 @@ a.vbo-info-overlay-close {
 	background-color: var(--vbo-config-bg-color);
 	border-radius: 5px;
 }
-.vbo-invoices-inv-frontleft {
-    background: rgba(0, 0, 0, 0) url("./images/invoice-big.png") no-repeat scroll left center;
-	border-right: 1px solid var(--vbo-config-border-color);
-    float: left;
-    height: 128px;
-    max-height: 100%;
-    min-height: 100%;
-    vertical-align: middle;
-    width: 128px;
-    margin-right: 10px;
-}
 .vbo-invoices-inv-frontright {
 	overflow: hidden;
 	padding: 10px;
@@ -7073,6 +8112,31 @@ a.vbo-info-overlay-close {
 }
 .vbo-invoices-inv-entry-val .label {
 	margin-left: 3px;
+}
+.vbo-invoices-inv-frontleft {
+	position: relative;
+}
+.vbo-invoices-inv-totals {
+	position: absolute;
+	bottom: 2px;
+	width: calc(100% - 10px);
+	display: flex;
+	flex-wrap: wrap;
+	padding: 6px;
+	box-sizing: border-box;
+	border: 1px solid var(--vbo-config-border-color);
+	margin: 5px;
+	border-radius: 4px;
+}
+.vbo-invoices-inv-totals .vbo-invoices-inv-total {
+	font-weight: bold;
+	margin-right: 5px;
+}
+.vbo-invoices-inv-totals .vbo-invoices-inv-totpaid {
+	margin-left: auto;
+}
+.vbo-invoices-inv-totals .vbo-invoices-inv-totpaid .badge {
+	padding: 2px 6px;
 }
 /* Invoices - End */
 /* Snapshot - Start */
@@ -7128,9 +8192,13 @@ a.vbo-info-overlay-close {
 }
 .vbo-dragging-sp {
 	border-radius: 8px;
-	border: 1px dashed var(--vbo-config-bg-color);
+	border: 1px dashed var(--vbo-config-title-color);
 	background: rgba(0, 0, 0, 0.4) none repeat scroll 0 0;
 }
+.vbo-tableaux-booking-checkin.vbo-dragging-sp {
+	border-right: 0;
+	border-radius: 0;
+} 
 .vbo-dragging-cells-tmp {
 	border-radius: 8px;
 	border: 1px dashed var(--vbo-config-bg-color);
@@ -7213,12 +8281,23 @@ a.vbo-info-overlay-close {
 	-moz-user-select: none;
 	-ms-user-select: none;
 }
+table.vboverviewtable td.vbo-overv-avcell {
+	position: relative;
+}
+table.vbo-overv-sticky-table-head-off td.vbo-overv-avcell {
+	min-width: 80px;
+	max-width: 80px;
+	height: 50px;
+}
 table.vboverviewtable th, table.vboverviewtable td {
 	-moz-box-sizing: border-box;
 	-webkit-box-sizing: border-box;
 	box-sizing: border-box;
 	border-right: 1px solid var(--vbo-config-border-color);
 	border-bottom: 1px solid var(--vbo-config-border-color);
+}
+.vbo-overv-sticky-table-head-off table.vboverviewtable th, .vbo-overv-sticky-table-head-off table.vboverviewtable td {
+	padding: 10px;
 }
 table.vboverviewtable tr:last-child td {
 	border-bottom: 0;
@@ -7229,7 +8308,8 @@ table.vboverviewtable td:last-child {
 .vbo-roomdaynote-full, .vbo-roomdaynote-empty {
 	position: relative;
 }
-.vboverviewtablerow td.notbusy span, .vboverviewtablerow td.busy span, .vboverviewtablerow td.busytmplock span {
+.vboverviewtablerow td.notbusy > span, .vboverviewtablerow td.busy > span, .vboverviewtablerow td.busytmplock > span,
+.vboverviewtablerow td.notbusy > .vbo-overview-redday, .vboverviewtablerow td.busy > .vbo-overview-redday, .vboverviewtablerow td.busytmplock > .vbo-draggable-sp {
 	position: absolute;
     top: 50%;
     left: 50%;
@@ -7237,8 +8317,13 @@ table.vboverviewtable td:last-child {
     overflow: auto;
     text-align: center;
 }
+.vbo-overv-row-snake td {
+	padding-bottom: 16px;
+	vertical-align: bottom;
+}
 .vboverviewtablerow .vbo-checkinday span {
 	margin-top: -2px;
+	display: block;
 }
 .vboverviewtablerow-subunit td {
 	position: relative;
@@ -7260,7 +8345,7 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	top: auto;
 	left: auto;
 	right: 3px;
-	bottom: -7px;
+	bottom: 0;
 	transform: none;
 }
 .vbo-roomdaynote-full:hover .vbo-roomdaynote-trigger, .vbo-roomdaynote-empty:hover .vbo-roomdaynote-trigger {
@@ -7304,12 +8389,23 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 }
 .vbo-roomdaynote-empty .vbo-roomdaynote-trigger i {
 	color: var(--vbo-base-color);
+	font-size: 14px;
 }
 .vbo-roomdaynote-empty .vbo-roomdaynote-trigger i:hover {
 	color: var(--vbo-base-color-hover);
+	opacity: .8;
+}
+.subroom-busy.vbo-roomdaynote-empty .vbo-roomdaynote-trigger i, .busy.vbo-roomdaynote-empty .vbo-roomdaynote-trigger i {
+	color: var(--vbo-config-bg-color);
 }
 .vbo-roomdaynote-full .vbo-roomdaynote-trigger {
-	color: #015e8c;
+	color: var(--vbo-base-color-hover);
+}
+.vbo-roomdaynote-full .vbo-roomdaynote-trigger:hover {
+	opacity: .8;
+}
+.subroom-busy.vbo-roomdaynote-full .vbo-roomdaynote-trigger, .busy.vbo-roomdaynote-full .vbo-roomdaynote-trigger {
+	color: var(--vbo-config-bg-color);
 }
 .vbo-tableaux-table .vbo-roomdaynote-full .vbo-roomdaynote-trigger {
 	color: #fff;
@@ -7317,6 +8413,43 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 }
 .vbo-tableaux-table .vbo-roomdaynote-full .vbo-roomdaynote-trigger:hover {
 	color: #b8d5f5;
+}
+.vbo-tableaux-booking-singleunit.vbo-tableaux-booking.vbo-tableaux-booking-checkin {
+	width: calc(70% - 15px);
+}
+.vbo-tableaux-booking-singleunit.vbo-tableaux-booking.vbo-tableaux-booking-checkout {
+	width: calc(34% - 20px);
+}
+.vbo-overv-avcell .vbo-tableaux-booking-singleunit.vbo-tableaux-booking.vbo-tableaux-booking-checkout {
+	width: calc(34% - 10px);
+}
+.vbo-overv-avcell .vbo-tableaux-booking-checkin[data-nights="1"] .vbo-tableaux-guest-name {
+	width: 40px;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	text-align: left;
+}
+.vbo-overv-avcell .vbo-tableaux-booking-checkin[data-nights="2"] .vbo-tableaux-guest-name {
+	width: 110px;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	text-align: left;
+}
+.vbo-overv-avcell .vbo-tableaux-booking-checkin[data-nights="3"] .vbo-tableaux-guest-name {
+	width: 190px;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	text-align: left;
+}
+.vbo-overv-avcell .vbo-tableaux-booking-checkin.vbo-droppable-cell .vbo-tableaux-guest-name {
+	width: auto !important;
+}
+/* With the class "vbo-tableaux-booking-checkout-last" we change the size of the last checkout element. */
+.vbo-tableaux-booking-singleunit.vbo-tableaux-booking.vbo-tableaux-booking-checkout.vbo-tableaux-booking-checkout-last {
+	width: 50%;
+}
+.vbo-tableaux-booking-singleunit.vbo-tableaux-booking.vbo-tableaux-booking-empty {
+	display: none;
 }
 .vbo-modal-roomdaynotes-addnew-elem .vbo-newrdnote-dayto {
 	display: inline-block;
@@ -7424,7 +8557,7 @@ tr.vboverviewtablerow-subunit {
 }
 span.vbo-overview-subroom-toggle {
 	cursor: pointer;
-	float: right;
+	margin-left: auto;
 	margin-right: 1px;
 	margin-top: 5px;
 }
@@ -7435,22 +8568,23 @@ span.vbo-overview-subroom-toggle-active i {
 	color: var(--vbo-base-color);
 }
 .vbo-info-overlay-loading-dnd {
-	border-top: 1px solid #fff;
-	color: #fff;
+	color: var(--vbo-config-bg-color);
 	display: block;
 	font-size: 30px;
-	height: 60%;
 	left: 20%;
-	padding: 10px;
 	position: fixed;
 	text-align: center;
 	top: 20%;
 	width: 60%;
+	padding: 30px;
 	z-index: 101;
+	background: var(--vbo-config-title-color);
+	border-radius: 20px;
+	box-shadow: 0 5px 10px rgba(0, 0, 0, .3);
 }
 .vbo-loading-dnd-head {
 	display: block;
-	text-decoration: underline;
+	font-weight: bold;
 }
 .vbo-loading-dnd-body {
 	display: block;
@@ -7458,17 +8592,23 @@ span.vbo-overview-subroom-toggle-active i {
 	margin-top: 30px;
 }
 .vbo-loading-dnd-response {
-	background: #444 none repeat scroll 0 0;
+	background: var(--vbo-body-text-color);
 	border-radius: 8px;
 	display: block;
 	font-size: 15px;
 	margin: 15px auto 0;
-	padding: 5px;
+	padding: 25px;
 }
 .vbo-loading-dnd-footer {
 	display: block;
 	font-size: smaller;
 	margin-top: 30px;
+}
+#vbo-dnd-response form {
+	margin-top: 10px;
+}
+#vbo-dnd-canvas-success {
+	height: 100px;
 }
 /* Draggable Elements - End */
 /* Overview Tooltip - Start */
@@ -7767,10 +8907,6 @@ span.vbo-overview-subroom-toggle-active i {
 	text-transform: uppercase;
 	font-size: 11px;
 }
-.vbo-bookdet-head > i.vboicn-info {
-	position: absolute;
-	left: 0;
-}
 .vbo-bookdet-container .vbo-bookdet-wrap .wp-quest-popover {
 	margin-left: 5px;
 }
@@ -7796,18 +8932,22 @@ span.vbo-overview-subroom-toggle-active i {
 	border-radius: 50%;
 	display: inline-block;
 	cursor: pointer;
+	object-fit: cover;
 }
 .vbo-customer-info-box .vbo-customer-info-box-avatar.vbo-customer-avatar-small img {
 	width: 30px;
 	height: 30px;
+	object-fit: cover;
 }
 .vbo-customer-info-box .vbo-customer-info-box-avatar.vbo-customer-avatar-medium img {
 	width: 48px;
 	height: 48px;
+	object-fit: cover;
 }
 .vbo-customer-info-box .vbo-customer-info-box-avatar.vbo-customer-avatar-large img {
 	width: 64px;
 	height: 64px;
+	object-fit: cover;
 }
 .vbo-customer-info-box .vbo-customer-info-box-name {
 	display: inline-block;
@@ -7823,6 +8963,18 @@ span.vbo-overview-subroom-toggle-active i {
 	font-size: 12px;
 	border-radius: 24px;
 	letter-spacing: .3px;
+}
+.vbo-label-overbooking {
+	cursor: pointer;
+}
+.vbo-label-overbooking:hover {
+	background-color: var(--vbo-red-color-hover) !important;
+}
+.vbo-label-nested.vbo-label-overbooking {
+	padding: 3px 5px !important;
+  	font-weight: 500;
+  	line-height: 12px;
+  	font-size: 11px;
 }
 .vbo-bookdet-wrap .vbo-bookdet-foot .btn-small {
 	padding: 4px 12px;
@@ -7994,7 +9146,7 @@ span.vbo-overview-subroom-toggle-active i {
 }
 .vbo-bookingdet-detcont .vbo-bookingdet-detcont-label .label-warning {
 	border: 1px solid var(--vbo-orange-color);
-	background: var(--vbo-config-bg-color);
+	background: var(--vbo-config-bg-color) !important;
 	color: var(--vbo-orange-color);
 }
 .vbo-bookingdet-detcont .vbo-bookingdet-detcont-label .label-warning a {
@@ -8077,7 +9229,7 @@ span.vbo-overview-subroom-toggle-active i {
 	text-transform: uppercase;
 	padding: 16px 20px;
 	display: inline-block;
-	color: var(--vcm-config-titles-color-light);
+	color: var(--vbo-config-titles-color-light);
 }
 .vbo-bookingdet-noteslogs-btn-active a {
 	border-bottom: 2px solid var(--vbo-base-color);
@@ -8107,7 +9259,7 @@ span.vbo-overview-subroom-toggle-active i {
 	font-size: .9em;
 	text-transform: uppercase;
 	font-weight: bold;
-	color: var(--vcm-config-titles-color-light);
+	color: var(--vbo-config-titles-color-light);
 	border: 0;
 }
 .vbo-booking-history-container tbody {
@@ -8146,6 +9298,7 @@ span.vbo-overview-subroom-toggle-active i {
 }
 .vbo-bookingdet-summary .table .vbo-bookingdet-summary-room td {
 	padding: 15px;
+	white-space: normal;
 }
 .vbo-bookingdet-summary-room-firstcell {
 	width: 33%;
@@ -8161,12 +9314,33 @@ span.vbo-overview-subroom-toggle-active i {
 	padding: 5px;
 	border-radius: 3px;
 	margin-right: 6px;
-	color: #999;
+	color: var(--vbo-config-text-color-light);
+	font-size: 14px;
 }
 .vbo-bookingdet-summary-roomname {
 	font-size: 1.4em;
     display: inline-block;
     font-weight: bold;
+}
+.vbo-bookingdet-summary .table .vbo-bookingdet-summary-roommeals {
+	margin-top: 2px;
+}
+.vbo-wider-badges-wrap .badge {
+	font-weight: normal;
+	padding: 2px 6px;
+}
+.vbo-bookdet-splitstay-details {
+	margin-top: 5px;
+	min-width: initial;
+}
+.vbo-bookdet-splitstay-details > div {
+	display: inline-block;
+}
+.vbo-bookdet-splitstay-details > div > span {
+	border-right: 1px solid var(--vbo-basic-btn);
+}
+.vbo-bookdet-splitstay-details > div > span:last-child {
+	border-right: 0;
 }
 .vbo-bookingdet-summary-room-wrap {
 	display: flex;
@@ -8178,6 +9352,9 @@ span.vbo-overview-subroom-toggle-active i {
 .vbo-bookingdet-summary-room .btn-group, .vbo-bookingdet-summary-room .vbo-bookingdet-summary-roomnum-chunit {
 	float: right;
 }
+.vbo-bookingdet-summary-room .btn-group, .vbo-bookingdet-summary-room .vbo-bookingdet-summary-roomnum-chunit .select2-container {
+	max-width: 200px;
+}
 .vbo-bookingdet-summary-roomguests {
 	text-transform: uppercase;
 	color: var(--vbo-config-titles-color-light);
@@ -8185,6 +9362,7 @@ span.vbo-overview-subroom-toggle-active i {
 }
 .vbo-bookingdet-summary-roomguests > div {
 	display: inline-block;
+	margin-right: 4px;
 }
 .vbo-bookingdet-summary-total {
 	background: var(--vbo-light-color-btn);
@@ -8207,6 +9385,44 @@ span.vbo-overview-subroom-toggle-active i {
 }
 .vbo-editbooking-summary-room > div {
 	padding: 15px 15px 0;
+}
+.vbo-editbooking-summary-room .vbo-editbooking-room-nights-info-top {
+	font-weight: bold;
+	text-transform: uppercase;
+}
+.vbo-editbooking-summary-room .vbo-editbooking-room-nights-info-top .vbo-editbooking-room-nights-modify {
+	text-transform: initial;
+	font-weight: normal;
+}
+.vbo-editbooking-summary-room .vbo-editbooking-room-nights-info-top h4, .vbo-editbooking-summary-room .vbo-editbooking-room-nights-info-top .vbo-editbooking-room-nights-modify {
+	display: inline-block;
+	vertical-align: middle;
+	margin: 0;
+}
+.vbo-editbooking-summary-room .vbo-editbooking-room-nights-info-top h4 {
+	margin-right: 10px;
+}
+.vbo-editbooking-summary-room .vbo-editbooking-room-nights-info-top h4 i {
+	width: 16px;
+	color: var(--vbo-config-text-color-light);
+}
+.vbo-editbooking-room-nights-info-top .vbo-iostoggle-wrap input.vbo-iostoggle-elem + label, .vbo-editbooking-room-nights-info-top  .vik-iostoggle-wrap input.vik-iostoggle-elem + label {
+	height: 25px;
+}
+.vbo-editbooking-room-nights-info-top .vbo-iostoggle-wrap input.vbo-iostoggle-elem:checked + label::after, .vbo-editbooking-room-nights-info-top .vik-iostoggle-wrap input.vik-iostoggle-elem:checked + label::after {
+	left: 28px;
+}
+.vbo-editbooking-room-nights-info-top .vbo-iostoggle-wrap input.vbo-iostoggle-elem + label::after, .vbo-editbooking-room-nights-info-top .vik-iostoggle-wrap input.vik-iostoggle-elem + label::after {
+	height: 20px;
+	width: 20px;
+}
+.vbo-editbooking-room-nights-info-top .vbo-iostoggle-wrap input.vbo-iostoggle-elem + label::before, .vbo-editbooking-room-nights-info-top .vik-iostoggle-wrap input.vik-iostoggle-elem + label::before {
+	height: 26px;
+}
+.vbo-editbooking-room-nights-info .vbo-editbooking-room-nights-modify-details {
+	margin-top: 5px;
+	border-top: 1px solid var(--vbo-config-border-color);
+	padding-top: 10px;
 }
 .vbo-editbooking-summary-room > .vbo-editbooking-summary-room-head {
 	border-top-left-radius: 8px;
@@ -8232,6 +9448,14 @@ span.vbo-overview-subroom-toggle-active i {
 	border-bottom: 1px solid var(--vbo-config-border-color);
 	padding-bottom: 10px;
 }
+.vbo-editbooking-summary-room > .vbo-editbooking-room-splitstay h4 span {
+	margin-right: 5px;
+	display: inline-block;
+}
+.vbo-editbooking-summary-room > .vbo-editbooking-room-splitstay h4 span i {
+	color: var(--vbo-config-text-color-light);
+	margin-right: 3px;
+}
 .vbo-editbooking-summary-room > .vbo-editbooking-room-extracosts > h4 {
 	border-bottom: 0;
 	margin-bottom: 0;
@@ -8248,24 +9472,28 @@ span.vbo-overview-subroom-toggle-active i {
 	vertical-align: top;
 	margin: 5px 10px 5px 0;
 }
+.vbo-editbooking-room-traveler-guestsinfo > div i {
+	color: var(--vbo-config-text-color-light);
+}
+.vbo-editbooking-room-traveler-guestsinfo > .vbo-editbooking-room-modify-date-help {
+	margin-top: 36px;
+} 
 .vbo-editbooking-room-traveler-guestsinfo label {
 	display: block;
 	font-size: 12px;
 	font-weight: bold;
-	color: #999;
+	color: var(--vbo-config-titles-color-light);
 	margin-bottom: 2px;
 }
 .vbo-editbooking-room-traveler-guestsinfo input[type="text"] {
 	background: var(--vbo-input-style);
 }
-.vbo-editbooking-room-pricetypes-wrap, .vbo-editbooking-room-options-wrap {
-	display: flex;
-	-ms-flex-wrap: wrap;
-	-webkit-flex-wrap: wrap;
-	flex-wrap: wrap;
+.vbo-editbooking-room-pricetypes-wrap, .vbo-editbooking-room-services-wrap {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
 .vbo-editbooking-room-pricetypes .vbo-editbooking-room-pricetype,
-.vbo-editbooking-room-options .vbo-editbooking-room-option {
+.vbo-editbooking-room-services .vbo-editbooking-room-service {
 	display: inline-block;
 	vertical-align: top;
 	padding: 15px;
@@ -8280,15 +9508,15 @@ span.vbo-overview-subroom-toggle-active i {
 .vbo-editbooking-room-pricetypes .vbo-editbooking-room-pricetype-active {
 	border: 1px solid var(--vbo-green-color);
 }
-.vbo-editbooking-room-options .vbo-editbooking-room-option {
+.vbo-editbooking-room-services .vbo-editbooking-room-service {
 	flex: 0 0 33%;
 }
-.vbo-editbooking-room-pricetype > div, .vbo-editbooking-room-option > div {
+.vbo-editbooking-room-pricetype > div, .vbo-editbooking-room-service > div {
 	display: inline-block;
 	vertical-align: top;
 }
 .vbo-editbooking-room-pricetypes .vbo-editbooking-room-pricetype label, 
-.vbo-editbooking-room-options .vbo-editbooking-room-option label {
+.vbo-editbooking-room-services .vbo-editbooking-room-service label {
 	color: var(--vbo-config-titles-color-light);
 	font-weight: bold;
 }
@@ -8299,7 +9527,7 @@ span.vbo-overview-subroom-toggle-active i {
 .vbo-editbooking-room-pricetype-seltax {
 	margin-top: 10px;
 }
-.vbo-editbooking-room-pricetype-check, .vbo-editbooking-room-option-check {
+.vbo-editbooking-room-pricetype-check, .vbo-editbooking-room-service-check {
 	float: right;
 	margin-top: 10px;
 }
@@ -8320,14 +9548,14 @@ span.vbo-overview-subroom-toggle-active i {
 	display: inline-block;
 	float: right;
 }
-.vbo-editbooking-room-option-price {
-	font-size: 14px;
+.vbo-editbooking-room-service-price {
+	font-size: 16px;
 	font-weight: bold;
 }
 .vbo-editbooking-room-extracosts .vbo-ebusy-addextracost {
 	text-transform: initial;
 }
-.vbo-editbooking-room-option-select select {
+.vbo-editbooking-room-service-select select {
 	margin-bottom: 0;
 }
 .vbo-editbooking-room-extracost {
@@ -8340,6 +9568,32 @@ span.vbo-overview-subroom-toggle-active i {
 }
 .vbo-editbooking-room-extracost > div .btn.btn-danger {
 	padding: 8px 14px;
+}
+.vbo-editbooking-room-extracost .vbo-ebusy-extracosts-cellname {
+	position: relative;
+}
+.vbo-editbooking-room-extracost .vbo-ebusy-extracosts-cellname .vbo-ebusy-extracosts-search {
+	position: absolute;
+	right: 2px;
+	height: calc(100% - 2px);
+	background: var(--vbo-base-color);
+	border-left: 1px solid var(--vbo-base-color);
+	color: var(--vbo-contrast-text-color);
+	border-top-right-radius: 2px;
+	border-bottom-right-radius: 2px;
+	top: 1px;
+	width: 32px;
+	font-size: 13px;
+	cursor: pointer;
+}
+.vbo-editbooking-room-extracost .vbo-ebusy-extracosts-cellname .vbo-ebusy-extracosts-search:hover {
+	background: var(--vbo-base-color-hover)
+}
+.vbo-editbooking-room-extracost .vbo-ebusy-extracosts-cellname .vbo-ebusy-extracosts-search i {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
 }
 .vbo-editbooking-summary-totpaid {
 	padding-bottom: 0;
@@ -8485,6 +9739,7 @@ span.vbo-overview-subroom-toggle-active i {
 }
 .vbo-roomdet-guest-details .vbo-roomdet-guest-detail input, .vbo-roomdet-guest-details .vbo-roomdet-guest-detail textarea {
 	width: 100% !important;
+	max-width: 100%;
 }
 .vbo-roomdet-guest-details .vbo-roomdet-guest-detail select {
 	width: 100% !important;
@@ -8621,6 +9876,15 @@ span.vbo-overview-subroom-toggle-active i {
 	border-radius: 3px;
 	font-size: inherit;
 }
+.vbo-checkin-commands-btn .btn-large:not(.btn-success) {
+	background: var(--vbo-red-color);
+	border-color: var(--vbo-red-color);
+	color: #fff;
+}
+.vbo-checkin-commands-btn .btn-large:not(.btn-success):hover {
+	background: var(--vbo-red-color-hover);
+	border-color: var(--vbo-red-color-hover);
+}
 .vbo-checkin-update-wrap {
 	clear: both;
 	width: 100%;
@@ -8663,10 +9927,11 @@ span.vbo-overview-subroom-toggle-active i {
 #jmodal-box-vbo-checkin-booking .modal-body {
 	max-height: inherit;
 }
-#jmodal-box-vbo-checkin-booking #vbo-overlay-title .vbo-info-overlay-title-close {
+#vbo-overlay-title .vbo-info-overlay-title-close {
 	float: right;
 	margin-top: -4px;
 	margin-right: 0px;
+	cursor: pointer;
 }
 div.modal {
 	z-index: 9999999 !important;
@@ -8683,9 +9948,21 @@ div.modal.in .modal-header + div.modal-body-wrapper {
 .vbo-sign-share-meth {
 	margin: 10px 0;
 }
+.vbo-sign-share-meth label {
+	margin-bottom: 3px;
+	color: var(--vbo-body-text-color);
+}
 .vbo-sign-share-meth input {
 	display: block !important;
 	margin-bottom: 5px !important;
+}
+.vbo-sign-share-meth-close .btn {
+	background: var(--vbo-red-color);
+	border-color: var(--vbo-red-color);
+} 
+.vbo-sign-share-meth-close .btn:hover {
+	background: var(--vbo-red-color-hover);
+	border-color: var(--vbo-red-color-hover);
 }
 #jmodal-vbo-vcm-rates-res {
 	overflow-y: auto;
@@ -8711,14 +9988,22 @@ div.modal.in .modal-header + div.modal-body-wrapper {
 	margin-right: 5px;
 	font-size: 14px;
 	border-radius: 50%;
+	object-fit: cover;
 	padding: 5px;
 	width: 13px;
 	height: 13px;
-	line-height: 9px;
+	line-height: 12px;
 	text-align: center;
+	vertical-align: top;
+}
+.vbo-vcm-rates-res-channel-esit i {
+	font-size: 14px;
 }
 .vbo-vcm-rates-res-channel-logo {
 	display: inline-block;
+}
+.vbo-vcm-rates-res-channel-logo img {
+	max-width: 120px;
 }
 .vbo-vcm-rates-res-success .vbo-vcm-rates-res-channel-esit {
 	color: #fff;
@@ -8795,7 +10080,7 @@ div.modal.in .modal-header + div.modal-body-wrapper {
 .vbo-ratesoverview-obp-toggle-txt {
 	display: inline-block;
 	vertical-align: top;
-	margin: 9px 0 0 5px;
+	margin: 5px 0 0 5px;
 	cursor: pointer;
 }
 .vbo-ratesoverview-caltab-wrapper {
@@ -8812,7 +10097,7 @@ div.modal.in .modal-header + div.modal-body-wrapper {
 	flex: 0 0 15%;
 	margin-left: 2px;
 }
-.vbo-ratesoverview-caltab-cont .vbo-table-responsive {
+.vbo-table-responsive {
 	-ms-flex: 1%;
 	-webkit-flex: 1%;
 	flex: 1%;
@@ -8937,10 +10222,12 @@ div.modal.in .modal-header + div.modal-body-wrapper {
 	top: 0;
 	right: 0;
 	width: 630px;
-	background: var(--vbo-config-bg-color);
-	padding: 5px;
-	box-shadow: 0 0 10px rgba(0,0,0,.1);
+	padding: 10px;
 	z-index: 1;
+	border-radius: 10px;
+	box-shadow: 0 1.5px 5px rgba(0,0,0,.1);
+	background: var(--vbo-config-bg-color);
+	border: 1px solid var(--vbo-main-bg-color);
 }
 .vbo-ratesoverview-period-box-cals-inner > div {
 	display: inline-block;
@@ -8982,7 +10269,8 @@ div.modal.in .modal-header + div.modal-body-wrapper {
 }
 .vbo-ratesoverview-orphans-wrapper {
 	padding: 15px;
-	margin-top: 2px;
+	margin: 2px 10px 0;
+	border-radius: 6px;
 	background: var(--vbo-basic-btn);
 	border: 1px solid var(--vbo-red-color);
 }
@@ -9066,6 +10354,15 @@ div.modal.in .modal-header + div.modal-body-wrapper {
 .vbo-signature-pad-head {
 	margin-bottom: 8px;
 	text-align: center;
+	display: flex;
+	flex-wrap: wrap;
+}
+.vbo-signature-pad-head .pull-right {
+	margin-left: auto;
+}
+.vbo-signature-pad-head .vbo-signature-pad-head-terms {
+	flex-basis: 100%;
+	margin-top: 5px;
 }
 .vbo-signature-pad-head-terms {
 	display: inline-block;
@@ -9095,7 +10392,7 @@ div.modal.in .modal-header + div.modal-body-wrapper {
 	margin-top: 8px;
 }
 .vbo-signature-signabove {
-	color: #424242;
+	color: var(--vbo-body-text-color);
 	font-size: 1.2em;
 }
 .vbo-signature-cmds {
@@ -9255,7 +10552,7 @@ img.vbo-channelimg-medium {
     width: 100%;
     overflow-y: scroll;
 }
-.vbo-allbsearchcust-res .vbo-custsearchres-inner .vbo-custsearchres-entry {
+.vbo-allbsearchcust-res .vbo-custsearchres-inner .vbo-custsearchres-entry, .vbo-allbsearchcust-res .vbo-custsearchres-inner .vbo-widget-custsearchres-entry {
 	font-size: 13px;
 }
 #vbo-allbsearchcust-res .vbo-custsearchres-inner {
@@ -9271,7 +10568,7 @@ img.vbo-channelimg-medium {
 	padding: 8px 10px;
 	height: inherit;
 }
-.vbo-allbsearchcust-res .vbo-custsearchres-entry .vbo-custsearchres-name {
+.vbo-allbsearchcust-res .vbo-custsearchres-entry .vbo-custsearchres-name, .vbo-allbsearchcust-res .vbo-widget-custsearchres-entry .vbo-custsearchres-name {
 	min-width: 80%;
 }
 /* Config: Do not edit this */
@@ -9288,7 +10585,7 @@ input[type="search"].select2-search__field {
 	height: auto !important;
 	margin-bottom: 2px !important;
 }
-.select2-container.select2-container--open {
+.select2-container.select2-container--default.select2-container--open {
 	z-index: 9999999999 !important;
 }
 /* Select2 fixes - End */
@@ -9417,14 +10714,10 @@ dl.tabs {
 	z-index: 50;
 }
 dl.tabs dt.open {
-	background: none repeat scroll 0 0 #F9F9F9;
-	border-bottom: 1px solid #F9F9F9;
 	color: #000000;
 	z-index: 1;
 }
 dl.tabs dt {
-	background: none repeat scroll 0 0 #E9E9E9;
-	border: 1px solid #CCCCCC;
 	color: #666666;
 	float: left;
 	margin-left: 3px;
@@ -9432,6 +10725,13 @@ dl.tabs dt {
 }
 dt.tabs span h3 {
 	font-size: 13px;
+	margin: 0;
+	display: inline-block;
+	padding: 4px 8px;
+}
+.vbo-config-tabs-wrap dt.tabs:hover h3 {
+	background: var(--vbo-toolbar-bg-color);
+	border-radius: 4px;
 }
 #ui-datepicker-div select {
 	line-height: 1em;
@@ -9451,7 +10751,7 @@ dt.tabs span h3 {
 	background-color: var(--vbo-base-color);
 	border: 1px solid var(--vbo-base-color);
 	color: #fff;
-	padding: 9px 14px;
+	padding: 10px 14px;
 	display: inline-block;
 }
 .btn.vbo-config-btn:hover, .vbo-link-add:hover {
@@ -9478,18 +10778,16 @@ dt.tabs span h3 {
 	font-size: 24px;
 }
 .vbo-config-tabs-wrap dl.tabs {
-	margin: 0;
+	margin: 10px 0 0;
 	width: 100%;
-	background: var(--vbo-config-bg-color);
-	box-shadow: 0 3px 8px rgba(0,0,0,.07);
+	border-bottom: 1px solid var(--vbo-config-border-color);
 }
 .vbo-config-tabs-wrap dl.tabs dt h3 i {
 	margin-right: 5px;
 	font-size: 15px;
 }
 .vbo-config-tabs-wrap dl.tabs dt {
-	background: var(--vbo-config-bg-color);
-	padding: 10px 15px;
+	padding: 5px;
 	margin-left: 0;
 	border: 0;
 	display: inline-block;
@@ -9504,15 +10802,14 @@ dt.tabs span h3 {
 .vbo-config-tabs-wrap dl.tabs dt.open a {
 	color: #000;
 }
-.vbo-config-tabs-wrap dl.tabs dt:hover {
-	border-bottom: 3px solid var(--vbo-base-color);
+.vbo-config-tabs-wrap dl.tabs dt.open {
+	border-bottom: 2px solid var(--vbo-base-color);
 }
 .vbo-config-tabs-wrap dl.tabs dt:hover h3 {
 	color: var(--vbo-config-title-color);
 }
 .vbo-config-tabs-wrap dl.tabs dt.open, .vbo-config-tabs-wrap dl.tabs dt.open:hover {
-	background: var(--vbo-basic-btn);
-	border-bottom: 3px solid var(--vbo-base-color);
+	border-bottom: 2px solid var(--vbo-base-color);
 }
 .vbo-config-tabs-wrap dt.tabs:hover span h3 a, .vbo-config-tabs-wrap dt.tabs:hover span h3 i {
 	color: inherit;
@@ -9523,7 +10820,7 @@ dt.tabs span h3 {
 	float: right;
 }
 .vbo-config-body {
-	margin-top: -50px;
+	margin-top: -20px;
 }
 
 .vbo-admin-container {
@@ -9554,6 +10851,16 @@ dt.tabs span h3 {
 .vbo-admin-container .vbo-config-maintab-right {
 	margin-left: 10px;
 }
+/* With this class we create a 100% width settings block */
+.vbo-config-tab-container > .adminform {
+	width: 100%;
+}
+.vbo-config-tab-container .adminform {
+	margin-top: 0;
+}
+.vbo-config-tab-container {
+	padding-top: 10px !important;
+}
 .vbo-admin-container .adminlegend {
 	border-bottom: 0;
 	font-size: 22px;
@@ -9563,7 +10870,6 @@ dt.tabs span h3 {
 	width: 100%;
 }
 .modal-body .adminlegend {
-	float: left;
 	width: 100%;
 }
 #jmodal-box-vbo-new-res .modal-body .adminlegend, #jmodal-vbo-checkin-booking .modal-body .adminlegend {
@@ -9577,12 +10883,23 @@ dt.tabs span h3 {
 #jmodal-vbo-checkin-booking .modal-body .vbo-center {
 	margin-top: 15px;
 }
+.vbo-btn-icon-right i {
+	margin-left: 5px;
+  	margin-right: 0;
+}
+.vbo-btn-icon-left i {
+	margin-right: 5px;
+  	margin-left: 0;
+}
 .vbo-admin-container .adminlegend i {
 	margin-right: 5px;
 }
 .vbo-admin-container .vbo-param-container {
 	display: flex;
 	margin: 25px 0;
+}
+.vbo-param-container-highlighted {
+	color: var(--vbo-red-color);
 }
 .vbo-admin-container .vbo-param-container .vbo-param-setting .input-append {
 	margin-bottom: 0;
@@ -9625,6 +10942,7 @@ dt.tabs span h3 {
 	display: block;
 	margin-bottom: 5px;
 }
+/* The "-full" style gives a block layout for lbl and value, to use together with "vbo-param-container" */
 .vbo-admin-container .vbo-param-container-full {
 	flex-wrap: wrap;
 }
@@ -9632,11 +10950,33 @@ dt.tabs span h3 {
 	flex-basis: 100%;
 	margin-bottom: 10px;
 }
+/* The vbo-params-wrap-fullwidth give a 100% width to each setting block */
+.vbo-admin-container .vbo-params-wrap.vbo-params-wrap-fullwidth {
+	width: 100%;
+}
+
+/* This "-full" class is to enlarge the one column admin structure.
+ * This needs to be used together with the "vbo-admin-container" class.
+ */
+.vbo-admin-container-full .vbo-params-wrap {
+	flex-basis: 100%;
+}
+/* This "-compact" class is to reduce the padding between the settings.
+ * This needs to be used together with the "vbo-admin-container" class.
+*/
+.vbo-admin-container-compact .vbo-param-container {
+	margin: 12px 0;
+}
+.vbo-params-block.vbo-params-block-compact .vbo-param-container {
+	margin-bottom: 0;
+  	padding-bottom: 0;
+}
 .vbo-admin-container .vbo-param-container.vbo-param-nested .vbo-param-label {
 	flex-basis: 235px;	
 }
 .vbo-admin-container .vbo-param-container .vbo-param-setting {
 	flex: 1;
+	max-width: 100%;
 }
 .vbo-admin-container .vbo-param-container .vbo-param-setting-comment {
 	display: block;
@@ -9720,11 +11060,6 @@ dt.tabs span h3 {
 	margin: 0 10px 3px 0;
 	display: inline-block;
 }
-.vbo-admin-container .vbo-param-container .vbo-param-setting .vbo-param-setting-block #resizesel .vbo-small-input,
-.vbo-admin-container .vbo-param-container .vbo-param-setting .vbo-param-setting-block #resizeselmore .vbo-small-input {
-	width: 70px !important;
-	vertical-align: inherit;
-}
 .vbo-admin-container .vbo-param-container .vbo-param-setting #filter-bar {
 	margin-top: 0;
 }
@@ -9740,12 +11075,34 @@ form input[type="text"], form textarea, .vbo-admin-container .vbo-param-containe
 	box-sizing: border-box;
 	height: auto;
 }
+input[type="number"].vbo-small-input {
+	width: 70px !important;
+	vertical-align: inherit;
+}
+input[type="number"].vbo-medium-input {
+	width: 100px !important;
+	vertical-align: inherit;
+}
+.vbo-booking-special-requests {
+	border: 1px solid var(--vbo-blue-color);
+  	padding: 10px;
+  	border-radius: 15px;
+  	border-top-left-radius: 0;
+  	background: var(--vbo-config-child-bg-color);
+  	margin: 0 5px;
+}
+.vbo-booking-admin-notes {
+	background: var(--vbo-config-child-bg-color);
+  	padding: 10px;
+  	margin: 0;
+  	font-style: italic;
+}
 .vbo-admin-container .vbo-param-container .vbo-param-setting input:focus, .vbo-admin-container .vbo-param-container .vbo-param-setting textarea:focus,
 .new_depovr_container input[type="number"]:focus, .vbo-admin-container .vbo-param-container .vbo-param-label input:focus, .vbo-bookingdet-detcont input[type="text"]:focus, .vbo-bookingdet-summary .vbo-bookingdet-summary-total input:hover, .vbo-btn-toolbar .input-append input[type="text"]:hover, .vbo-btn-toolbar .input-append input[type="text"]:focus, .occupancy-adults-ovr input[type="number"]:hover, .occupancy-adults-ovr input[type="number"]:focus {
 	background: var(--vbo-input-style-deactive);
 }
-.vbo-editbooking-summary-room input[type="number"] {
-	width: 150px !important;
+.vbo-editbooking-summary-room input[type="number"]:not(.vbo-small-input) {
+	width: 100px !important;
 }
 input[type="number"].vbo-large-input-number {
 	width: 180px !important;
@@ -9772,6 +11129,9 @@ input[type="number"].vbo-large-input-number {
 	color: #fff;
 	padding: 10px 14px;
 } 
+.vbo-admin-container .vbo-param-container .vbo-param-setting .vbo-config-btn i, .vbo-admin-container .vbo-param-container .vbo-colortag-add i {
+	color: #fff;
+}
 .vbo-admin-container .vbo-param-container .vbo-config-btn:hover, .vbo-admin-container .vbo-param-container .vbo-colortag-add:hover {
 	background: var(--vbo-base-color-hover) !important;  
 }
@@ -9789,7 +11149,13 @@ input[type="number"].vbo-large-input-number {
 	padding: 10px 14px;
 	font-size: 12px;
 	line-height: 15px;
-	border-radius: 2px;
+	border-radius: 3px;
+}
+select.vbo-select-small {
+	padding: 0px 24px 0px 8px !important;
+	min-height: 25px;
+	font-size: 12px;
+	height: 25px !important;
 }
 .vbo-btn-toolbar .btn i {
 	margin-right: 5px;
@@ -9973,6 +11339,9 @@ select {
 .vbo-admin-container .vbo-param-container input[type="number"].vbo-input-number-large {
 	width: 200px !important;
 }
+.vbo-param-container input[type="number"].vbo-input-number-small {
+	width: 80px !important;
+}
 .vbo-admin-container .vbo-param-container .vbo-param-setting .vikpaymentparam .vikpaymentparaminput input {
 	width: auto !important;
 }
@@ -10032,6 +11401,10 @@ table.adminform div.input-append {
 	padding: 8px 10px;
 	border-radius: 0 2px 2px 0;
 	border: 1px solid var(--vbo-config-border-color);
+}
+.field-calendar .input-append input + button[type="button"] .fa-calendar-alt, .vbo-field-calendar .input-append input + button[type="button"] .fa-calendar-alt {
+	font-size: 14px;
+	margin-right: 0;
 }
 .field-calendar .input-append input + button[type="button"] .icon-calendar, .vbo-field-calendar .input-append input + button[type="button"] .icon-calendar {
 	margin-right: 0;
@@ -10310,6 +11683,13 @@ table.adminform div.input-append {
 	font-size: 14px;
 	white-space: nowrap;
 }
+.vbo-reports-output table tfoot td .vbo-report-footer-inlinedata {
+	display: inline-block;
+	margin-right: 15px;
+}
+.vbo-reports-output table tfoot td .vbo-report-footer-inlinedata:last-child {
+	margin: 0;
+}
 .vbo-info-overlay-content.vbo-info-overlay-report {
 	text-align: center;
 }
@@ -10499,6 +11879,11 @@ table.adminform div.input-append {
 }
 .vbo-trackings-custcampaign {
 	margin-bottom: 20px;
+	background: var(--vbo-config-bg-color);
+  	border-radius: 10px;
+  	border: 1px solid var(--vbo-basic-btn);
+  	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
+  	padding: 15px;
 }
 .vbo-trackings-custcampaign-box {
 	display: inline-block;
@@ -10506,6 +11891,10 @@ table.adminform div.input-append {
 }
 .vbo-trackings-custcampaign-box label {
 	margin-bottom: 5px;
+	font-weight: 500;
+}
+.vbo-admin-container .vbo-param-container .vbo-param-setting .vbo-trackings-custcampaign-box input[type="text"] {
+	width: 100% !important;
 }
 .vbo-tracking-info-party-room {
 	margin-bottom: 5px;
@@ -10590,7 +11979,8 @@ table.adminform div.input-append {
 	margin-top: 5px;
 }
 .vbo-trackings-custcampaign-uri {
-	font-style: italic;
+	font-weight: bold;
+	margin-right: 0;
 }
 .vbo-trackings-custcampaign label {
 	display: block;
@@ -10883,9 +12273,10 @@ table.adminform div.input-append {
 }
 .vbo-tableaux-table-head-cell-monyear {
 	color: var(--vbo-config-titles-color-light);
+	font-weight: normal;
 }
 .vbo-tableaux-table-head-cell-wmday {
-	font-size: 1.2em;
+	font-size: 15px;
 }
 .vbo-tableaux-table tr {
 	border-bottom: 1px solid var(--vbo-config-border-color);
@@ -10908,13 +12299,7 @@ table.adminform div.input-append {
 	z-index: 2;
 	font-weight: bold;
 	padding: 15px 15px;
-	font-size: 1.1em;
-}
-.vbo-tableaux-tbl-container .vbo-table-responsive {
-    -ms-flex: 1%;
-    -webkit-flex: 1%;
-    flex: 1%;
-    overflow-x: scroll;
+	font-size: 14px;
 }
 .vbo-tableaux-roomrow td {
 	vertical-align: top;
@@ -10924,27 +12309,87 @@ table.adminform div.input-append {
 	font-weight: bold;
 	text-align: center;
 	padding: 10px;
+	font-size: 13px;
 }
 .vbo-tableaux-festcell {
-	background: #d9b9d3;
+	background: #cea7c7;
 	color: #fff;
 	cursor: pointer;
 }
-.vbo-tableaux-roombooks > div {
+.vbo-tableaux-festcell:hover {
+	background: #bb90b3;
+}
+.vbo-tableaux-festcell:active, .vbo-tableaux-festcell:focus {
+	background: #e1aed8;
+}
+.vbo-tableaux-roombooks > div, .vbo-overv-avcell > div:not(.vbo-overview-tipblock) {
 	background: var(--vbo-base-color);
 	color: #fff;
 	font-weight: bold;
-	padding: 5px;
+	padding: 7px 5px;
 	margin: 2px 0;
 	white-space: nowrap;
 	position: relative;
+}
+.vbo-overv-avcell > div:not(.vbo-overview-tipblock) {
+	background: var(--vbo-config-bg-color);
+	color: var(--vbo-config-title-color);
+	border-top: 1px solid var(--vbo-config-title-color);
+	border-bottom: 1px solid var(--vbo-config-title-color);
+	height: 14px;
+	margin: 2px -1.5px;
+	box-sizing: content-box;
+}
+.vbo-overv-avcell > div.vbo-tableaux-booking-checkin {
+	border-left: 1px solid var(--vbo-config-title-color);
+}
+.vbo-overv-avcell > div.vbo-tableaux-booking-checkout {
+	border-right: 1px solid var(--vbo-config-title-color);
 }
 .vbo-tableaux-booking.vbo-tableaux-booking-empty {
 	background: transparent;
 	display: inline-block;
 	width: 100%;
 }
-.vbo-tableaux-roombooks > .vbo-tableaux-booking-checkin {
+.vbo-tableaux-guest-name, .vbo-tableaux-roomindex {
+	font-size: 13px;
+}
+.vbo-tableaux-booking-avatar {
+	z-index: 1;
+	position: absolute;
+	top: -6px;
+	left: -8px;
+}
+.vbo-tableaux-booking-avatar img {
+	height: 24px;
+	width: 24px;
+	border-radius: 50%;
+	object-fit: cover;
+	border: 2px solid #fff;
+}
+.vbo-overv-avcell .vbo-tableaux-booking-avatar {
+	top: -1px;
+	left: -3px;
+}
+.vbo-overv-avcell .vbo-tableaux-booking-avatar img {
+	border: 0;
+}
+.vbo-tableaux-booking-avatar + .vbo-tableaux-guest-name {
+	padding-left: 25px;
+}
+.vbo-overv-avcell .vbo-tableaux-guest-name {
+	font-weight: normal;
+	font-size: 12px;
+}
+.vbo-tableaux-booking > span {
+	position: relative;
+	z-index: 1;
+}
+.vbo-tableaux-booking .vbo-tableaux-roomindex {
+	display: inline-block;
+	margin-left: 5px;
+}
+.vbo-tableaux-roombooks > .vbo-tableaux-booking-checkin, .vbo-overv-avcell > .vbo-tableaux-booking-checkin {
 	width: 64%;
 	float: right;
 	border-top-left-radius: 20px;
@@ -10953,23 +12398,28 @@ table.adminform div.input-append {
 	position: relative;
 	margin-right: -2px;
 }
-.vbo-tableaux-roombooks > .vbo-tableaux-booking-checkin > span {
+.vbo-tableaux-roombooks > .vbo-tableaux-booking-checkin > span, .vbo-overv-avcell > .vbo-tableaux-booking-checkin > span {
 	position: relative;
 	z-index: 1;
 }
-.vbo-tableaux-roombooks > .vbo-tableaux-booking-short > span {
-	overflow: hidden;
-	max-width: 130px;
-	display: table-cell;
+.vbo-tableaux-roombooks > .vbo-tableaux-booking-short > span, .vbo-overv-avcell > .vbo-tableaux-booking-short > span {
+	/* overflow: hidden;
+	display: table-cell; */
+	display: inline-block;
+	width: 130px;
+	clip-path: inset( -100vw 0 -100vw -8px );
 }
-.vbo-tableaux-roombooks > .vbo-tableaux-booking-checkout {
+.vbo-tableaux-roombooks > .vbo-tableaux-booking-short .vbo-tableaux-booking-avatar, .vbo-overv-avcell > .vbo-tableaux-booking-short .vbo-tableaux-booking-avatar {
+	top: -5px;
+}
+.vbo-tableaux-roombooks > .vbo-tableaux-booking-checkout, .vbo-overv-avcell > .vbo-tableaux-booking-checkout {
 	width: 64%;
 	float: left;
 	border-top-right-radius: 20px;
 	border-bottom-right-radius: 20px;
 	padding-right: 10px;
 }
-.vbo-tableaux-roombooks > .vbo-tableaux-booking-stay {
+.vbo-tableaux-roombooks > .vbo-tableaux-booking-stay, .vbo-overv-avcell > .vbo-tableaux-booking-stay {
 	display: inline-block;
 	width: 100%;
 }
@@ -10977,7 +12427,7 @@ table.adminform div.input-append {
 	padding: 10px 15px;
 	font-size: 1.2em;
 	font-weight: bold;
-	color: var(--vbo-blue-color);
+	color: var(--vbo-base-color);
 	border-left: 0;
 }
 .vbo-tableaux-monthsrow > .vbo-tableaux-monthcell ~ .vbo-tableaux-monthcell {
@@ -11058,6 +12508,9 @@ table.adminform div.input-append {
 #driversettingsform .vbo-driver-fieldset {
 	margin-top: 20px;
 }
+#driversettingsform .vbo-driver-fieldset {
+	border-bottom: 0;
+}
 .vbo-info-overlay-driver {
 	height: 90% !important;
 }
@@ -11101,9 +12554,6 @@ table.adminform div.input-append {
 .vbo-drivers-topbar > div {
 	display: inline-block;
 	vertical-align: top;
-}
-.vbo-drivers-filters-main {
-	margin-top: 3px;
 }
 .vbo-drivers-filters-driver .vbo-drivers-filters-launch {
 	margin-top: 22px;
@@ -11266,7 +12716,7 @@ table.adminform div.input-append {
 	height: 100%;
 	background-color: rgba(6, 52, 77, 0.58);
 	display: none;
-	z-index: 99999999 !important;
+	z-index: 2147483647 !important;
 }
 .vbo-modal-overlay-block-geomap-lowerzindex {
 	z-index: 99999 !important;
@@ -11288,6 +12738,7 @@ table.adminform div.input-append {
 	background-color: var(--vbo-config-bg-color);
 	box-shadow: 0px 0px 10px rgba(0,0,0, .5);
 	overflow: auto;
+	-webkit-font-smoothing: antialiased;
 }
 .vbo-modal-overlay-block .vik-contentbuilder-modal-content {
 	width: 65%;
@@ -11301,8 +12752,33 @@ table.adminform div.input-append {
 	width: 65%;
 	height: 85%;
 }
-.vbo-modal-overlay-block .vbo-modal-overlay-content.vbo-modal-overlay-content-tall {
+.vbo-modal-overlay-block .vbo-modal-overlay-content.vbo-modal-overlay-content-tall, .vbo-modal-overlay-block .vbo-modal-overlay-content.vbo-modal-tall {
 	height: 80%;
+}
+.vbo-modal-overlay-block .vbo-modal-overlay-content.vbo-modal-rounded {
+	border-radius: 20px;
+}
+.vbo-modal-overlay-content-backdrop {
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	background: rgba(0, 0, 0, .4);
+	z-index: 100;
+}
+.vbo-modal-overlay-content-widget-modal .vbo-modal-overlay-content-backdrop {
+	left: -20px;
+	width: calc(100% + 40px);
+}
+.vbo-modal-overlay-content-backdrop .vbo-modal-overlay-content-backdrop-body {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+.vbo-modal-overlay-content-backdrop .vbo-modal-overlay-content-backdrop-body i {
+	font-size: 40px;
+	color: #fff;
+	text-shadow: 1px 0px 8px rgba(0, 0, 0, .1);
 }
 .vbo-modal-overlay-content-head {
 	padding: 20px;
@@ -11338,6 +12814,12 @@ table.adminform div.input-append {
 }
 .vbo-modal-overlay-content-body {
 	padding: 20px 20px 10px;
+}
+.vbo-modal-widget .vbo-modal-overlay-content-body {
+	padding-top: 0;
+}
+.vbo-modal-overlay-content-widget-modal .vbo-modal-overlay-content-body {
+	padding: 0 5px;
 }
 .vik-contentbuilder-modal-content .vbo-modal-overlay-content-body {
 	padding: 35px 35px 10px;
@@ -11377,6 +12859,9 @@ table.adminform div.input-append {
 	border-radius: 6px;
 	box-shadow: 0 0 10px rgba(0,0,0,.4);
 	max-width: 80%;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-overlay-content-body-scroll {
+	height: calc(100% - 100px);
 }
 .vbo-modal-overlay-content {
 	-webkit-animation-name: VikfadeInUp;
@@ -11419,6 +12904,80 @@ table.adminform div.input-append {
   }
 }
 
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-form-wrap .vbo-modal-servsearch-results {
+	margin-top: 15px;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-form-wrap .vbo-modal-servsearch-result-service {
+	padding: 10px;
+	display: flex;
+	flex-wrap: wrap;
+	border-bottom: 1px solid var(--vbo-config-border-color);
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-result-service-name {
+	flex: 1;
+	font-weight: bold;
+	font-size: 1.1em;
+	align-self: center;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-result-service-cost {
+	margin: 0 15px;
+	align-self: center;
+	font-weight: bold;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-result-service-add {
+	margin-left: auto;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-result-service-add .btn {
+	padding: 3px 6px;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-result-service-add .btn i {
+	margin-right: 0;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-form-wrap .vbo-modal-servsearch-result-service-add .btn {
+	padding: 3px 6px;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-form-wrap .vbo-modal-servsearch-result-service-add .btn i {
+	margin-right: 0;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-form-wrap .vbo-modal-servsearch-result {
+	border: 1px solid var(--vbo-config-border-color);
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
+	border-radius: 10px;
+	margin-bottom: 10px;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-form-wrap .vbo-modal-servsearch-result:hover {
+	border-color: var(--vbo-base-color);
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-form-wrap .vbo-modal-servsearch-result-booking {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+	column-gap: 20px;
+  	row-gap: 5px;
+	padding: 10px;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-form-wrap .vbo-modal-servsearch-result-booking-lbl {
+	display: block;
+	font-weight: 500;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-input .input-append {
+	width: 100%;
+	display: flex;
+	border-radius: 6px;
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-input .input-append input {
+	flex: 1;
+	border-color: var(--vbo-config-border-color);
+	border-top-left-radius: 6px;
+	border-bottom-left-radius: 6px;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-input .input-append input:focus {
+	box-shadow: none;
+}
+.vbo-modal-overlay-content-servsearch .vbo-modal-servsearch-input .input-append .btn {
+	border-top-right-radius: 6px;
+	border-bottom-right-radius: 6px;
+}
 .vbo-modal-overlay-content-body .vbo-modal-form-addnew-elem {
 	margin: 10px 0;
 }
@@ -11606,7 +13165,7 @@ table.adminform div.input-append {
 	background: var(--vbo-green-color);
 	transition: width 0.2s cubic-bezier(0, 0, 0, 0.1);
 }
-.vbo-iostoggle-wrap input[name="setclosed"].vbo-iostoggle-elem:checked + label:before, .vik-iostoggle-wrap input[name="setclosed"].vik-iostoggle-elem:checked + label:before {
+.vbo-iostoggle-wrap input[name="setclosed"].vbo-iostoggle-elem:checked + label:before, .vik-iostoggle-wrap input[name="setclosed"].vik-iostoggle-elem:checked + label:before, .vbo-iostoggle-wrap input[name="closeroom"].vbo-iostoggle-elem:checked + label:before, .vik-iostoggle-wrap input[name="closeroom"].vik-iostoggle-elem:checked + label:before {
 	background: var(--vbo-red-color);
 }
 .vbo-iostoggle-wrap input.vbo-iostoggle-elem:checked + label:after, .vik-iostoggle-wrap input.vik-iostoggle-elem:checked + label:after {
@@ -11729,6 +13288,7 @@ table.adminform div.input-append {
     position: relative;
     z-index: 1;
 	color: var(--vbo-body-text-color);
+	font-size: 13px;
 }
 .vik-multiswitch-radiobtn .vik-multiswitch-txt i {
 	font-size: 16px;
@@ -11765,17 +13325,15 @@ table.adminform div.input-append {
 	position: absolute;
 	left: 0;
 }
-.vbo-widget-today-checkout-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger, .vbo-widget-today-checkout-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger,
-.vbo-widget-today-checkin-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger, .vbo-widget-today-checkin-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger {
+.vbo-widget-today-checkout-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger, .vbo-widget-today-checkin-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger {
 	background-color: var(--vbo-base-color);
 }
-.vbo-widget-today-checkout-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger + .vik-multiswitch-txt, .vbo-widget-today-checkout-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger + .vik-multiswitch-txt,
-.vbo-widget-today-checkin-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger + .vik-multiswitch-txt, .vbo-widget-today-checkin-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger + .vik-multiswitch-txt {
+.vbo-widget-today-checkout-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger + .vik-multiswitch-txt, .vbo-widget-today-checkin-tristate .vik-multiswitch-noanimation .vik-multiswitch-radiobtn.vik-multiswitch-text input:checked + .vik-multiswitch-trigger + .vik-multiswitch-txt {
 	color: #fff;
 }
-.vbo-widget-today-checkout-tristate, .vbo-widget-today-checkin-tristate {
+.vbo-admin-widget-head-inline > .vbo-widget-today-checkout-tristate, .vbo-admin-widget-head-inline > .vbo-widget-today-checkin-tristate {
 	float: right;
-	margin: 10px 15px 10px 20px;
+	margin: 12px 15px 10px 20px;
 }
 .vbo-widget-today-checkout-tristate .vik-multiswitch-wrap, .vbo-widget-today-checkin-tristate .vik-multiswitch-wrap {
 	height: 40px;
@@ -11866,6 +13424,7 @@ table.adminform div.input-append {
 }
 .vbo-admin-widgets-commands-info .vbo-admin-widgets-commands-info-restore {
 	display: inline-block;
+	vertical-align: top;
 }
 .vbo-admin-widgets-commands-info .vbo-admin-widgets-commands-info-restore .btn {
 	background: var(--vbo-config-bg-color);
@@ -11880,6 +13439,15 @@ table.adminform div.input-append {
 .vbo-admin-widgets-section {
 	display: flex;
 	flex-wrap: wrap;
+	gap: 12px;
+}
+/* Safari 10.1+ */
+@media not all and (min-resolution:.001dpcm) { 
+	@media {
+    	.vbo-admin-widgets-section > * + * { 
+			margin-left: 12px;
+		}
+	}
 }
 .vbo-admin-widgets-section .vbo-admin-widgets-section-name {
 	flex-basis: 100%;
@@ -11955,7 +13523,8 @@ table.adminform div.input-append {
 
  * Small Size */
 .vbo-admin-widgets-section .vbo-admin-widgets-container-small {
-	flex-basis: 25%;
+	flex-basis: calc(25% - 12px);
+	max-width: 25%;
 }
 .vbo-admin-widgets-customize .vbo-admin-widgets-container-small {
 	flex-basis: calc((25% - 166px));
@@ -11974,7 +13543,8 @@ table.adminform div.input-append {
 }
 /* Medium Size */
 .vbo-admin-widgets-section .vbo-admin-widgets-container-medium {
-	flex-basis: 50%;
+	flex-basis: calc(50% - 12px);
+	max-width: 50%;
 }
 .vbo-admin-widgets-list-customize .vbo-admin-widgets-container-medium[data-totcontainers="2"] {
 	flex-basis: calc((50% - (174px / 2)));
@@ -12160,22 +13730,40 @@ table.adminform div.input-append {
 	margin-top: 15px;
 	position: relative;
 }
+.vbo-admin-widget-wrapper .vbo-orphans-info-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+}
 .vbo-admin-widget-wrapper .vbo-orphans-info-list .vbo-orphans-info-room {
 	display: flex;
 	flex-wrap: wrap;
-	border-bottom: 1px solid #eee;
-	padding: 0 15px 10px;
-}
-.vbo-admin-widget-wrapper .vbo-orphans-info-list .vbo-orphans-info-room:last-child {
-	border-bottom: 0;
+	align-content: baseline;
+	border: 1px solid var(--vbo-basic-btn);
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
+	border-radius: 10px;
+	margin: 10px 10px 2px;
+	padding: 0 0 10px;
 }
 .vbo-admin-widget-wrapper .vbo-orphans-info-list .vbo-orphans-roomname {
 	flex-basis: 100%;
 	margin-bottom: 4px;
 	margin-top: 10px;
+	font-size: 1.1em;
+	border-bottom: 1px solid var(--vbo-basic-btn);
+	padding: 0 10px 10px;
+}
+.vbo-admin-widget-wrapper .vbo-orphans-info-list .vbo-orphans-info-dates {
+	padding: 5px 10px 0px;
+}
+.vbo-admin-widget-wrapper .vbo-orphans-info-list .vbo-orphans-info-dates > div {
+	margin-bottom: 3px;
+}
+.vbo-admin-widget-wrapper .vbo-orphans-info-list .vbo-orphans-info-dates > div:last-child {
+	margin-bottom: 0;
 }
 .vbo-admin-widget-wrapper .vbo-orphans-info-list .vbo-orphans-info-btn {
 	margin-left: auto;
+	padding: 10px;
 }
 .vbo-dashboard-rooms-locked .table > tbody > tr:first-child > td {
 	border-top: 0 !important;
@@ -12370,7 +13958,7 @@ table.adminform div.input-append {
     top: 17px;
 }
 .vbo-widget-visitscounter-wrap .vbo-widget-visitscounter-number-lbl {
-    font-weight: bold;
+    font-weight: 500;
     color: var(--vbo-config-titles-color-light);
 	margin-top: 10px;
 	font-size: 14px;
@@ -12379,6 +13967,7 @@ table.adminform div.input-append {
     font-size: 26px;
 	font-weight: bold;
 	letter-spacing: 1px;
+	white-space: nowrap;
 }
 .vbo-admin-widgets-container-small .vbo-widget-visitscounter-wrap .vbo-widget-visitscounter-number {
 	flex-basis: calc(50% - 52px);
@@ -12454,6 +14043,13 @@ table.adminform div.input-append {
 	cursor: pointer;
 	height: 100%;
 	display: inline-block;
+}
+.vbo-inspector-colorpicker:not([style*="background"]) {
+	background-color: #fff;
+	opacity: 0.7;
+	background-image: repeating-linear-gradient(45deg, #c2c2c2 25%, transparent 25%, transparent 75%, #c2c2c2 75%, #c2c2c2), repeating-linear-gradient(45deg, #c2c2c2 25%, #ffffff 25%, #ffffff 75%, #c2c2c2 75%, #c2c2c2);
+	background-position: 0 0, 5px 5px;
+	background-size: 10px 10px;
 }
 .vbo-inspector-colorpicker i {
 	background: var(--vbo-config-bg-color);
@@ -12638,7 +14234,7 @@ table.adminform div.input-append {
 	flex: 1;
 	margin-left: 10px;
 }
-.vbo-sidepanel-container .vbo-sidepanel-notifications .vbo-sidepanel-notifications-btn {
+.vbo-sidepanel-notifications-btn, .vbo-suggest-notifications-btn {
 	background: transparent;
 	border: 0;
 	padding: 0;
@@ -12646,25 +14242,37 @@ table.adminform div.input-append {
 	font-size: 13px;
 	cursor: initial;
 }
-.vbo-sidepanel-container .vbo-sidepanel-notifications .vbo-sidepanel-notifications-off {
+.vbo-sidepanel-notifications-off {
 	color: var(--vbo-red-color);
 	cursor: pointer;
 }
-.vbo-sidepanel-container .vbo-sidepanel-notifications .vbo-sidepanel-notifications-off:hover {
+.vbo-sidepanel-notifications-off:hover {
 	color: var(--vbo-orange-color);
 }
-.vbo-sidepanel-container .vbo-sidepanel-notifications .vbo-sidepanel-notifications-off.shaking {
-	display:block;
+.vbo-sidepanel-notifications-off.shaking {
 	font-size: 13px;
 	width: 15px;
 	height: 15px;
-	margin: 3px 0 0;
+	margin: 0;
 	-webkit-animation: ring 4s .7s ease-in-out ;
 	-webkit-transform-origin: 50% 4px;
 	-moz-animation: ring 4s .7s ease-in-out;
 	-moz-transform-origin: 50% 4px;
 	animation: ring 4s .7s ease-in-out;
 	transform-origin: 50% 4px;
+}
+.vbo-suggest-notifications-btn, .vbo-suggest-notifications-btn.vbo-sidepanel-notifications-off.shaking {
+	margin-left: 10px;
+}
+.vbo-admin-widgets-suggest-notifications-cont {
+	display: inline-block;
+	vertical-align: top;
+	padding: 4px 6px;
+	border-radius: 4px;
+	border: 1px solid var(--vbo-config-border-color);
+}
+.vbo-dash-suggest-notifications-btn, .vbo-dash-suggest-notifications-off.shaking {
+	margin-left: 0 !important;
 }
 
 @-webkit-keyframes ring {
@@ -12843,6 +14451,9 @@ table.adminform div.input-append {
 .vbo-sidepanel-add-widget .vbo-sidepanel-widget-info .vbo-sidepanel-widget-name {
 	font-weight: bold;
 	margin-left: 10px;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
 .vbo-sidepanel-add-widget .vbo-sidepanel-widget-info .vbo-sidepanel-widget-add {
 	margin-left: auto;
@@ -12851,8 +14462,21 @@ table.adminform div.input-append {
 	cursor: pointer;
 	color: var(--vbo-green-color);
 }
-.vbo-sidepanel-add-widget .vbo-sidepanel-widget-info .vbo-sidepanel-widget-add:hover {
+.vbo-sidepanel-add-widget .vbo-sidepanel-widget-info .vbo-sidepanel-widget-add .vbo-widget-render-regular:hover {
 	color: var(--vbo-green-color-hover);
+}
+.vbo-sidepanel-add-widget .vbo-sidepanel-widget-info .vbo-widget-render-modal {
+	opacity: 0;
+	margin-right: 3px;
+	color: var(--vbo-base-color);
+	transition: all 100ms ease-in-out 0s;
+}
+.vbo-sidepanel-add-widget:hover .vbo-sidepanel-widget-info .vbo-widget-render-modal, .vbo-sidepanel-add-widget-focussed .vbo-sidepanel-widget-info .vbo-widget-render-modal {
+	opacity: 1;
+	transition: all 100ms ease-in-out 0s;
+}
+.vbo-sidepanel-add-widget .vbo-sidepanel-widget-info .vbo-widget-render-modal:hover {
+	color: var(--vbo-base-color-hover);
 }
 .vbo-sidepanel-container .vbo-sidepanel-active-widgets {
 	max-height: 84vh;
@@ -12863,9 +14487,12 @@ table.adminform div.input-append {
 .vbo-sidepanel-active-widgets .vbo-admin-widgets-widget-output {
 	background: var(--vbo-config-bg-color);
 	border-radius: 6px;
-	margin: 5px 0 10px;
+	margin: 20px 0 10px;
 	position: relative;
 	box-shadow: 0 3px 5px rgba(0,0,0,.1);
+}
+.vbo-sidepanel-active-widgets .vbo-admin-widgets-widget-output:first-child {
+	margin-top: 10px;
 }
 .vbo-sidepanel-active-widgets .vbo-admin-widgets-widget-remove {
 	position: absolute;
@@ -12883,6 +14510,34 @@ table.adminform div.input-append {
 } 
 .vbo-sidepanel-active-widgets .vbo-admin-widgets-widget-remove:hover {
 	background: var(--vbo-red-color-hover);
+}
+.vbo-sidepanel-active-widgets .vbo-admin-widgets-widget-detach {
+	position: absolute;
+	top: -15px;
+	left: 50%;
+	transform: translate(-50%, 0);
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: var(--vbo-config-bg-color);
+	border: 1px solid var(--vbo-main-bg-color);
+	color: var(--vbo-config-text-color-light);
+	text-align: center;
+	line-height: 24px;
+	font-size: 12px;
+	box-shadow: 0 4px 7px rgba(0,0,0,.1);
+	z-index: 1;
+	cursor: pointer;
+	opacity: 0;
+	transition: 0.2s ease-in all;
+	-moz-transition: 0.2s ease-in all;
+	-webkit-transition: 0.2s ease-in all;
+}
+.vbo-sidepanel-active-widgets .vbo-admin-widgets-widget-output:not(.vbo-admin-widgets-widget-editing) .vbo-admin-widget-head:hover .vbo-admin-widgets-widget-detach {
+	opacity: 1;
+}
+.vbo-sidepanel-active-widgets .vbo-admin-widgets-widget-detach:hover {
+	color: var(--vbo-base-color);
 }
 .vbo-sidepanel-edit-widgets {
 	margin-top: 10px;
@@ -12903,6 +14558,14 @@ table.adminform div.input-append {
 }
 .vbo-sidepanel-edit-widgets .vbo-sidepanel-edit-widgets-trig:hover {
 	background: var(--vbo-main-bg-color);
+}
+.vbo-sidepanel-edit-widgets .vbo-sidepanel-edit-widgets-trig-active {
+	background: var(--vbo-orange-color);
+	border-color: var(--vbo-orange-color-hover);
+	box-shadow: 0 3px 5px rgba(0,0,0,.2);
+}
+.vbo-sidepanel-edit-widgets .vbo-sidepanel-edit-widgets-trig-active:hover {
+	background: var(--vbo-orange-color);
 }
 .vbo-sidepanel-active-widgets .vbo-admin-widget-head h4 {
 	font-size: 14px;
@@ -12947,11 +14610,11 @@ table.adminform div.input-append {
 .vbo-sidepanel-active-widgets .vbo-widget-checkav-result-rate-booknow button {
 	width: 100%;
 }
-.vbo-sidepanel-active-widgets .vbo-widget-checkav-results .vbo-widget-checkav-result-room-rates {
+.vbo-sidepanel-active-widgets .vbo-widget-checkav-results .vbo-widget-checkav-result-room-rates, .vbo-modal-overlay-content .vbo-widget-checkav-results .vbo-widget-checkav-result-room-rates {
 	padding: 8px;
-	border: 1px solid #fff;
+	border: 1px solid var(--vbo-basic-btn);
 }
-.vbo-sidepanel-active-widgets .vbo-widget-checkav-results .vbo-widget-checkav-result-room-rates:hover {
+.vbo-sidepanel-active-widgets .vbo-widget-checkav-results .vbo-widget-checkav-result-room-rates:hover, .vbo-modal-overlay-content .vbo-widget-checkav-results .vbo-widget-checkav-result-room-rates:hover {
 	border-color: var(--vbo-blue-color-hover);
 }
 .vbo-sidepanel-active-widgets .vbo-widget-checkav-results .vbo-widget-checkav-result-room-rate {
@@ -12988,23 +14651,54 @@ table.adminform div.input-append {
 .vbo-sidepanel-large .vbo-sidepanel-active-widgets .vbo-admin-widgets-widget-output .vbo-admin-widget-head-inline > div {
 	margin-top: 3px;
 }
-.vbo-widget-booskcal-wrap .vbo-widget-booskcal-filter {
-	margin: 10px 15px 0;
+.vbo-sidepanel-right .vbo-admin-widgets-container-small .vbo-admin-container .vbo-param-container .vbo-param-label {
+	flex-basis: 180px;
 }
-.vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar {
-	padding: 10px 15px;
+.vbo-sidepanel-right .vbo-admin-widgets-container-small .vbo-admin-container .vbo-param-container .vbo-assign-customer {
+	display: flex;
 }
-.vbo-widget-booskcal-wrap .vbo-widget-booskcal-mday-wrap {
+.vbo-sidepanel-right .vbo-admin-widgets-container-small .vbo-admin-container .vbo-param-container .vbo-assign-customer span {
+	align-self: center;
+	padding: 0 8px 0 10px;
+}
+.vbo-sidepanel-right .vbo-admin-widgets-container-small .vbo-admin-container .vbo-param-container .vbo-quickres-aduchi-wrap  {
+	display: block;
+	margin-bottom: 5px;
+}
+.vbo-sidepanel-right .vbo-admin-widgets-container-small .vbo-admin-container .vbo-param-container .vbo-widget-bookscal-taxid {
 	margin-top: 5px;
 }
-.vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar .vbo-widget-booskcal-mday-head {
+.vbo-sidepanel-right .vbo-admin-widgets-container-small .vbo-admin-container .vbo-param-container .vbo-website-rates-cont .vbo-cal-wbrate-wrap {
+	width: 100%;
+}
+.vbo-widget-booskcal-wrap .vbo-widget-booskcal-top-wrap, .vbo-widget-element-filter-top .btn-group-inline {
+	padding: 10px;
+	display: flex;
+	gap: 0;
+}
+.vbo-widget-booskcal-top-wrap .vbo-widget-booskcal-filter, .vbo-widget-element-filter-top .btn-group-inline input, .vbo-widget-element-filter-top .btn-group-inline select {
+	flex: 1;
+	margin-right: 10px;
+}
+.vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar, .vbo-widget-element-body {
+	padding: 10px 15px;
+}
+.vbo-widget-booskcal-newbook-cont {
+	position: relative;
+}
+.vbo-widget-booskcal-wrap .vbo-widget-booskcal-mday-wrap, .vbo-widget-booskcal-newbook-wrap {
+	margin-top: 5px;
+}
+.vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar .vbo-widget-booskcal-mday-head, .vbo-widget-booskcal-newbook-wrap .vbo-widget-booskcal-newbook-head {
 	border-bottom: 1px solid var(--vbo-config-border-color);
 	padding-bottom: 5px;
 }
-.vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar .vbo-widget-booskcal-mday-head .vbo-widget-booskcal-mday-back i {
+.vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar .vbo-widget-booskcal-mday-head .vbo-widget-booskcal-mday-back i,
+.vbo-widget-booskcal-newbook-wrap .vbo-widget-booskcal-newbook-head .vbo-widget-booskcal-newbook-back i {
 	margin-right: 2px;
 }
-.vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar .vbo-widget-booskcal-mday-head .vbo-widget-booskcal-mday-name {
+.vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar .vbo-widget-booskcal-mday-head .vbo-widget-booskcal-mday-name,
+.vbo-widget-booskcal-newbook-wrap .vbo-widget-booskcal-newbook-head .vbo-widget-booskcal-newbook-name {
 	float: right;
 	font-weight: bold;
 	text-transform: uppercase;
@@ -13050,7 +14744,10 @@ table.adminform div.input-append {
 .vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar-table td:not(.busy):hover {
 	background: transparent;
 }
-.vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar-table td.busy {
+.vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar-table td.free:hover {
+	background: var(--vbo-main-bg-color);
+}
+.vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar-table td {
 	cursor: pointer;
 }
 .vbo-widget-booskcal-wrap .vbo-widget-booskcal-calendar-table td.is-today .vbo-widget-booskcal-mday-val {
@@ -13124,6 +14821,9 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 }
 .vbo-widget-reminders-list .vbo-widget-reminders-record .vbo-widget-reminders-record-status {
 	margin-right: 10px;
+	display: flex;
+  	flex-wrap: wrap;
+	flex-direction: column;
 }
 .vbo-widget-reminders-list .vbo-widget-reminders-record .vbo-widget-reminders-record-status .vbo-reminder-status-dot {
 	background: none;
@@ -13132,6 +14832,12 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	padding: 0;
 	font-size: 15px;
 	margin-top: 2px;
+}
+.vbo-widget-reminders-list .vbo-widget-reminders-record .vbo-widget-reminders-record-status .vbo-widget-reminders-record-important {
+	margin-top: auto;
+}
+.vbo-widget-reminders-list .vbo-widget-reminders-record .vbo-widget-reminders-record-status .vbo-widget-reminders-record-important {
+	color: var(--vbo-orange-color);
 }
 .vbo-widget-reminders-list .vbo-reminder-ok {
 	opacity: .8;
@@ -13152,6 +14858,7 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	-webkit-transition: 0.3s ease-in all;
 	transform: translateX(100%);
 	display: flex;
+	cursor: pointer;
 }
 .vbo-widget-reminders-list .vbo-widget-reminders-record .vbo-widget-reminders-record-edit:hover {
 	background: var(--vbo-blue-color-hover);
@@ -13165,16 +14872,20 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	padding: 0;
 	width: 100%;
 	color: #fff;
+	cursor: pointer;
+}
+.vbo-widget-reminders-list .vbo-widget-reminders-record .vbo-widget-reminders-record-edit button i {
+	margin-right: 0;
 }
 .vbo-widget-reminders-list .vbo-widget-reminders-record .vbo-widget-reminders-record-info {
 	margin-right: 10px;
 }
-.vbo-widget-reminders-list .vbo-widget-reminders-record .vbo-widget-reminders-record-info .vbo-widget-reminder-title {
+.vbo-widget-reminder-title {
 	font-weight: bold;
 	display: block;
 	margin-bottom: 2px;
 }
-.vbo-widget-reminders-list .vbo-widget-reminders-record .vbo-widget-reminders-record-info .vbo-widget-reminders-record-due {
+.vbo-widget-reminders-record-due {
 	margin-top: 3px;
 	color: var(--vbo-config-titles-color-light) !important;
 	font-size: .9em;
@@ -13210,12 +14921,22 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter input, .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter textarea {
 	width: 100% !important;
 }
+.vbo-modal-overlay-content .vbo-iostoggle-wrap input.vbo-iostoggle-elem, .vik-iostoggle-wrap input.vik-iostoggle-elem {
+	width: auto !important;
+}
 .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter textarea {
 	min-height: 100px;
 }
 .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-datetime {
 	display: flex;
 	flex-wrap: wrap;
+}
+.vbo-widget-reminders-filter-booking .vbo-widget-reminders-filter-importance {
+	float: right;
+	margin-left: 10px;
+}
+.vbo-widget-reminders-filter-booking .vbo-widget-reminders-filter-importance i {
+	color: var(--vbo-orange-color);
 }
 .vbo-admin-widgets-container-small .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-datetime .vbo-widget-reminders-filter {
 	flex: 1;
@@ -13225,6 +14946,7 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 }
 .vbo-admin-widgets-container-small .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-save {
 	display: flex;
+	gap: 5px;
 }
 .vbo-admin-widgets-container-small .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-save button {
 	flex: 1;
@@ -13254,6 +14976,70 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 }
 .vbo-sidepanel-active-widgets .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-save .vbo-widget-reminder-delete {
 	margin-left: 5px;
+}
+.vbo-widget-bookdets-history-list .vbo-widget-bookdets-history-record:first-child .vbo-param-label {
+	align-self: initial;
+}
+.vbo-widget-bookdets-history-list .vbo-widget-bookdets-history-record .vbo-widget-bookdets-history-evdate {
+	margin-top: 3px;
+  	color: var(--vbo-config-titles-color-light) !important;
+  	font-size: .9em;
+}
+.vbo-widget-bookdets-history-list .vbo-widget-bookdets-history-record .vbo-widget-bookdets-history-evname {
+	font-weight: 500;
+	font-size: .9em;
+}
+.vbo-widget-bookdets-cm-updresult {
+	margin-bottom: 2px;
+}
+.vbo-widget-bookdets-cm-updresult:last-child {
+	margin-bottom: 0;
+}
+.vbo-widget-bookdets-cm-updresult > i {
+	color: var(--vbo-config-text-color-light);
+	margin-right: 3px;
+}
+.vbo-widget-bookdets-cm-ruids .btn.btn-small {
+	padding: 2px 6px;
+}
+.vbo-widget-push-notification {
+	margin: 0px 10px;
+  	padding: 12px;
+	border-radius: 10px;
+	border-width: 1px;
+	border-style: solid;
+}
+.vbo-widget-push-notification-info {
+  	background-color: var(--vbo-info-bg);
+  	border-color: var(--vbo-info-border);
+	color: var(--vbo-container-text-color);
+}
+.vbo-widget-push-notification-warning {
+	background-color: var(--vbo-warning-bg);
+	border-color: var(--vbo-warning-border);
+  	color: var(--vbo-container-text-color);
+}
+.vbo-widget-push-notification-error {
+	background-color: var(--vbo-error-bg);
+	border-color: var(--vbo-error-border);
+  	color: var(--vbo-container-text-color);
+}
+.vbo-widget-push-notification-title {
+	font-size: 14px;
+  	margin-bottom: 2px;
+}
+.vbo-widget-push-notification-message {
+	font-size: 13px;
+}
+.vbo-widget-push-notification-action {
+	margin-top: 5px;
+}
+.vbo-widget-push-notification-action .btn.vbo-config-btn {
+	padding: 8px 10px;
+}
+.vbo-widget-bookdets-cm-updresult-log {
+	font-size: .95em;
+	color: var(--vbo-config-titles-color-light);
 }
 
 .colorpicker input {
@@ -13415,7 +15201,7 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 }
 .vbo-ratesoverview-top-outer {
 	text-align: right;
-	margin-top: -40px;
+	margin-top: -20px;
 }
 .vbo-ratesoverview-top-outer .vbo-ratesoverview-top-outer-inner {
 	display: inline-block;
@@ -13788,6 +15574,56 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 .vbo-admin-container .vbo-param-container .vbo-param-setting #alwaysavcont input[type="text"] {
 	width: auto !important;
 }
+.vbo-admin-container .vbo-maninvoice-tbcont {
+	width: 100%;
+	border: 1px solid var(--vbo-main-bg-color);
+	border-radius: 7px;
+	border-spacing: 0px;
+	border-collapse: separate;
+}
+.vbo-maninvoice-tbcont th {
+	background: var(--vbo-main-bg-color);
+	text-align: left;
+	padding: 7px 10px;
+}
+.vbo-maninvoice-tbcont th:first-child {
+	border-top-left-radius: 5px;
+}
+.vbo-maninvoice-tbcont th:last-child {
+	border-top-right-radius: 5px;
+}
+.vbo-maninvoice-tbcont td {
+	padding: 5px 10px;
+}
+.vbo-maninvoice-tbcont td input, .vbo-maninvoice-tbcont .vbo-maninvoice-td-tax > div > * {
+	margin: 2px;
+}
+.vbo-maninvoice-tbcont .vbo-maninvoice-td-tax > div {
+	vertical-align: top;
+	display: inline-block;
+}
+.vbo-maninvoice-tbcont .vbo-maninvoice-inp-wrap input[type="number"] {
+	width: 80px !important;
+}
+.vbo-maninvoice-tbcont .vbo-maninvoice-td-del {
+	text-align: right;
+}
+.vbo-maninvoice-tbcont .vbo-maninvoice-td-del i {
+	margin-right: 0 !important;
+}
+.vbo-maninvoice-totals-format {
+	position: relative;
+}
+.vbo-maninvoice-totals-format .vbo-maninvoice-currency {
+	position: absolute;
+	top: -1px;
+	left: 10px;
+	color: var(--vbo-config-titles-color-light);
+	font-size: 15px;
+}
+.vbo-maninvoice-totals-format .vbo-maninvoice-totals-amount {
+	padding-left: 25px !important;
+} 
 #maxquantblock {
 	width: 100%;
 }
@@ -13801,6 +15637,194 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	background-color: var(--vbo-config-bg-color) !important;
 }
 
+/* Virtual Terminal Widget */
+.vbo-vterminal-cc-container {
+	padding: 20px;
+}
+.vbo-vterminal-cc-row-group {
+	display: flex;
+	flex-wrap: wrap;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-row {
+	margin-bottom: 14px;
+	flex: 1;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-lbl {
+	margin-bottom: 3px;
+	text-align: left;
+	font-size: 14px;
+	font-weight: 500;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-val > input {
+	flex: 1;
+	height: 50px !important;
+	border: 1px solid var(--vbo-config-border-color);
+	border-radius: 6px !important;
+	box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
+	margin: 0;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-currency {
+	flex-basis: 150px;
+	flex-grow: 0;
+}
+.vbo-vterminal-cc-row-group input, .vbo-vterminal-cc-row-group input[type="number"] {
+	width: 100% !important;
+	max-width: inherit !important;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-currency input, .vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-ccexpiry input {
+	border-top-right-radius: 0 !important;
+	border-bottom-right-radius: 0 !important;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-amount {
+	flex: 1;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-val-withlogo {
+	position: relative;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-type-logo {
+	position: absolute;
+	top: 50%;
+	right: 15px;
+	transform: translateY(-50%);
+	width: 32px;
+	height: 20px;
+}
+@keyframes vterminal-card-position {
+	0% {right: 0}
+	100% {right: -5px}
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-type-logo img {
+	position: relative;
+	animation-name: vterminal-card-position;
+	animation-duration: 0.2s;
+	right: -5px;
+	width: 32px;
+	height: 20px;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-cvc {
+	flex-basis: 150px;
+	flex-grow: 0;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-amount input, .vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-cvc input {
+	border-top-left-radius: 0 !important;
+	border-bottom-left-radius: 0 !important;
+	border-left: 0;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-submit button.btn {
+	font-weight: 500;
+	font-size: 16px;
+	width: 100%;
+	padding: 10px 14px;
+}
+.vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-submit button.btn:hover {
+	font-weight: 500;
+}
+
+/* Template Override */
+.vbo-overrides-manager {
+	background: var(--vbo-body-bg-color) !important;
+}
+.vbo-overrides-manager .override-file #override-copy {
+	background-color: var(--vbo-blue-color) !important;
+	color: var(--vbo-contrast-text-color) !important;
+	border-color: var(--vbo-blue-color) !important;
+}
+.vbo-overrides-manager .override-file #override-copy:hover {
+	background-color: var(--vbo-blue-color-hover) !important;
+	color: var(--vbo-contrast-text-color) !important;
+	border-color: var(--vbo-blue-color-hover) !important;
+}
+
+/* generic calendar box */
+.vbo-input-calendar-box {
+	background: var(--vbo-input-style);
+	border: 1px solid var(--vbo-config-border-color);
+	border-radius: 2px;
+	padding: 0 10px 0 0;
+	display: inline-block;
+	vertical-align: top;
+}
+.vbo-input-calendar-box input[type="text"] {
+	border: 0;
+	box-shadow: none;
+	background: transparent;
+	padding: 5px 0 5px 10px;
+}
+.vbo-input-calendar-box i.dashicons-calendar-alt {
+	top: 8px;
+	position: relative;
+}
+
+/* Color Scheme hide/show panel */
+.vbo-sidepanel-colorscheme {
+	position: relative;
+	margin-right: 10px;
+}
+.vbo-sidepanel-colorscheme .vbo-sidepanel-colorscheme-current {
+	display: inline-block;
+ 	border: 1px solid var(--vbo-config-border-color);
+  	padding: 0px 5px;
+  	border-radius: 4px;
+  	cursor: pointer;
+	color: var(--vbo-config-titles-color-light);
+	opacity: .8;
+	z-index: 1;
+}
+.vbo-sidepanel-colorscheme .vbo-sidepanel-colorscheme-current:hover {
+	color: var(--vbo-base-color);
+}
+.vbo-sidepanel-colorscheme-list {
+	z-index: 1000000;
+	visibility: hidden;
+	opacity: 0;
+	width: 100px;
+  	padding: 10px 15px;
+  	right: 0;
+	background: var(--vbo-config-bg-color);
+  	box-shadow: 0 6px 12px rgba(0, 0, 0, 0.176);
+  	border-radius: 10px;
+	position: absolute;
+}
+.vbo-sidepanel-colorscheme-list-show {
+	transform: scale(0.99) translateY(-0.7em);
+	transform-origin: top;
+	transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+	transition-duration: 500ms;
+	transition-property: opacity,transform;
+	visibility: visible;
+  	opacity: 1;
+  	transform: scale(1) translateY(0);
+}
+.vbo-sidepanel-colorscheme-option {
+	padding: 7px 0;
+}
+.vbo-sidepanel-colorscheme-option i {
+	margin-right: 5px;
+}
+.vbo-sidepanel-colorscheme-option:hover, .vbo-sidepanel-colorscheme-option-active {
+	color: var(--vbo-base-color);
+	cursor: pointer;
+}
+
+.vbo-dashboard-colorscheme {
+	display: inline-block;
+	margin-right: 0;
+}
+.vbo-dashboard-colorscheme .vbo-sidepanel-colorscheme-list {
+	right: initial;
+	left: 0;
+	margin-top: 2px;
+}
+.vbo-dashboard-colorscheme .vbo-sidepanel-colorscheme-option {
+	font-weight: normal;
+}
+.vbo-dashboard-colorscheme .vbo-sidepanel-colorscheme-current {
+	padding: 4px 6px;
+	vertical-align: top;
+}
+
+/* @end styles */
+/* @start media queries */
 @media print {
 	.vbo-receipt-numdate-title i, #vbo-amountpaid-edit i, .vbo-receipt-numdate-title i {
 		display: none !important;
@@ -13862,7 +15886,7 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-bookdet-foot {
 		font-size: 1em;
 	}
-	.vbo-tableaux-tbl-container .vbo-table-responsive {
+	.vbo-table-responsive {
 		overflow: visible;
 	}
 	.vbo-tableaux-months-wrap, .vbo-tableaux-filters {
@@ -13871,17 +15895,91 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	body { 
     	-webkit-print-color-adjust: exact; 
   	}
-	.vbo-tableaux-roombooks > div {
+	.vbo-tableaux-roombooks > div, .vbo-overv-avcell > div:not(.vbo-overview-tipblock) {
 		background: #02679a !important;
 		color: #fff !important;
 		border: 1px solid #ddd !important;
 		-webkit-print-color-adjust: exact;
 	}
-	.vbo-tableaux-roombooks > div > span {
+	.vbo-tableaux-roombooks > div > span, .vbo-overv-avcell > div:not(.vbo-overview-tipblock) > span {
 		color: #fff !important;
 	}
 	.vbo-tableaux-table tr td:first-child {
-		background: #ebeded !important;
+		background: var(--vbo-config-child-bg-color) !important;
+	}
+
+	html {
+		padding: 0 !important;
+	}
+	body.vbo-is-printing {
+		height: auto;
+		background: #fff;
+	}
+	.vbo-is-printing h4 {
+		margin-top: 0;
+		padding-top: 0;
+	}
+	.vbo-is-printing .vbo-reports-output {
+		margin: 10px 2px;
+		padding-bottom: 10px;
+	}
+	.vbo-report-output-printing  .vbo-country-flag, .vbo-report-output-printing a i {
+		display: none;
+	}
+	.vbo-is-printing .vbo-report-output-printing .table-responsive {
+		overflow: initial;
+		box-shadow: none;
+	}
+	.vbo-is-printing .vbo-reports-output table th {
+		text-transform: initial;
+	}
+	.vbo-is-printing .vbo-reports-output table tbody td, .vbo-is-printing .vbo-reports-output table th, .vbo-is-printing .vbo-reports-output table tfoot td {
+		padding: 15px 5px;
+		white-space: initial;
+		font-size: 13px;
+	}
+	.vbo-is-printing .vbo-report-sheet {
+		border-radius: 8px;
+		padding: 3px;
+		border: 1px solid #eee;
+		margin-bottom: 2px;
+	}
+	.vbo-is-printing .vbo-reports-output table tbody td a {
+		color: inherit;
+	}
+	.vbo-is-printing .vbo-reports-output .table-responsive {
+		margin: 0;
+	}
+	.vbo-is-printing .vbo-report-title-print {
+		text-align: center;
+	}
+	.vbo-is-printing .vbo-report-sheetnchart .vbo-report-sheet {
+		flex-basis: 100%;
+	}
+	.vbo-is-printing .vbo-report-chart-wrap {
+		display: none;
+	}
+	table tfoot {
+		display: table-row-group;
+	}
+	.vbo-menu-container {
+		display: none;
+	}
+	.vbo-allbookings-fm #filter-bar .pull-right {
+		display: none;
+	}
+	table.vbo-bookingslist-table tbody tr td, table.vbo-list-table tbody tr td {
+		font-size: 12px;
+	}
+	.vbo-allbookings-fm .vbo-bookingslist-viewdet, .vbo-allbookings-fm .vbo-bookingslist-booktime-date {
+		font-size: 12px;
+	}
+	.vbo-allbookings-fm span.label.vbo-status-label {
+		font-size: 11px;
+		padding: 5px 9px !important;
+	}
+	.vbo-allbookings-fm .vbo-provenience {
+		font-size: 13px;
 	}
 }
 @media screen and (min-width: 2400px) {
@@ -13897,11 +15995,19 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	}
 }
 @media screen and (max-width: 2000px) {
+	.vbo-menu-updates > button {
+		width: 44px;
+		height: 44px;
+		line-height: 36px;
+		padding: 0;
+		border-radius: 50%;
+	}
 	.vbo-menu-updates > button i {
 		margin-right: 0 !important;
 	}
 	.vbo-menu-updates > button span {
 		display: none;
+
 	}
 }
 @media screen and (max-width: 1860px) {
@@ -13990,17 +16096,22 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-admin-widgets-container-small .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-datetime .vbo-widget-reminders-filter-time select {
 		width: 100% !important;
 	}
+	.vbo-menu-parent-li > span {
+		padding: 14px 15px;
+	}
+}
+@media screen and (max-width: 1612px) {
+	.vbo-admin-widgets-section .vbo-admin-widgets-container-medium + .vbo-admin-widgets-container-small, .vbo-admin-widgets-section .vbo-admin-widgets-container-medium + .vbo-admin-widgets-container-small + .vbo-admin-widgets-container-small {
+		flex-basis: calc(50% - 12px);
+		max-width: 50%;
+	}
+	.vbo-dashboard-today-checkout thead tr th:first-child, .vbo-dashboard-today-checkout tobdy tr td:first-child  {
+		padding: 15px 5px 15px 10px;
+	}
 }
 @media screen and (max-width: 1580px) {
 	.vbo-dashboard-today-occ {
 		margin: 10px 20px;
-	}
-	.vbo-dashboard-today-occ-listcont .vbo-dashboard-today-roomocc {
-		width: 33%;
-		flex-basis: auto;
-	}
-	.vbo-dashboard-today-occ-listcont .vbo-dashboard-today-roomocc:only-child {
-		width: auto;
 	}
 	.vbo-admin-widgets-container-large .vbo-admin-widget-sticky-notes-wrap .vbo-admin-widget-sticky-notes-list > li {
 		width: calc(33% - 80px);
@@ -14018,6 +16129,10 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-bookingdet-detcont > .vbo-bookingdet-checkdt .wp-calendar-box .hasDatepicker {
 		flex: 1;
 	}
+	.vbo-admin-widgets-container:not(.vbo-admin-widgets-container-fullwidth) .vbo-admin-widgets-widget-output .vbo-widget-today-checkout-tristate, .vbo-admin-widgets-container:not(.vbo-admin-widgets-container-fullwidth) .vbo-admin-widgets-widget-output .vbo-widget-today-checkin-tristate {
+		margin: 10px 15px 6px 10px;
+	}
+
 }
 /* main menu screen size adjustments */
 @media screen and (max-width: 1440px) {
@@ -14071,7 +16186,7 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 		width: 100% !important;
 	}
 	.vbo-modal-overlay-block .vbo-modal-overlay-content {
-		width: 80%;
+		width: 95%;
 	}
 	.vbo-admin-container > div:not([id^="jmodal"]) {
 		flex: 100%;
@@ -14083,9 +16198,6 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	}
 	.vbo-config-maintab-right-halfsize .vbo-condtext-rule {
 		margin: 8px;
-	}
-	.vbo-ratesoverview-period-boxes-inner > div {
-		flex-basis: 100%;
 	}
 	.vbo-admin-widgets-container-large .vbo-admin-widget-sticky-notes-wrap .vbo-admin-widget-sticky-notes-list > li {
 		width: calc(33% - 80px);
@@ -14154,7 +16266,7 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 		float: none;
 		margin-bottom: 10px;
 	}
-	.vbo-editbooking-room-options .vbo-editbooking-room-option {
+	.vbo-editbooking-room-services .vbo-editbooking-room-service {
 		flex: 0 0 33%;
 	}
 	.vbo-sidepanel-active-widgets .vbo-admin-widgets-container-small .vbo-widget-checkav-filters .vbo-widget-checkav-filter-dpicker {
@@ -14177,10 +16289,6 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 		width: 100% !important;
 		margin-bottom: 3px;
 	}
-	#vbadultsdiffbox p {
-		border-bottom: 1px solid var(--vbo-config-border-color);
-		padding-bottom: 10px;
-	}
 }
 @media screen and (max-width: 1380px) {
 	#filter-bar {
@@ -14193,9 +16301,6 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	}
 	.vbadmincaltable td {
 		padding: 5px 0 !important;
-	}
-	.vbo-calendar-cfields-filler {
-		width: 60%;
 	}
 	.vbo-ratesoverview-roomsel-block > form {
 		flex-wrap: wrap;
@@ -14224,12 +16329,17 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-ratesoverview-roomsel-entry-forecast {
 		flex-grow: inherit;
 	}
+	.vbo-menu-ul .vbo-menu-parent-li > span {
+		padding: 13px 18px;
+	}
 	.vbo-menu-parent-li > span a {
 		display: none;
 	}
-	.vbo-sidepanel-active-widgets .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-datetime .vbo-widget-reminders-filter {
+	.vbo-menu-parent-li > span > i {
+		margin: 0;
+	}
+	.vbo-admin-widgets-section .vbo-admin-widgets-container, .vbo-sidepanel-active-widgets .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-datetime .vbo-widget-reminders-filter {
 		flex-basis: 100%;
-		margin-left: 0;
 	}
 	.vbo-sidepanel-active-widgets .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-datetime .field-calendar, .vbo-sidepanel-active-widgets .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-datetime .vbo-field-calendar {
 		width: 100%;
@@ -14248,6 +16358,9 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	}
 	.vbo-sidepanel-active-widgets .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-save .vbo-widget-reminder-delete {
 		margin-left: 5px;
+	}
+	.vbo-bookingdet-summary-room .btn-group, .vbo-bookingdet-summary-room .vbo-bookingdet-summary-roomnum-chunit .select2-container {
+		max-width: 150px;
 	}
 }
 @media screen and (max-width: 1320px) {
@@ -14297,7 +16410,8 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 		flex-basis: 100%;
 	}
 	.vbo-admin-widgets-section .vbo-admin-widgets-container-small {
-		flex-basis: 50%;
+		flex-basis: calc(50% - 12px);
+		max-width: 50%;
 	}
 	#filter-bar .pull-left {
 		margin-bottom: 10px;
@@ -14334,10 +16448,19 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-dashboard-today-bookings {
 		flex-basis: 100%;
 	}
+
+	.vbo-bookdet-splitstay-details > div > span {
+		display: block;
+		border-right: 0;
+		border-bottom: 1px solid var(--vbo-basic-btn);
+	}
+	.vbo-bookdet-splitstay-details > div > span:last-child {
+		border-bottom: 0;
+	}
 }
 @media screen and (max-width: 1280px) {
 	.vbo-menu-parent-li > span {
-		padding: 18px 22px 18px 17px;
+		padding: 18px 17px;
 	}
 	.vbo-menu-parent-li > span::after {
 		right: 6px;
@@ -14493,6 +16616,12 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-sidepanel-wrapper.vbo-sidepanel-right .vbo-sidepanel-container {
 		width: 35vw;
 	}
+	.vbo-admin-widgets-container-large .vbo-widget-checkav-result-splitstays-wrap {
+		width: 100%;
+	}
+	.vbo-admin-widgets-container-small .vbo-widget-checkav-result-splitstays-wrap .vbo-widget-checkav-splitstay-rooms-inner {
+		grid-template-columns: repeat(1, 1fr);
+	}
 	.vbo-sidepanel-active-widgets .vbo-admin-widgets-container-small .vbo-widget-checkav-filters .vbo-widget-checkav-filter-nights input {
 		flex-grow: 1;
 	}
@@ -14532,6 +16661,23 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	}
 	.vbo-admin-widgets-container-small .vbo-admin-widgets-widget .vbo-widget-reminders-manage .vbo-widget-reminders-manage-wrap .vbo-widget-reminders-filter-datetime .vbo-widget-reminders-filter {
 		flex: initial;
+	}
+	.vbo-admin-widgets-container:not(.vbo-admin-widgets-container-fullwidth) .vbo-admin-widgets-widget-output .vbo-widget-today-checkout-tristate, .vbo-admin-widgets-container:not(.vbo-admin-widgets-container-fullwidth) .vbo-admin-widgets-widget-output .vbo-widget-today-checkin-tristate {
+		float: none;
+		margin: 10px 15px 0px 10px;
+	}
+	.vbo-admin-widgets-container:not(.vbo-admin-widgets-container-fullwidth) .vbo-dashboard-today-checkin-head .vbo-admin-widget-head-inline, .vbo-admin-widgets-container:not(.vbo-admin-widgets-container-fullwidth) .vbo-dashboard-today-checkout-head .vbo-admin-widget-head-inline {
+		flex-basis: 100%;
+	}
+	.vbo-admin-widgets-container:not(.vbo-admin-widgets-container-fullwidth) .vbo-dashboard-today-checkin-head .vbo-admin-widget-head-inline .btn-toolbar, .vbo-admin-widgets-container:not(.vbo-admin-widgets-container-fullwidth) .vbo-dashboard-today-checkout-head .vbo-admin-widget-head-inline .btn-toolbar {
+		width: 100%;
+		float: none;
+	}
+	.vbo-admin-widget-head .btn-toolbar {
+		margin: 10px 15px 10px 10px;
+	}
+	.vbo-ratesoverview-period-boxes-inner > div {
+		flex-basis: 100%;
 	}
 }
 @media screen and (max-width: 1080px) {
@@ -14601,6 +16747,15 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	fieldset.adminform .vbo-list-table-rounded {
 		max-width: 700px;
 	}
+	.vbo-bookingdet-customer, .vbo-bookingdet-admindata {
+		-webkit-flex: 100%;
+		-ms-flex: 100%;
+		flex: 100%;
+	}
+	.vbo-bookingdet-detcont > .vbo-bookingdet-userdetail {
+		width: 45%;
+		display: inline-block;
+	}
 }
 @media screen and (max-width: 1024px) {
 	.vbo-graph-top-left, .vbo-graph-bottom-left {
@@ -14616,9 +16771,6 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-graphstats-mod-containers .vbo-graphstats-mod-inner {
 		margin-bottom: 15px;
 		margin-right: 5px;
-	}
-	.vbo-dashboard-today-occ-listcont .vbo-dashboard-today-roomocc {
-		width: 50%;
 	}
 	.vbo-reportwidget-ratesoverv .vbo-reportwidget-command-dates {
 		display: inline-block !important;
@@ -14669,7 +16821,7 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-admin-widgets-container-large .vbo-admin-widget-sticky-notes-wrap .vbo-admin-widget-sticky-notes-list > li,
 	.vbo-admin-widgets-container-small .vbo-admin-widget-sticky-notes-wrap .vbo-admin-widget-sticky-notes-list > li,
 	.vbo-admin-widgets-container-medium .vbo-admin-widget-sticky-notes-wrap .vbo-admin-widget-sticky-notes-list > li {
-		width: calc(50% - 80px);
+		width: calc(100% - 80px);
 	}
 	.vbo-admin-widgets-section .vbo-admin-widgets-container-medium {
 		flex-basis: 100%;
@@ -14683,6 +16835,9 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	}
 	.select2-container--default .select2-search--inline .select2-search__field {
 		-webkit-appearance: initial !important;
+	}
+	.vbo-admin-widgets-container:not(.vbo-admin-widgets-container-fullwidth) .vbo-admin-widgets-widget-output .vbo-widget-today-checkout-tristate, .vbo-admin-widgets-container:not(.vbo-admin-widgets-container-fullwidth) .vbo-admin-widgets-widget-output .vbo-widget-today-checkin-tristate {
+		margin: 0px 15px 0px 10px;
 	}
 }
 @media screen and (max-width: 1280px) and (min-width: 860px) {
@@ -14701,7 +16856,7 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-bookingdet-topcontainer .vbo-bookingdet-tabs {
 		margin: 10px 0 0;
 	}
-	.vbo-editbooking-room-options .vbo-editbooking-room-option, .vbo-bookingdet-summary-room .vbo-editbooking-room-pricetypes .vbo-editbooking-room-pricetype {
+	.vbo-editbooking-room-services .vbo-editbooking-room-service, .vbo-bookingdet-summary-room .vbo-editbooking-room-pricetypes .vbo-editbooking-room-pricetype {
 		flex-basis: 100%;
 		box-sizing: border-box;
 	}
@@ -14719,10 +16874,6 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 		-ms-flex: 0 0 30%;
 		-webkit-flex: 0 0 30%;
 		flex: 0 0 30%;
-	}
-	.vbo-calendar-cfields-filler {
-		width: 90%;
-		box-sizing: border-box;
 	}
 	.vbo-calendar-cfields-inner {
 		box-sizing: border-box;
@@ -14809,9 +16960,6 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-checkin-main-block .vbo-roomsdet-container .vbo-roomdet-foot {
 		padding-top: 0;
 	}
-	.vbo-admin-widgets-section {
-		display: block;
-	}
 	.vbo-admin-widgets-list-customize .vbo-admin-widgets-section .vbo-admin-widgets-container.vbo-admin-widgets-container-addnew {
 		height: 100px;
 	}
@@ -14829,15 +16977,6 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	}
 }
 @media screen and (max-width: 780px) {
-	.vbo-bookingdet-customer, .vbo-bookingdet-admindata {
-		-webkit-flex: 100%;
-		-ms-flex: 100%;
-		flex: 100%;
-	}
-	.vbo-bookingdet-detcont > .vbo-bookingdet-userdetail {
-		width: 45%;
-		display: inline-block;
-	}
 	.vbo-bookingdet-summary, .vbo-editbooking-summary {
 		padding-top: 0 !important;
 	}
@@ -14894,6 +17033,17 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-sidepanel-wrapper.vbo-sidepanel-right .vbo-sidepanel-container {
 		width: 46vw;
 	}
+	.vbo-admin-widgets-section .vbo-admin-widgets-container {
+		max-width: 100%;
+		flex-basis: 100%;
+	}
+	.vbo-admin-widgets-section .vbo-admin-widgets-container-medium + .vbo-admin-widgets-container-small, .vbo-admin-widgets-section .vbo-admin-widgets-container-medium + .vbo-admin-widgets-container-small + .vbo-admin-widgets-container-small {
+		max-width: 100%;
+		flex-basis: 100%;
+	}
+	.vbo-calendar-cfields-inner {
+		grid-template-columns: repeat(1, auto);
+	}
 }
 @media screen and (max-width: 767px) {
 	.table-responsive, .vbo-table-responsive {
@@ -14941,7 +17091,7 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	}
 	#jmodal-vbo-new-res {
 		left: 50%;
-		transform: translate(-50%, 0%);
+		transform: translate(-50%, -50%);
 		margin-left: 0 !important;
 	}
 }
@@ -15058,7 +17208,7 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-admin-container .vbo-param-container .vbo-param-setting .vbo-param-setting-block {
 		width: 100%;
 	}
-	.vbo-admin-container .vbo-param-container .vbo-param-setting .vbo-param-setting-block #resizesel .vbo-small-input, .vbo-admin-container .vbo-param-container .vbo-param-setting .vbo-param-setting-block #resizeselmore .vbo-small-input {
+	input[type="number"].vbo-small-input {
 		width: 80px !important;
 	}
 	.vbo-admin-container .vbo-param-container.vbo-param-nested {
@@ -15216,9 +17366,6 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 		float: none;
 		display: table;	
 	}
-	.vbo-dashboard-today-occ-listcont .vbo-dashboard-today-roomocc {
-		width: 100%;
-	}
 	.vbo-modal-overlay-block .vbo-modal-overlay-content {
 		width: 80%;
 	}
@@ -15341,6 +17488,9 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-sidepanel-active-widgets .vbo-admin-widgets-container-small .vbo-widget-checkav-filters .vbo-widget-checkav-filters-main .vbo-widget-checkav-filter:last-child {
 		margin-left: 0;
 	}
+	.vbo-param-confirm-btn .btn {
+		width: 100%;
+	}
 }
 @media screen and (max-width : 640px) {
 	.vbo-reportwidget-dashboard .vbo-reportwidget-chart-meta {
@@ -15435,7 +17585,7 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-calendar-cfields-topcont .vbo-calendar-cfields-search {
 		margin-right: 0;
 	}
-	.vbo-calendar-cfields-topcont .vbo-calendar-cfields-search #vbo-searchcust {
+	.vbo-calendar-cfields-topcont .vbo-calendar-cfields-search #vbo-searchcust, .vbo-calendar-cfields-topcont .vbo-calendar-cfields-search .vbo-searchcust {
 		width: 100% !important;
 	}
 	.vbo-calendar-cfields-filler .vbo-calendar-cfield-entry {
@@ -15634,9 +17784,105 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-list-form-filters .btn-toolbar #rname {
 		width: 200px !important;
 	}
+	.vbo-calcrates-rateblock > span {
+		flex-basis: 100%;
+		margin: 5px 0 5px 0;
+		border-bottom: 1px solid var(--vbo-config-border-color);
+		padding-bottom: 5px;
+		text-align: right;
+	}
+	.vbo-calcrates-rateblock > span:first-child, .vbo-calcrates-rateblock > span:last-child, .vbo-calcrates-rateblock > .vbo-calcrates-ratetotal {
+		border: 0;
+	}
+	.vbo-calcrates-rateblock > .vbo-calcrates-ratename {
+		text-align: left;
+	}
+	.vbo-calcrates-rateblock > span > span {
+		float: left;
+	}
+	.vbo-calcrates-rateblock > .vbo-calcrates-ratetotal > span {
+		font-size: 18px;
+	}
+	.vbo-calcrates-rateblock > .vbo-calcrates-ratetotal {
+		margin-right: 0;
+		font-size: 18px;
+	}
+	.vbo-modal-wguestmessages-chat-info-booking .badge {
+		margin-bottom: 2px;
+	}
+	.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head > span {
+		display: flex;
+	}
+	.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head .vbo-modal-wguestmessages-chat-guestavatar {
+		flex-basis: 25px !important;
+		flex-grow: 0 !important;
+	}
+	.vbo-modal-overlay-content-wguestmessages-chat .vbo-modal-overlay-content-head .vbo-modal-wguestmessages-chat-guestavatar img {
+		width: 25px;
+		height: 25px;
+	}
+	.vbo-submenu-wrap {
+		display: none;
+	}
+	.vbo-menu-ul li:hover .vbo-submenu-wrap {
+		display: block;
+	}
+	.vbo-config-tabs-wrap dl.tabs dt {
+		padding: 10px 0;
+		width: 50%;
+	}
+	.vbo-config-tabs-wrap dl.tabs dt.vbo-renewsession-dt {
+		width: 100%;
+	}
+	.vbo-info-overlay-content-depovr .vbo-info-overlay-header {
+		display: inline-block;
+		width: 100%;
+	}
+	.vbo-info-overlay-content-depovr .vbo-info-overlay-header h3 {
+		display: block;
+	}
+	.vbo-btn-toolbar .input-append input#code {
+		max-width: 150px;
+	}
+	.vbo-roverview-table .vboverviewtablerowone td.vbo-overview-month, .vboverviewtable.vbo-roverview-table .vboverviewtablerowone th.vbo-overview-month {
+		min-width: 180px;
+	}
+	.vbo-roverview-table .vboverviewtablerow td .vbo-overview-roomname {
+		width: 100%;
+	}
+	.vbo-info-overlay-content {
+		height: 90%;
+	}
+	.vbo-info-overlay-content-orphans .vbo-orphans-info-cmds {
+		margin-top: 0px;
+	}
+	.vbo-avcalendars-roomphoto img {
+		width: 100%;
+	}
+	.vbcsvexport {
+		margin: 2px !important;
+	}
+	.vbo-editbooking-totrefund {
+		margin: 10px 0 0;
+	}
+	.vbo-param-setting #pin + .btn.vbo-config-btn {
+		margin: 5px 0 !important;
+	}
+	.vbo-admin-container .vbo-param-container .vbo-param-setting input[name="commission"] {
+		max-width: 100px !important;
+	}
+	.vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-currency, .vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-cvc {
+		flex-basis: 100%;
+	}
+	.vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-amount input, .vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-cvc input {
+		border-left: 1px solid var(--vbo-config-border-color);
+	}
+	.vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-currency input, .vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-ccexpiry input, .vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-amount input, .vbo-vterminal-cc-row-group .vbo-vterminal-cc-row-cvc input {
+		border-radius: 6px !important;
+	}
 }
 @media screen and (max-width : 550px) {
-	.vbo-editbooking-room-options .vbo-editbooking-room-option, .vbo-editbooking-room-pricetypes .vbo-editbooking-room-pricetype {
+	.vbo-editbooking-room-services .vbo-editbooking-room-service, .vbo-editbooking-room-pricetypes .vbo-editbooking-room-pricetype {
 		-webkit-flex: 100%;
 		-ms-flex: 100%;
 		flex: 100%;
@@ -15654,10 +17900,6 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	.vbo-admin-container .vbo-param-container .vbo-param-setting #vbadultsdiffbox select[name="adultsdiffchdisc[]"] {
 		width: 100% !important;
 		margin-bottom: 3px;
-	}
-	#vbadultsdiffbox p {
-		border-bottom: 1px solid var(--vbo-config-border-color);
-		padding-bottom: 10px;
 	}
 	.vbo-avcalendars-wrapper .vbo-calendar-cal-container {
 		flex: 100%;
@@ -15685,6 +17927,9 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	}
 	fieldset.adminform .vbo-list-table-rounded {
 		max-width: 400px;
+	}
+	.vbo-widget-finance-data-block-rankings {
+		grid-template-columns: repeat(1, 1fr);
 	}
 }
 @media screen and (max-width : 500px) {
@@ -15726,6 +17971,16 @@ div[id^="vbo-widget-reminders"] .vbo-reportwidget-filters .vbo-reportwidget-filt
 	}
 	.modal .modal-header .box-close {
 		border-left: 0 !important;
+	}
+	.vbo-cal-splitstay-details {
+		min-width: initial;
+		width: 100%;
+	}
+	.vbo-cal-splitstay-details > div {
+		grid-template-columns: repeat(1, 1fr);
+	}
+	.vbo-cal-splitstay-details .vbo-cal-splitstay-room .vbo-cal-splitstay-room-name, .vbo-cal-splitstay-details .vbo-cal-splitstay-dates .vbo-cal-splitstay-dates-in {
+		border-right: 0;
 	}
 }
 

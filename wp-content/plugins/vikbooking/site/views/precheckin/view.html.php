@@ -60,10 +60,10 @@ class VikbookingViewPrecheckin extends JViewVikBooking
 			return;
 		}
 		
-		$this->order = &$order;
-		$this->orderrooms = &$orderrooms;
-		$this->customer = &$customer;
-		$this->vbo_tn = &$vbo_tn;
+		$this->order = $order;
+		$this->orderrooms = $orderrooms;
+		$this->customer = $customer;
+		$this->vbo_tn = $vbo_tn;
 		
 		parent::display($tpl);
 	}

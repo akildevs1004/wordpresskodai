@@ -234,12 +234,12 @@ class VikBookingViewImportbftpp extends JViewVikBooking
 			}
 		}
 		
-		$this->setup_completed = &$setup_completed;
-		$this->vbo_rooms = &$vbo_rooms;
-		$this->plugins = &$plugins;
-		$this->tpbookings = &$tpbookings;
-		$this->tprooms = &$tprooms;
-		$this->tpp = &$tpp;
+		$this->setup_completed = $setup_completed;
+		$this->vbo_rooms = $vbo_rooms;
+		$this->plugins = $plugins;
+		$this->tpbookings = $tpbookings;
+		$this->tprooms = $tprooms;
+		$this->tpp = $tpp;
 		
 		// Display the template
 		parent::display($tpl);

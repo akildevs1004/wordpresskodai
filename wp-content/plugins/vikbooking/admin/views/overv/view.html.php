@@ -13,13 +13,16 @@ defined('ABSPATH') or die('No script kiddies please!');
 // import Joomla view library
 jimport('joomla.application.component.view');
 
-class VikBookingViewOverv extends JViewVikBooking {
-	
-	function display($tpl = null) {
+class VikBookingViewOverv extends JViewVikBooking
+{
+	public function display($tpl = null)
+	{
 		// Set the toolbar
 		$this->addToolBar();
 
 		$dbo = JFactory::getDbo();
+		$app = JFactory::getApplication();
+
 		if (file_exists(VCM_ADMIN_PATH.DIRECTORY_SEPARATOR.'assets'.DIRECTORY_SEPARATOR.'css'.DIRECTORY_SEPARATOR.'vcm-channels.css')) {
 			$document = JFactory::getDocument();
 			$document->addStyleSheet(VCM_ADMIN_URI.'assets/css/vcm-channels.css');
@@ -67,25 +70,26 @@ class VikBookingViewOverv extends JViewVikBooking {
 			$smnum = $session->get('vbOvwMnum', '1');
 			$pmnum = intval($smnum) > 0 ? $smnum : 1;
 		}
-		//Remove expired locked records
+
+		// remove expired locked records
 		$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `until`<" . time() . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		//
-		$oldest_checkin = 0;
-		$furthest_checkout = 0;
+
 		$q = "SELECT `checkin` FROM `#__vikbooking_busy` ORDER BY `checkin` ASC LIMIT 1;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$oldest_checkin = $dbo->loadResult();
+		$oldest_checkin = $dbo->loadResult();
+		if (!$oldest_checkin) {
+			$oldest_checkin = 0;
 		}
+
 		$q = "SELECT `checkout` FROM `#__vikbooking_busy` ORDER BY `checkout` DESC LIMIT 1;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$furthest_checkout = $dbo->loadResult();
+		$furthest_checkout = $dbo->loadResult();
+		if (!$furthest_checkout) {
+			$furthest_checkout = 0;
 		}
+
 		if (!empty($pmonth)) {
 			$session->set('vbOverviewMonth', $pmonth);
 			$tsstart = $pmonth;
@@ -98,7 +102,7 @@ class VikBookingViewOverv extends JViewVikBooking {
 		$today = getdate();
 		$firstmonth = mktime(0, 0, 0, $today['mon'], 1, $today['year']);
 		$wmonthsel = "<select name=\"month\" onchange=\"document.vboverview.submit();\">\n";
-		if (!empty($oldest_checkin)) {
+		if ($oldest_checkin) {
 			$oldest_date = getdate($oldest_checkin);
 			$oldest_month = mktime(0, 0, 0, $oldest_date['mon'], 1, $oldest_date['year']);
 			if ($oldest_month < $firstmonth) {
@@ -118,7 +122,7 @@ class VikBookingViewOverv extends JViewVikBooking {
 		}
 		$wmonthsel .= "<option value=\"".$firstmonth."\"".($firstmonth == $tsstart ? " selected=\"selected\"" : "").">".VikBooking::sayMonth($today['mon'])." ".$today['year']."</option>\n";
 		$futuremonths = 12;
-		if (!empty($furthest_checkout)) {
+		if ($furthest_checkout) {
 			$furthest_date = getdate($furthest_checkout);
 			$furthest_month = mktime(0, 0, 0, $furthest_date['mon'], 1, $furthest_date['year']);
 			if ($furthest_month > $firstmonth) {
@@ -140,11 +144,11 @@ class VikBookingViewOverv extends JViewVikBooking {
 			$wmonthsel .= "<option value=\"".$firstmonth."\"".($firstmonth==$tsstart ? " selected=\"selected\"" : "").">".VikBooking::sayMonth($newts['mon'])." ".$newts['year']."</option>\n";
 		}
 		$wmonthsel .= "</select>\n";
-		$mainframe = JFactory::getApplication();
-		$lim = $mainframe->getUserStateFromRequest("com_vikbooking.limit", 'limit', $mainframe->get('list_limit'), 'int');
+		
+		$lim = $app->getUserStateFromRequest("com_vikbooking.limit", 'limit', $app->get('list_limit'), 'int');
 		$lim0 = VikRequest::getVar('limitstart', 0, '', 'int');
 		/**
-		 * Filter by category
+		 * Filter by category.
 		 * 
 		 * @since 	1.13
 		 */
@@ -152,60 +156,87 @@ class VikBookingViewOverv extends JViewVikBooking {
 		//
 		$q = "SELECT SQL_CALC_FOUND_ROWS `r`.* FROM `#__vikbooking_rooms` AS `r`" . (!empty($catfilter) ? " WHERE " . $catfilter : '') . " ORDER BY `r`.`name` ASC";
 		$dbo->setQuery($q, $lim0, $lim);
-		$dbo->execute();
-		if ($dbo->getNumRows() < 1) {
-			VikError::raiseWarning('', JText::translate('VBOVERVIEWNOROOMS'));
-			$mainframe = JFactory::getApplication();
-			$mainframe->redirect("index.php?option=com_vikbooking");
-			exit;
-		}
 		$rows = $dbo->loadAssocList();
+		if (!$rows) {
+			VikError::raiseWarning('', JText::translate('VBOVERVIEWNOROOMS'));
+			$app->redirect("index.php?option=com_vikbooking");
+			$app->close();
+		}
+		
 		$dbo->setQuery('SELECT FOUND_ROWS();');
 		jimport('joomla.html.pagination');
 		$pageNav = new JPagination( $dbo->loadResult(), $lim0, $lim );
 		$navbut = "<table align=\"center\"><tr><td>".$pageNav->getListFooter()."</td></tr></table>";
-		$arrbusy = array();
-		$actnow = time();
-		$arrbusy['tmplock'] = array();
-		foreach ($rows as $r) {
-			$q = "SELECT `b`.*,`ob`.`idorder`,`o`.`closure` FROM `#__vikbooking_busy` AS `b` 
-				LEFT JOIN `#__vikbooking_ordersbusy` AS `ob` ON `b`.`id`=`ob`.`idbusy` 
-				LEFT JOIN `#__vikbooking_orders` AS `o` ON `ob`.`idorder`=`o`.`id` 
-				WHERE `b`.`idroom`=" . (int)$r['id'] . " AND (`b`.`checkin`>=" . $tsstart . " OR `b`.`checkout`>=" . $tsstart . ") AND (`b`.`checkin`<=" . $tsend . " OR `b`.`checkout`<=" . $tsstart . ");";
-			$dbo->setQuery($q);
-			$dbo->execute();
-			$arrbusy[$r['id']] = $dbo->getNumRows() ? $dbo->loadAssocList() : [];
-			//locked (stand-by) records - new in VBO 1.9
-			$q = "SELECT `l`.*,`or`.`idroom` FROM `#__vikbooking_tmplock` AS `l` LEFT JOIN `#__vikbooking_ordersrooms` AS `or` ON `l`.`idorder`=`or`.`idorder` WHERE `or`.`idroom`='".$r['id']."' AND (`l`.`checkin`>=".$tsstart." OR `l`.`checkout`>=".$tsstart.") AND (`l`.`checkin`<=".$tsend." OR `l`.`checkout`<=".$tsstart.") AND `l`.`until`>=".$actnow.";";
-			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows() > 0) {
-				$arrbusy['tmplock'][$r['id']] = $dbo->loadAssocList();
-			}
-			//
-		}
 
 		/**
-		 * Filter by category
+		 * Filter by category.
 		 * 
-		 * @since 	1.13
+		 * @since 	1.13 (J) - 1.3 (WP)
 		 */
-		$categories = array();
+		$categories = [];
 		$q = "SELECT `id`,`name` FROM `#__vikbooking_categories` ORDER BY `name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$allcats = $dbo->loadAssocList();
+		$allcats = $dbo->loadAssocList();
+		if ($allcats) {
 			foreach ($allcats as $cat) {
 				$categories[$cat['id']] = $cat['name'];
 			}
 		}
-		//
+
+		// load records with basic information.
+		$arrbusy = [
+			'tmplock' => [],
+		];
+		$actnow = time();
+		foreach ($rows as $r) {
+			$q = "SELECT `b`.*,`ob`.`idorder`,`o`.`custdata`,`o`.`days`,`o`.`roomsnum`,`o`.`idorderota`,`o`.`channel`,`o`.`closure`
+				FROM `#__vikbooking_busy` AS `b` 
+				LEFT JOIN `#__vikbooking_ordersbusy` AS `ob` ON `b`.`id`=`ob`.`idbusy` 
+				LEFT JOIN `#__vikbooking_orders` AS `o` ON `ob`.`idorder`=`o`.`id` 
+				WHERE `b`.`idroom`=" . (int)$r['id'] . " AND (`b`.`checkin`>=" . $tsstart . " OR `b`.`checkout`>=" . $tsstart . ") AND (`b`.`checkin`<=" . $tsend . " OR `b`.`checkout`<=" . $tsstart . ");";
+			$dbo->setQuery($q);
+			$occ_rows = $dbo->loadAssocList();
+			$arrbusy[$r['id']] = $occ_rows ? $occ_rows : [];
+
+			// locked (stand-by) records
+			$q = "SELECT `l`.*,`or`.`idroom` FROM `#__vikbooking_tmplock` AS `l` LEFT JOIN `#__vikbooking_ordersrooms` AS `or` ON `l`.`idorder`=`or`.`idorder` WHERE `or`.`idroom`='".$r['id']."' AND (`l`.`checkin`>=".$tsstart." OR `l`.`checkout`>=".$tsstart.") AND (`l`.`checkin`<=".$tsend." OR `l`.`checkout`<=".$tsstart.") AND `l`.`until`>=".$actnow.";";
+			$dbo->setQuery($q);
+			$lock_rows = $dbo->loadAssocList();
+			if ($lock_rows) {
+				$arrbusy['tmplock'][$r['id']] = $lock_rows;
+			}
+		}
+
+		// collect additional information for each booking
+		$extra_info_map = [];
+		foreach ($arrbusy as $rid => $roomres) {
+			foreach ($roomres as $k => $res) {
+				if (empty($res['idorder'])) {
+					continue;
+				}
+				if (isset($extra_info_map[$res['idorder']])) {
+					// merge existing extra information
+					$arrbusy[$rid][$k] = array_merge($res, $extra_info_map[$res['idorder']]);
+					continue;
+				}
+				// get booking extra information
+				$q = "SELECT `oc`.`idcustomer`,`c`.`first_name`,`c`.`last_name`,`c`.`pic`
+					FROM `#__vikbooking_customers_orders` AS `oc`
+					LEFT JOIN `#__vikbooking_customers` AS `c` ON `oc`.`idcustomer`=`c`.`id`
+					WHERE `oc`.`idorder`={$res['idorder']}";
+				$dbo->setQuery($q, 0, 1);
+				$extra_info = $dbo->loadAssoc();
+				$extra_info = $extra_info ? $extra_info : [];
+				// merge and map booking extra information
+				$arrbusy[$rid][$k] = array_merge($res, $extra_info);
+				$extra_info_map[$res['idorder']] = $extra_info;
+			}
+		}
 
 		/**
 		 * Check the next festivities periodically
 		 * 
-		 * @since 	1.12.0
+		 * @since 	1.12.0 (J) - 1.2 (WP)
 		 */
 		$fests = VikBooking::getFestivitiesInstance();
 		if ($fests->shouldCheckFestivities()) {
@@ -216,20 +247,20 @@ class VikBookingViewOverv extends JViewVikBooking {
 		/**
 		 * Load room day notes from first month
 		 * 
-		 * @since 	1.13.5
+		 * @since 	1.13.5 (J) - 1.3 (WP)
 		 */
 		$rdaynotes = VikBooking::getCriticalDatesInstance()->loadRoomDayNotes(date('Y-m-d', $tsstart), date('Y-m-d', $tsend));
 		//
 		
-		$this->rows = &$rows;
-		$this->arrbusy = &$arrbusy;
-		$this->wmonthsel = &$wmonthsel;
-		$this->tsstart = &$tsstart;
-		$this->festivities = &$festivities;
-		$this->rdaynotes = &$rdaynotes;
-		$this->lim0 = &$lim0;
-		$this->navbut = &$navbut;
-		$this->categories = &$categories;
+		$this->rows = $rows;
+		$this->arrbusy = $arrbusy;
+		$this->wmonthsel = $wmonthsel;
+		$this->tsstart = $tsstart;
+		$this->festivities = $festivities;
+		$this->rdaynotes = $rdaynotes;
+		$this->lim0 = $lim0;
+		$this->navbut = $navbut;
+		$this->categories = $categories;
 		
 		// Display the template
 		parent::display($tpl);
@@ -238,10 +269,10 @@ class VikBookingViewOverv extends JViewVikBooking {
 	/**
 	 * Sets the toolbar
 	 */
-	protected function addToolBar() {
+	protected function addToolBar()
+	{
 		JToolBarHelper::title(JText::translate('VBMAINOVERVIEWTITLE'), 'vikbooking');
 		JToolBarHelper::cancel( 'canceledorder', JText::translate('VBBACK'));
 		JToolBarHelper::spacer();
 	}
-
 }

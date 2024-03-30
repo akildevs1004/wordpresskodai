@@ -190,7 +190,7 @@ if (count($this->condtext)) {
 
 <div class="vbo-modal-overlay-block vbo-modal-overlay-block-condtext">
 	<a class="vbo-modal-overlay-close" href="javascript: void(0);"></a>
-	<div class="vbo-modal-overlay-content vbo-modal-overlay-content-tall vbo-modal-overlay-content-condtext">
+	<div class="vbo-modal-overlay-content vbo-modal-tall vbo-modal-overlay-content-condtext">
 		<div class="vbo-modal-overlay-content-head vbo-modal-overlay-content-head-condtext">
 			<h3><span><?php echo JText::translate('VBO_CONDTEXT_ADDRULE'); ?></span> <span class="vbo-modal-overlay-close-times" onclick="hideVboModalCondtext();">&times;</span></h3>
 		</div>

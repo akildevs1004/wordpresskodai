@@ -35,7 +35,7 @@ class VikBookingViewManagecondtext extends JViewVikBooking {
 			}
 		}
 		
-		$this->condtext = &$condtext;
+		$this->condtext = $condtext;
 		
 		// Display the template
 		parent::display($tpl);

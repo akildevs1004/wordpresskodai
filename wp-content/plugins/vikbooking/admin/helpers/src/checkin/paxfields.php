@@ -49,9 +49,13 @@ interface VBOCheckinPaxfields
 	/**
 	 * Tells whether children should be registered.
 	 * 
+	 * @param 	bool 	$precheckin 	true if requested for front-end pre check-in.
+	 * 
 	 * @return 	bool    true to also register the children.
+	 * 
+	 * @since 	1.16.3 (J) - 1.6.3 (WP) added $precheckin argument.
 	 */
-	public function registerChildren();
+	public function registerChildren($precheckin = false);
 
 	/**
 	 * Returns the instance of the given pax field key.

@@ -241,7 +241,7 @@ var vboReportWidgetDfrom = "<?php echo $rparams['fromdate']; ?>";
 var vboReportWidgetDto = "<?php echo $rparams['todate']; ?>";
 var vboReportWidgetPname = "<?php echo addslashes((count($report_values) ? $report_values['day']['display_value'] : $period_name)); ?>";
 var vboReportWidgetRoomids = <?php echo json_encode((is_array($room_ids) ? $room_ids : array())); ?>;
-jQuery(document).ready(function() {
+jQuery(function() {
 	// suggest promotion when the page loads for the data we have obtained via PHP
 	vboReportWidgetSuggestPromotion(null);
 	//
@@ -326,7 +326,7 @@ jQuery(document).ready(function() {
 			//
 			if (obj.error) {
 				// an error occurred, remove the current Chart (if any), display error, and show filters
-				jQuery('.vbo-reportwidget-chart').html('<p class="err">' + obj.error + '</p>');
+				jQuery('.vbo-reportwidget-chart').first().html('<p class="err">' + obj.error + '</p>');
 				jQuery('.vbo-reportwidget-filters').show();
 				return;
 			}
@@ -337,7 +337,7 @@ jQuery(document).ready(function() {
 			//
 			if (!jQuery('.vbo-reportwidget-chart').find('canvas').length) {
 				// canvas is missing, add it from zero as no update can be made
-				jQuery('.vbo-reportwidget-chart').html(obj.report_chart + "<script type=\"text/javascript\">" + obj.report_script + "<\/script>");
+				jQuery('.vbo-reportwidget-chart').first().html(obj.report_chart + "<script type=\"text/javascript\">" + obj.report_script + "<\/script>");
 				vboReportWidgetBuildMetas(obj.report_chart_metas);
 				vboReportWidgetSuggestPromotion(obj);
 				return;
@@ -537,7 +537,9 @@ function vboReportWidgetSuggestPromotion(response) {
 	promo_content += '</div>';
 	promo_content += '</div>';
 	promo_content += '</div>';
-	jQuery('.vbo-reportwidget-chart').append(promo_content);
+	if (!jQuery('.vbo-reportwidget-chart').find('.vbo-reportwidget-promo-wrap').length) {
+		jQuery('.vbo-reportwidget-chart').first().append(promo_content);
+	}
 	setTimeout(function() {
 		jQuery('.vbo-reportwidget-promo-wrap').fadeIn();
 	}, 1000);

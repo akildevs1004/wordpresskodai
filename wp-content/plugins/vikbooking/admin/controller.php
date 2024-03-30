@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     VikBooking
  * @subpackage  com_vikbooking
@@ -20,7 +21,8 @@ class VikBookingController extends JControllerVikBooking
 	 * or no method exists for that task. If a View is requested.
 	 * attempts to set it, otherwise sets the default View.
 	 */
-	public function display($cachable = false, $urlparams = array()) {
+	public function display($cachable = false, $urlparams = array())
+	{
 
 		$view = VikRequest::getVar('view', '');
 		$header_val = '';
@@ -35,11 +37,10 @@ class VikBookingController extends JControllerVikBooking
 
 		$hide_menu = JFactory::getApplication()->input->getBool('hide_menu', false);
 
-		if ($hide_menu === false)
-		{
+		if ($hide_menu === false) {
 			VikBookingHelper::printHeader($header_val);
 		}
-		
+
 		parent::display();
 
 		if (VikBooking::showFooter() && $hide_menu === false) {
@@ -54,7 +55,8 @@ class VikBookingController extends JControllerVikBooking
 	 * 
 	 * @since 	1.12.1
 	 */
-	public function donut_charts_data() {
+	public function donut_charts_data()
+	{
 		$fromdt 	= VikRequest::getString('fromdt', date('Y-m-d'), 'request');
 		$direction  = VikRequest::getString('direction', 'next', 'request');
 		$days 		= VikRequest::getInt('days', 7, 'request');
@@ -152,10 +154,10 @@ class VikBookingController extends JControllerVikBooking
 					}
 				}
 			}
-			
+
 			$data_obj->tot_booked = $tot_booked_today;
 			$percentage_booked = round((100 * $tot_booked_today / $tot_rooms_units), 2);
-			
+
 			$data_obj->color = '#ff4d4d'; //red
 			if ($percentage_booked > 33 && $percentage_booked <= 66) {
 				$data_obj->color = '#ffa64d'; //orange
@@ -186,7 +188,8 @@ class VikBookingController extends JControllerVikBooking
 	 * 
 	 * @since 	1.2.0
 	 */
-	public function add_fest() {
+	public function add_fest()
+	{
 		$dt 	= VikRequest::getString('dt', '', 'request');
 		$type 	= VikRequest::getString('type', '', 'request');
 		$type 	= empty($type) ? 'custom' : $type;
@@ -228,7 +231,8 @@ class VikBookingController extends JControllerVikBooking
 	 * 
 	 * @since 	1.2.0
 	 */
-	public function remove_fest() {
+	public function remove_fest()
+	{
 		$dt 	= VikRequest::getString('dt', '', 'request');
 		$ind 	= VikRequest::getInt('ind', 0, 'request');
 		$type 	= VikRequest::getString('type', '', 'request');
@@ -249,11 +253,12 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function einvoicing() {
+	public function einvoicing()
+	{
 		VikBookingHelper::printHeader("einvoicing");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'einvoicing'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -261,11 +266,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function pmsreports() {
+	public function pmsreports()
+	{
 		VikBookingHelper::printHeader("pmsreports");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'pmsreports'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -273,11 +279,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function ratesoverv() {
+	public function ratesoverv()
+	{
 		VikBookingHelper::printHeader("20");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'ratesoverv'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -285,11 +292,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function stats() {
+	public function stats()
+	{
 		VikBookingHelper::printHeader("stats");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'stats'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -297,9 +305,18 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function calc_rates() {
+	/**
+	 * AJAX endpoint to calculate the website rates.
+	 * 
+	 * @return 	void
+	 */
+	public function calc_rates()
+	{
 		$response = 'e4j.error.ErrorCode(1) Server is blocking the self-request';
 		$response_code = 0;
+
+		// availability helper
+		$av_helper = VikBooking::getAvailabilityInstance();
 
 		$currencysymb = VikBooking::getCurrencySymb();
 		$vbo_df = VikBooking::getDateFormat();
@@ -313,36 +330,45 @@ class VikBookingController extends JControllerVikBooking
 		 * The page Calendar may call this task via AJAX to obtain information
 		 * about the various rate plans and final costs associated.
 		 * 
-		 * @since 	1.3.0
+		 * @since 	1.13 (J) - 1.3.0 (WP)
 		 */
 		$only_rates = VikRequest::getInt('only_rates', 0, 'request');
 		$units = VikRequest::getInt('units', 1, 'request');
 		$checkinfdate = VikRequest::getString('checkinfdate', '', 'request');
+		$checkoutfdate = VikRequest::getString('checkoutfdate', '', 'request');
 		if (!empty($checkinfdate) && empty($checkin)) {
 			$checkin = date('Y-m-d', VikBooking::getDateTimestamp($checkinfdate, 0, 0, 0));
 		}
-		$price_details = array();
-		//
+
 		$checkin_ts = strtotime($checkin);
 		if (empty($checkin_ts)) {
 			$checkin = date('Y-m-d');
 			$checkin_ts = strtotime($checkin);
 		}
-		$is_dst = date('I', $checkin_ts);
-		$checkout_ts = $checkin_ts;
-		for ($i = 1; $i <= $nights; $i++) { 
-			$checkout_ts += 86400;
-			$is_now_dst = date('I', $checkout_ts);
-			if ($is_dst != $is_now_dst) {
-				if ((int)$is_dst == 1) {
-					$checkout_ts += 3600;
-				} else {
-					$checkout_ts -= 3600;
+
+		if (!empty($checkoutfdate) && !empty($checkinfdate) && $nights < 2) {
+			// checkout date was given rather than number of nights
+			$checkout_ts = VikBooking::getDateTimestamp($checkoutfdate, 0, 0, 0);
+			$checkout = date('Y-m-d', $checkout_ts);
+			$nights = $av_helper->countNightsOfStay($checkin_ts, $checkout_ts);
+		} else {
+			// calculate checkout depending on number of nights of stay
+			$is_dst = date('I', $checkin_ts);
+			$checkout_ts = $checkin_ts;
+			for ($i = 1; $i <= $nights; $i++) {
+				$checkout_ts += 86400;
+				$is_now_dst = date('I', $checkout_ts);
+				if ($is_dst != $is_now_dst) {
+					if ((int)$is_dst == 1) {
+						$checkout_ts += 3600;
+					} else {
+						$checkout_ts -= 3600;
+					}
+					$is_dst = $is_now_dst;
 				}
-				$is_dst = $is_now_dst;
 			}
+			$checkout = date('Y-m-d', $checkout_ts);
 		}
-		$checkout = date('Y-m-d', $checkout_ts);
 
 		/**
 		 * We got rid of the CURL request to the front-end task of VBO "tac_av_l"
@@ -350,7 +376,6 @@ class VikBookingController extends JControllerVikBooking
 		 * 
 		 * @since 	1.15.0 (J) - 1.5.0 (WP)
 		 */
-		$av_helper = VikBooking::getAvailabilityInstance();
 		$av_helper->setStayDates($checkin, $checkout);
 		$av_helper->setRoomParty($adults, $children);
 		// build extra params to obtain the necessary data
@@ -362,6 +387,9 @@ class VikBookingController extends JControllerVikBooking
 			'only_rates' => $only_rates,
 		);
 		$arr_res = $av_helper->getRates($params);
+
+		// pricing pool
+		$price_details = array();
 
 		if (is_array($arr_res)) {
 			if (!strlen($av_helper->getError())) {
@@ -382,39 +410,39 @@ class VikBookingController extends JControllerVikBooking
 						//
 						$extra_response = '';
 						$response .= '<div class="vbo-calcrates-rateblock" data-idprice="' . $rate['idprice'] . '" data-idroom="' . $id_room . '" data-checkin="' . $checkin . '" data-checkout="' . $checkout . '" data-adults="' . $adults . '" data-children="' . $children . '">';
-						$response .= '<span class="vbo-calcrates-ratename">'.$rate['pricename'].'</span>';
-						$response .= '<span class="vbo-calcrates-pricedet vbo-calcrates-ratenet"><span>'.JText::translate('VBCALCRATESNET').'</span>'.$currencysymb.' '.VikBooking::numberFormat($rate['cost']).'</span>';
-						$response .= '<span class="vbo-calcrates-pricedet vbo-calcrates-ratetax"><span>'.JText::translate('VBCALCRATESTAX').'</span>'.$currencysymb.' '.VikBooking::numberFormat($rate['taxes']).'</span>';
+						$response .= '<span class="vbo-calcrates-ratename">' . $rate['pricename'] . '</span>';
+						$response .= '<span class="vbo-calcrates-pricedet vbo-calcrates-ratenet"><span>' . JText::translate('VBCALCRATESNET') . '</span>' . $currencysymb . ' ' . VikBooking::numberFormat($rate['cost']) . '</span>';
+						$response .= '<span class="vbo-calcrates-pricedet vbo-calcrates-ratetax"><span>' . JText::translate('VBCALCRATESTAX') . '</span>' . $currencysymb . ' ' . VikBooking::numberFormat($rate['taxes']) . '</span>';
 						if (!empty($rate['city_taxes'])) {
-							$response .= '<span class="vbo-calcrates-pricedet vbo-calcrates-ratecitytax"><span>'.JText::translate('VBCALCRATESCITYTAX').'</span>'.$currencysymb.' '.VikBooking::numberFormat($rate['city_taxes']).'</span>';
+							$response .= '<span class="vbo-calcrates-pricedet vbo-calcrates-ratecitytax"><span>' . JText::translate('VBCALCRATESCITYTAX') . '</span>' . $currencysymb . ' ' . VikBooking::numberFormat($rate['city_taxes']) . '</span>';
 						}
 						if (!empty($rate['fees'])) {
-							$response .= '<span class="vbo-calcrates-pricedet vbo-calcrates-ratefees"><span>'.JText::translate('VBCALCRATESFEES').'</span>'.$currencysymb.' '.VikBooking::numberFormat($rate['fees']).'</span>';
+							$response .= '<span class="vbo-calcrates-pricedet vbo-calcrates-ratefees"><span>' . JText::translate('VBCALCRATESFEES') . '</span>' . $currencysymb . ' ' . VikBooking::numberFormat($rate['fees']) . '</span>';
 						}
 						if (array_key_exists('affdays', $rate) && $rate['affdays'] > 0) {
-							$extra_response .= '<span class="vbo-calcrates-extrapricedet vbo-calcrates-ratespaffdays"><span>'.JText::translate('VBCALCRATESSPAFFDAYS').'</span>'.$rate['affdays'].'</span>';
+							$extra_response .= '<span class="vbo-calcrates-extrapricedet vbo-calcrates-ratespaffdays"><span>' . JText::translate('VBCALCRATESSPAFFDAYS') . '</span>' . $rate['affdays'] . '</span>';
 						}
 						if (array_key_exists('diffusagediscount', $rate) && count($rate['diffusagediscount']) > 0) {
 							foreach ($rate['diffusagediscount'] as $roomnumb => $disc) {
-								$extra_response .= '<span class="vbo-calcrates-extrapricedet vbo-calcrates-rateoccupancydisc"><span>'.JText::sprintf('VBCALCRATESADUOCCUPANCY', $rate['diffusage']).'</span>- '.$currencysymb.' '.VikBooking::numberFormat($disc).'</span>';
+								$extra_response .= '<span class="vbo-calcrates-extrapricedet vbo-calcrates-rateoccupancydisc"><span>' . JText::sprintf('VBCALCRATESADUOCCUPANCY', $rate['diffusage']) . '</span>- ' . $currencysymb . ' ' . VikBooking::numberFormat($disc) . '</span>';
 								break;
 							}
 						} elseif (array_key_exists('diffusagecost', $rate) && count($rate['diffusagecost']) > 0) {
 							foreach ($rate['diffusagecost'] as $roomnumb => $charge) {
-								$extra_response .= '<span class="vbo-calcrates-extrapricedet vbo-calcrates-rateoccupancycharge"><span>'.JText::sprintf('VBCALCRATESADUOCCUPANCY', $rate['diffusage']).'</span>+ '.$currencysymb.' '.VikBooking::numberFormat($charge).'</span>';
+								$extra_response .= '<span class="vbo-calcrates-extrapricedet vbo-calcrates-rateoccupancycharge"><span>' . JText::sprintf('VBCALCRATESADUOCCUPANCY', $rate['diffusage']) . '</span>+ ' . $currencysymb . ' ' . VikBooking::numberFormat($charge) . '</span>';
 								break;
 							}
 						}
 						$tot = $rate['cost'] + $rate['taxes'] + $rate['city_taxes'] + $rate['fees'];
 						$tot = round($tot, 2);
-						$response .= '<span class="vbo-calcrates-ratetotal"><span>'.JText::translate('VBCALCRATESTOT').'</span>'.$currencysymb.' '.VikBooking::numberFormat($tot).'</span>';
+						$response .= '<span class="vbo-calcrates-ratetotal"><span>' . JText::translate('VBCALCRATESTOT') . '</span>' . $currencysymb . ' ' . VikBooking::numberFormat($tot) . '</span>';
 						if (!empty($extra_response)) {
-							$response .= '<div class="vbo-calcrates-info">'.$extra_response.'</div>';
+							$response .= '<div class="vbo-calcrates-info">' . $extra_response . '</div>';
 						}
 						$response .= '</div>';
 					}
 				} else {
-					$response = 'e4j.error.'.JText::sprintf('VBCALCRATESROOMNOTAVAILCOMBO', date($df, $checkin_ts), date($df, $checkout_ts));
+					$response = 'e4j.error.' . JText::sprintf('VBCALCRATESROOMNOTAVAILCOMBO', date($df, $checkin_ts), date($df, $checkout_ts));
 					/**
 					 * Set a response code so that the View calendar can understand that the room is not available or has no rates.
 					 * 
@@ -462,7 +490,7 @@ class VikBookingController extends JControllerVikBooking
 		ob_start();
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'cronexec'));
-	
+
 		parent::display();
 
 		$content = ob_get_contents();
@@ -489,13 +517,13 @@ class VikBookingController extends JControllerVikBooking
 
 		ob_start();
 
-		$q = "SELECT * FROM `#__vikbooking_cronjobs` WHERE `id`=".(int)$pcron_id.";";
+		$q = "SELECT * FROM `#__vikbooking_cronjobs` WHERE `id`=" . (int)$pcron_id . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() == 1) {
 			$cron_data = $dbo->loadAssoc();
 			$cron_data['logs'] = empty($cron_data['logs']) ? '--------' : $cron_data['logs'];
-			echo '<pre>'.print_r($cron_data['logs'], true).'</pre>';
+			echo '<pre>' . print_r($cron_data['logs'], true) . '</pre>';
 		}
 
 		$content = ob_get_contents();
@@ -504,11 +532,12 @@ class VikBookingController extends JControllerVikBooking
 		VBOHttpDocument::getInstance()->json([$content]);
 	}
 
-	public function packages() {
+	public function packages()
+	{
 		VikBookingHelper::printHeader("packages");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'packages'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -516,11 +545,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newpackage() {
+	public function newpackage()
+	{
 		VikBookingHelper::printHeader("packages");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managepackage'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -528,11 +558,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editpackage() {
+	public function editpackage()
+	{
 		VikBookingHelper::printHeader("packages");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managepackage'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -540,21 +571,24 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function createpackage() {
+	public function createpackage()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_createpackage();
 	}
 
-	public function createpackagestay() {
+	public function createpackagestay()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_createpackage(true);
 	}
 
-	private function do_createpackage($stay = false) {
+	private function do_createpackage($stay = false)
+	{
 		$dbo = JFactory::getDBO();
 		$mainframe = JFactory::getApplication();
 		$pname = VikRequest::getString('name', '', 'request');
@@ -603,33 +637,33 @@ class VikBookingController extends JControllerVikBooking
 			$creativik = new vikResizer();
 			$filename = JFile::makeSafe(str_replace(" ", "_", strtolower($pimg['name'])));
 			$src = $pimg['tmp_name'];
-			$dest = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
+			$dest = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 			$j = "";
-			if (file_exists($dest.$filename)) {
+			if (file_exists($dest . $filename)) {
 				$j = rand(171, 1717);
-				while (file_exists($dest.$j.$filename)) {
+				while (file_exists($dest . $j . $filename)) {
 					$j++;
 				}
 			}
-			$finaldest = $dest.$j.$filename;
+			$finaldest = $dest . $j . $filename;
 			$check = getimagesize($pimg['tmp_name']);
 			if ($check[2] & imagetypes()) {
 				if (VikBooking::uploadFile($src, $finaldest)) {
-					$gimg = $j.$filename;
+					$gimg = $j . $filename;
 					//orig img
 					$origmod = true;
 					if ($pautoresize == "1" && !empty($presizeto)) {
-						$origmod = $creativik->proportionalImage($finaldest, $dest.'big_'.$j.$filename, $presizeto, $presizeto);
+						$origmod = $creativik->proportionalImage($finaldest, $dest . 'big_' . $j . $filename, $presizeto, $presizeto);
 					} else {
-						VikBooking::uploadFile($finaldest, $dest.'big_'.$j.$filename, true);
+						VikBooking::uploadFile($finaldest, $dest . 'big_' . $j . $filename, true);
 					}
 					//thumb
 					$thumbsize = VikBooking::getThumbSize();
-					$thumb = $creativik->proportionalImage($finaldest, $dest.'thumb_'.$j.$filename, $thumbsize, $thumbsize);
+					$thumb = $creativik->proportionalImage($finaldest, $dest . 'thumb_' . $j . $filename, $thumbsize, $thumbsize);
 					if (!$thumb || !$origmod) {
-						if (file_exists($dest.'big_'.$j.$filename)) @unlink($dest.'big_'.$j.$filename);
-						if (file_exists($dest.'thumb_'.$j.$filename)) @unlink($dest.'thumb_'.$j.$filename);
-						VikError::raiseWarning('', 'Error Uploading the File: '.$pimg['name']);
+						if (file_exists($dest . 'big_' . $j . $filename)) @unlink($dest . 'big_' . $j . $filename);
+						if (file_exists($dest . 'thumb_' . $j . $filename)) @unlink($dest . 'thumb_' . $j . $filename);
+						VikError::raiseWarning('', 'Error Uploading the File: ' . $pimg['name']);
 					}
 					@unlink($finaldest);
 				} else {
@@ -641,18 +675,18 @@ class VikBookingController extends JControllerVikBooking
 		}
 		//
 		$goto = "index.php?option=com_vikbooking&task=packages";
-		$q = "INSERT INTO `#__vikbooking_packages` (`name`,`alias`,`img`,`dfrom`,`dto`,`excldates`,`minlos`,`maxlos`,`cost`,`idiva`,`pernight_total`,`perperson`,`descr`,`shortdescr`,`benefits`,`conditions`,`showoptions`) VALUES (".$dbo->quote($pname).", ".$dbo->quote($palias).", ".$dbo->quote($gimg).", ".(int)$ptsinit.", ".(int)$ptsend.", ".$dbo->quote($strexcldates).", ".(int)$pminlos.", ".(int)$pmaxlos.", ".$dbo->quote($pcost).",'".$paliq."', ".(int)$ppernight_total.", ".(int)$pperperson.", ".$dbo->quote($pdescr).", ".$dbo->quote($pshortdescr).", ".$dbo->quote($pbenefits).", ".$dbo->quote($pconditions).", ".(int)$pshowoptions.");";
+		$q = "INSERT INTO `#__vikbooking_packages` (`name`,`alias`,`img`,`dfrom`,`dto`,`excldates`,`minlos`,`maxlos`,`cost`,`idiva`,`pernight_total`,`perperson`,`descr`,`shortdescr`,`benefits`,`conditions`,`showoptions`) VALUES (" . $dbo->quote($pname) . ", " . $dbo->quote($palias) . ", " . $dbo->quote($gimg) . ", " . (int)$ptsinit . ", " . (int)$ptsend . ", " . $dbo->quote($strexcldates) . ", " . (int)$pminlos . ", " . (int)$pmaxlos . ", " . $dbo->quote($pcost) . ",'" . $paliq . "', " . (int)$ppernight_total . ", " . (int)$pperperson . ", " . $dbo->quote($pdescr) . ", " . $dbo->quote($pshortdescr) . ", " . $dbo->quote($pbenefits) . ", " . $dbo->quote($pconditions) . ", " . (int)$pshowoptions . ");";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		$lid = $dbo->insertid();
 		if (!empty($lid)) {
 			$mainframe->enqueueMessage(JText::translate('VBOPKGSAVED'));
 			if ($stay) {
-				$goto = "index.php?option=com_vikbooking&task=editpackage&cid[]=".$lid;
+				$goto = "index.php?option=com_vikbooking&task=editpackage&cid[]=" . $lid;
 			}
 			foreach ($prooms as $roomid) {
 				if (!empty($roomid)) {
-					$q = "INSERT INTO `#__vikbooking_packages_rooms` (`idpackage`,`idroom`) VALUES (".(int)$lid.", ".(int)$roomid.");";
+					$q = "INSERT INTO `#__vikbooking_packages_rooms` (`idpackage`,`idroom`) VALUES (" . (int)$lid . ", " . (int)$roomid . ");";
 					$dbo->setQuery($q);
 					$dbo->execute();
 				}
@@ -661,25 +695,28 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect($goto);
 	}
 
-	public function updatepackage() {
+	public function updatepackage()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updatepackage();
 	}
 
-	public function updatepackagestay() {
+	public function updatepackagestay()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updatepackage(true);
 	}
 
-	private function do_updatepackage($stay = false) {
+	private function do_updatepackage($stay = false)
+	{
 		$dbo = JFactory::getDBO();
 		$mainframe = JFactory::getApplication();
 		$pwhereup = VikRequest::getInt('whereup', '', 'request');
-		$q = "SELECT * FROM `#__vikbooking_packages` WHERE `id`=".(int)$pwhereup.";";
+		$q = "SELECT * FROM `#__vikbooking_packages` WHERE `id`=" . (int)$pwhereup . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() == 1) {
@@ -735,33 +772,33 @@ class VikBookingController extends JControllerVikBooking
 			$creativik = new vikResizer();
 			$filename = JFile::makeSafe(str_replace(" ", "_", strtolower($pimg['name'])));
 			$src = $pimg['tmp_name'];
-			$dest = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
+			$dest = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 			$j = "";
-			if (file_exists($dest.$filename)) {
+			if (file_exists($dest . $filename)) {
 				$j = rand(171, 1717);
-				while (file_exists($dest.$j.$filename)) {
+				while (file_exists($dest . $j . $filename)) {
 					$j++;
 				}
 			}
-			$finaldest = $dest.$j.$filename;
+			$finaldest = $dest . $j . $filename;
 			$check = getimagesize($pimg['tmp_name']);
 			if ($check[2] & imagetypes()) {
 				if (VikBooking::uploadFile($src, $finaldest)) {
-					$gimg = $j.$filename;
+					$gimg = $j . $filename;
 					//orig img
 					$origmod = true;
 					if ($pautoresize == "1" && !empty($presizeto)) {
-						$origmod = $creativik->proportionalImage($finaldest, $dest.'big_'.$j.$filename, $presizeto, $presizeto);
+						$origmod = $creativik->proportionalImage($finaldest, $dest . 'big_' . $j . $filename, $presizeto, $presizeto);
 					} else {
-						VikBooking::uploadFile($finaldest, $dest.'big_'.$j.$filename, true);
+						VikBooking::uploadFile($finaldest, $dest . 'big_' . $j . $filename, true);
 					}
 					//thumb
 					$thumbsize = VikBooking::getThumbSize();
-					$thumb = $creativik->proportionalImage($finaldest, $dest.'thumb_'.$j.$filename, $thumbsize, $thumbsize);
+					$thumb = $creativik->proportionalImage($finaldest, $dest . 'thumb_' . $j . $filename, $thumbsize, $thumbsize);
 					if (!$thumb || !$origmod) {
-						if (file_exists($dest.'big_'.$j.$filename)) @unlink($dest.'big_'.$j.$filename);
-						if (file_exists($dest.'thumb_'.$j.$filename)) @unlink($dest.'thumb_'.$j.$filename);
-						VikError::raiseWarning('', 'Error Uploading the File: '.$pimg['name']);
+						if (file_exists($dest . 'big_' . $j . $filename)) @unlink($dest . 'big_' . $j . $filename);
+						if (file_exists($dest . 'thumb_' . $j . $filename)) @unlink($dest . 'thumb_' . $j . $filename);
+						VikError::raiseWarning('', 'Error Uploading the File: ' . $pimg['name']);
 					}
 					@unlink($finaldest);
 				} else {
@@ -773,27 +810,28 @@ class VikBookingController extends JControllerVikBooking
 		}
 		//
 		$goto = "index.php?option=com_vikbooking&task=packages";
-		$q = "UPDATE `#__vikbooking_packages` SET `name`=".$dbo->quote($pname).",`alias`=".$dbo->quote($palias)."".(!empty($gimg) ? ",`img`=".$dbo->quote($gimg) : "").",`dfrom`=".(int)$ptsinit.",`dto`=".(int)$ptsend.",`excldates`=".$dbo->quote($strexcldates).",`minlos`=".(int)$pminlos.",`maxlos`=".(int)$pmaxlos.",`cost`=".$dbo->quote($pcost).",`idiva`='".$paliq."',`pernight_total`=".(int)$ppernight_total.",`perperson`=".(int)$pperperson.",`descr`=".$dbo->quote($pdescr).",`shortdescr`=".$dbo->quote($pshortdescr).",`benefits`=".$dbo->quote($pbenefits).",`conditions`=".$dbo->quote($pconditions).",`showoptions`=".(int)$pshowoptions." WHERE `id`=".(int)$pwhereup.";";
+		$q = "UPDATE `#__vikbooking_packages` SET `name`=" . $dbo->quote($pname) . ",`alias`=" . $dbo->quote($palias) . "" . (!empty($gimg) ? ",`img`=" . $dbo->quote($gimg) : "") . ",`dfrom`=" . (int)$ptsinit . ",`dto`=" . (int)$ptsend . ",`excldates`=" . $dbo->quote($strexcldates) . ",`minlos`=" . (int)$pminlos . ",`maxlos`=" . (int)$pmaxlos . ",`cost`=" . $dbo->quote($pcost) . ",`idiva`='" . $paliq . "',`pernight_total`=" . (int)$ppernight_total . ",`perperson`=" . (int)$pperperson . ",`descr`=" . $dbo->quote($pdescr) . ",`shortdescr`=" . $dbo->quote($pshortdescr) . ",`benefits`=" . $dbo->quote($pbenefits) . ",`conditions`=" . $dbo->quote($pconditions) . ",`showoptions`=" . (int)$pshowoptions . " WHERE `id`=" . (int)$pwhereup . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "DELETE FROM `#__vikbooking_packages_rooms` WHERE `idpackage`=".(int)$pwhereup.";";
+		$q = "DELETE FROM `#__vikbooking_packages_rooms` WHERE `idpackage`=" . (int)$pwhereup . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		foreach ($prooms as $roomid) {
 			if (!empty($roomid)) {
-				$q = "INSERT INTO `#__vikbooking_packages_rooms` (`idpackage`,`idroom`) VALUES (".(int)$pwhereup.", ".(int)$roomid.");";
+				$q = "INSERT INTO `#__vikbooking_packages_rooms` (`idpackage`,`idroom`) VALUES (" . (int)$pwhereup . ", " . (int)$roomid . ");";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
 		}
 		$mainframe->enqueueMessage(JText::translate('VBOPKGUPDATED'));
 		if ($stay) {
-			$goto = "index.php?option=com_vikbooking&task=editpackage&cid[]=".$pwhereup;
+			$goto = "index.php?option=com_vikbooking&task=editpackage&cid[]=" . $pwhereup;
 		}
 		$mainframe->redirect($goto);
 	}
 
-	public function removepackages() {
+	public function removepackages()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -801,10 +839,10 @@ class VikBookingController extends JControllerVikBooking
 		$dbo = JFactory::getDbo();
 
 		foreach ($ids as $d) {
-			$q = "DELETE FROM `#__vikbooking_packages` WHERE `id`=".(int)$d.";";
+			$q = "DELETE FROM `#__vikbooking_packages` WHERE `id`=" . (int)$d . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
-			$q = "DELETE FROM `#__vikbooking_packages_rooms` WHERE `idpackage`=".(int)$d.";";
+			$q = "DELETE FROM `#__vikbooking_packages_rooms` WHERE `idpackage`=" . (int)$d . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
@@ -813,11 +851,12 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=packages");
 	}
 
-	public function calendar() {
+	public function calendar()
+	{
 		VikBookingHelper::printHeader("19");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'calendar'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -825,11 +864,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function rooms() {
+	public function rooms()
+	{
 		VikBookingHelper::printHeader("7");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'rooms'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -837,11 +877,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newroom() {
+	public function newroom()
+	{
 		VikBookingHelper::printHeader("7");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageroom'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -849,11 +890,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editroom() {
+	public function editroom()
+	{
 		VikBookingHelper::printHeader("7");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageroom'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -861,22 +903,25 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function createroom() {
+	public function createroom()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_createroom();
 	}
 
-	public function createroomstay() {
+	public function createroomstay()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_createroom(true);
 	}
 
-	private function do_createroom($stay = false) {
-		$mainframe = JFactory::getApplication();
+	private function do_createroom($stay = false)
+	{
+		$app = JFactory::getApplication();
 		$pcname = VikRequest::getString('cname', '', 'request');
 		$pccat = VikRequest::getVar('ccat', array(0));
 		$pcdescr = VikRequest::getString('cdescr', '', 'request', VIKREQUEST_ALLOWRAW);
@@ -944,10 +989,10 @@ class VikBookingController extends JControllerVikBooking
 		//distinctive features
 		$roomparams['features'] = array();
 		if ($punits > 0) {
-			for ($i=1; $i <= $punits; $i++) { 
-				$distf_name = VikRequest::getVar('feature-name'.$i, array(0));
-				$distf_lang = VikRequest::getVar('feature-lang'.$i, array(0));
-				$distf_value = VikRequest::getVar('feature-value'.$i, array(0));
+			for ($i = 1; $i <= $punits; $i++) {
+				$distf_name = VikRequest::getVar('feature-name' . $i, array());
+				$distf_lang = VikRequest::getVar('feature-lang' . $i, array());
+				$distf_value = VikRequest::getVar('feature-value' . $i, array());
 				foreach ($distf_name as $distf_k => $distf) {
 					if (strlen($distf) > 0 && strlen($distf_value[$distf_k]) > 0) {
 						$use_key = strlen($distf_lang[$distf_k]) > 0 ? $distf_lang[$distf_k] : $distf;
@@ -977,198 +1022,231 @@ class VikBookingController extends JControllerVikBooking
 
 		$roomparamstr = json_encode($roomparams);
 
+		if (empty($pcname)) {
+			$app->enqueueMessage(JText::translate('VBO_PLEASE_FILL_FIELDS'), 'error');
+			$app->redirect("index.php?option=com_vikbooking&task=rooms");
+			$app->close();
+		}
+
 		jimport('joomla.filesystem.file');
-		$updpath = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
-		if (!empty($pcname)) {
-			if (intval($_FILES['cimg']['error']) == 0 && VikBooking::caniWrite($updpath) && trim($_FILES['cimg']['name'])!="") {
-				if (@is_uploaded_file($_FILES['cimg']['tmp_name'])) {
-					$safename = JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['cimg']['name'])));
-					if (file_exists($updpath.$safename)) {
-						$j = 1;
-						while (file_exists($updpath.$j.$safename)) {
-							$j++;
-						}
-						$pwhere = $updpath.$j.$safename;
-					} else {
-						$j = "";
-						$pwhere = $updpath.$safename;
+		$updpath = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
+
+		if (intval($_FILES['cimg']['error']) == 0 && VikBooking::caniWrite($updpath) && trim($_FILES['cimg']['name']) != "") {
+			if (@is_uploaded_file($_FILES['cimg']['tmp_name'])) {
+				$safename = JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['cimg']['name'])));
+				if (file_exists($updpath . $safename)) {
+					$j = 1;
+					while (file_exists($updpath . $j . $safename)) {
+						$j++;
 					}
-					if (!getimagesize($_FILES['cimg']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico)\z/i", $safename)) {
-						@unlink($pwhere);
-						$picon = "";
-					} else {
-						VikBooking::uploadFile($_FILES['cimg']['tmp_name'], $pwhere);
-						@chmod($pwhere, 0644);
-						$picon = $j.$safename;
-						if ($pautoresize=="1" && !empty($presizeto)) {
-							$eforj = new vikResizer();
-							$origmod = $eforj->proportionalImage($pwhere, $updpath.'r_'.$j.$safename, $presizeto, $presizeto);
-							if ($origmod) {
-								@unlink($pwhere);
-								$picon = 'r_'.$j.$safename;
-							}
-						}
-					}
+					$pwhere = $updpath . $j . $safename;
 				} else {
+					$j = "";
+					$pwhere = $updpath . $safename;
+				}
+				if (!getimagesize($_FILES['cimg']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico|webp)\z/i", $safename)) {
+					@unlink($pwhere);
 					$picon = "";
+				} else {
+					VikBooking::uploadFile($_FILES['cimg']['tmp_name'], $pwhere);
+					@chmod($pwhere, 0644);
+					$picon = $j . $safename;
+					if ($pautoresize == "1" && !empty($presizeto)) {
+						$eforj = new vikResizer();
+						$origmod = $eforj->proportionalImage($pwhere, $updpath . 'r_' . $j . $safename, $presizeto, $presizeto);
+						if ($origmod) {
+							@unlink($pwhere);
+							$picon = 'r_' . $j . $safename;
+						}
+					}
 				}
 			} else {
 				$picon = "";
 			}
-			//more images
-			$creativik = new vikResizer();
-			$bigsdest = $updpath;
-			$thumbsdest = $updpath;
-			$dest = $updpath;
-			$moreimagestr = "";
-			$arrimgs = array();
-			$captiontexts = array();
-			$imgcaptions = array();
-			foreach ($pimages['name'] as $kk=>$ci) {
-				if (!empty($ci)) {
-					$arrimgs[] = $kk;
-					$captiontexts[] = isset($pcimgcaption[$kk]) ? $pcimgcaption[$kk] : '';
-				}
+		} else {
+			$picon = "";
+		}
+		//more images
+		$creativik = new vikResizer();
+		$bigsdest = $updpath;
+		$thumbsdest = $updpath;
+		$dest = $updpath;
+		$moreimagestr = "";
+		$arrimgs = array();
+		$captiontexts = array();
+		$imgcaptions = array();
+		foreach ($pimages['name'] as $kk => $ci) {
+			if (!empty($ci)) {
+				$arrimgs[] = $kk;
+				$captiontexts[] = isset($pcimgcaption[$kk]) ? $pcimgcaption[$kk] : '';
 			}
-			foreach ($arrimgs as $ki => $imgk) {
-				if (strlen(trim($pimages['name'][$imgk]))) {
-					$filename = JFile::makeSafe(str_replace(" ", "_", strtolower($pimages['name'][$imgk])));
-					$src = $pimages['tmp_name'][$imgk];
-					$j = "";
-					if (file_exists($dest.$filename)) {
-						$j = rand(171, 1717);
-						while (file_exists($dest.$j.$filename)) {
-							$j++;
-						}
+		}
+		foreach ($arrimgs as $ki => $imgk) {
+			if (strlen(trim($pimages['name'][$imgk]))) {
+				$filename = JFile::makeSafe(str_replace(" ", "_", strtolower($pimages['name'][$imgk])));
+				$src = $pimages['tmp_name'][$imgk];
+				$j = "";
+				if (file_exists($dest . $filename)) {
+					$j = rand(171, 1717);
+					while (file_exists($dest . $j . $filename)) {
+						$j++;
 					}
-					$finaldest = $dest.$j.$filename;
-					$check = getimagesize($pimages['tmp_name'][$imgk]);
-					if (($check[2] & imagetypes()) && preg_match("/\.(a?png|jpe?g|bmp|gif|ico)\z/i", $filename)) {
-						if (VikBooking::uploadFile($src, $finaldest)) {
-							$gimg = $j.$filename;
-							//orig img
-							$origmod = true;
-							if ($pautoresizemore == "1" && !empty($presizetomore)) {
-								$origmod = $creativik->proportionalImage($finaldest, $bigsdest.'big_'.$j.$filename, $presizetomore, $presizetomore);
-							} else {
-								VikBooking::uploadFile($finaldest, $bigsdest.'big_'.$j.$filename, true);
-							}
-							//thumb
-							$thumbsize = VikBooking::getThumbSize();
-							$thumb = $creativik->proportionalImage($finaldest, $thumbsdest.'thumb_'.$j.$filename, $thumbsize, $thumbsize);
-							if (!$thumb || !$origmod) {
-								if (file_exists($bigsdest.'big_'.$j.$filename)) @unlink($bigsdest.'big_'.$j.$filename);
-								if (file_exists($thumbsdest.'thumb_'.$j.$filename)) @unlink($thumbsdest.'thumb_'.$j.$filename);
-								VikError::raiseWarning('', 'Error While Uploading the File: '.$pimages['name'][$imgk]);
-							} else {
-								$moreimagestr .= $j.$filename.";;";
-								$imgcaptions[] = $captiontexts[$ki];
-							}
-							@unlink($finaldest);
+				}
+				$finaldest = $dest . $j . $filename;
+				$check = getimagesize($pimages['tmp_name'][$imgk]);
+				if (($check[2] & imagetypes()) && preg_match("/\.(a?png|jpe?g|bmp|gif|ico|webp)\z/i", $filename)) {
+					if (VikBooking::uploadFile($src, $finaldest)) {
+						$gimg = $j . $filename;
+						//orig img
+						$origmod = true;
+						if ($pautoresizemore == "1" && !empty($presizetomore)) {
+							$origmod = $creativik->proportionalImage($finaldest, $bigsdest . 'big_' . $j . $filename, $presizetomore, $presizetomore);
 						} else {
-							VikError::raiseWarning('', 'Error While Uploading the File: '.$pimages['name'][$imgk]);
+							VikBooking::uploadFile($finaldest, $bigsdest . 'big_' . $j . $filename, true);
 						}
+						//thumb
+						$thumbsize = VikBooking::getThumbSize();
+						$thumb = $creativik->proportionalImage($finaldest, $thumbsdest . 'thumb_' . $j . $filename, $thumbsize, $thumbsize);
+						if (!$thumb || !$origmod) {
+							if (file_exists($bigsdest . 'big_' . $j . $filename)) @unlink($bigsdest . 'big_' . $j . $filename);
+							if (file_exists($thumbsdest . 'thumb_' . $j . $filename)) @unlink($thumbsdest . 'thumb_' . $j . $filename);
+							VikError::raiseWarning('', 'Error While Uploading the File: ' . $pimages['name'][$imgk]);
+						} else {
+							$moreimagestr .= $j . $filename . ";;";
+							$imgcaptions[] = $captiontexts[$ki];
+						}
+						@unlink($finaldest);
 					} else {
-						VikError::raiseWarning('', 'Error While Uploading the File: '.$pimages['name'][$imgk]);
+						VikError::raiseWarning('', 'Error While Uploading the File: ' . $pimages['name'][$imgk]);
 					}
-				}
-			}
-			//end more images
-			if (is_array($pccat) && count($pccat)) {
-				$pccatdef="";
-				foreach ($pccat as $ccat) {
-					if (!empty($ccat)) {
-						$pccatdef.=$ccat.";";
-					}
-				}
-			} else {
-				$pccatdef="";
-			}
-			if (is_array($pccarat) && count($pccarat)) {
-				$pccaratdef="";
-				foreach ($pccarat as $ccarat) {
-					$pccaratdef.=$ccarat.";";
-				}
-			} else {
-				$pccaratdef="";
-			}
-			if (is_array($pcoptional) && count($pcoptional)) {
-				$pcoptionaldef="";
-				foreach ($pcoptional as $coptional) {
-					$pcoptionaldef.=$coptional.";";
-				}
-			} else {
-				$pcoptionaldef="";
-			}
-			$pcavaildef=($pcavail=="yes" ? "1" : "0");
-			if ($pfromadult > $ptoadult) {
-				$pfromadult = 1;
-				$ptoadult = 1;
-			}
-			if ($pfromchild > $ptochild) {
-				$pfromchild = 1;
-				$ptochild = 1;
-			}
-			$dbo = JFactory::getDbo();
-			$q = "INSERT INTO `#__vikbooking_rooms` (`name`,`img`,`idcat`,`idcarat`,`idopt`,`info`,`avail`,`units`,`moreimgs`,`fromadult`,`toadult`,`fromchild`,`tochild`,`smalldesc`,`totpeople`,`mintotpeople`,`params`,`imgcaptions`,`alias`) VALUES(".$dbo->quote($pcname).",".$dbo->quote($picon).",".$dbo->quote($pccatdef).",".$dbo->quote($pccaratdef).",".$dbo->quote($pcoptionaldef).",".$dbo->quote($pcdescr).",".$dbo->quote($pcavaildef).",".($punits > 0 ? $dbo->quote($punits) : "'1'").", ".$dbo->quote($moreimagestr).", '".$pfromadult."', '".$ptoadult."', '".$pfromchild."', '".$ptochild."', ".$dbo->quote($psmalldesc).", ".$ptotpeople.", ".$pmintotpeople.", ".$dbo->quote($roomparamstr).", ".$dbo->quote(json_encode($imgcaptions)).",".$dbo->quote($psefalias).");";
-			$dbo->setQuery($q);
-			$dbo->execute();
-			$lid = $dbo->insertid();
-			if (!empty($lid)) {
-				/**
-				 * Share availability calendars with other rooms.
-				 * 
-				 * @since 	1.13
-				 */
-				// always reset relations for this main room
-				$q = "DELETE FROM `#__vikbooking_calendars_xref` WHERE `mainroom`={$lid};";
-				$dbo->setQuery($q);
-				$dbo->execute();
-				$newxref = array();
-				foreach ($pshare_with as $cldroom) {
-					if (!empty($cldroom)) {
-						array_push($newxref, (int)$cldroom);
-					}
-				}
-				foreach ($newxref as $cldroom) {
-					$q = "INSERT INTO `#__vikbooking_calendars_xref` (`mainroom`, `childroom`) VALUES ({$lid}, {$cldroom});";
-					$dbo->setQuery($q);
-					$dbo->execute();
-				}
-				//
-
-				if ($stay === true) {
-					$mainframe->enqueueMessage(JText::translate('VBOROOMSAVEOK').' - <a href="index.php?option=com_vikbooking&task=tariffs&cid[]='.$lid.'">'.JText::translate('VBOGOTORATES').'</a>');
-					$mainframe->redirect("index.php?option=com_vikbooking&task=editroom&cid[]=".$lid);
-					exit;
 				} else {
-					$mainframe->redirect("index.php?option=com_vikbooking&task=tariffs&cid[]=".$lid);
+					VikError::raiseWarning('', 'Error While Uploading the File: ' . $pimages['name'][$imgk]);
 				}
-			} else {
-				$mainframe->redirect("index.php?option=com_vikbooking&task=rooms");
+			}
+		}
+		//end more images
+		if (is_array($pccat) && count($pccat)) {
+			$pccatdef = "";
+			foreach ($pccat as $ccat) {
+				if (!empty($ccat)) {
+					$pccatdef .= $ccat . ";";
+				}
 			}
 		} else {
-			$mainframe->redirect("index.php?option=com_vikbooking&task=rooms");
+			$pccatdef = "";
 		}
+		if (is_array($pccarat) && count($pccarat)) {
+			$pccaratdef = "";
+			foreach ($pccarat as $ccarat) {
+				$pccaratdef .= $ccarat . ";";
+			}
+		} else {
+			$pccaratdef = "";
+		}
+		if (is_array($pcoptional) && count($pcoptional)) {
+			$pcoptionaldef = "";
+			foreach ($pcoptional as $coptional) {
+				$pcoptionaldef .= $coptional . ";";
+			}
+		} else {
+			$pcoptionaldef = "";
+		}
+		$pcavaildef = ($pcavail == "yes" ? "1" : "0");
+		if ($pfromadult > $ptoadult) {
+			$pfromadult = 1;
+			$ptoadult = 1;
+		}
+		if ($pfromchild > $ptochild) {
+			$pfromchild = 1;
+			$ptochild = 1;
+		}
+		$dbo = JFactory::getDbo();
+		$q = "INSERT INTO `#__vikbooking_rooms` (`name`,`img`,`idcat`,`idcarat`,`idopt`,`info`,`avail`,`units`,`moreimgs`,`fromadult`,`toadult`,`fromchild`,`tochild`,`smalldesc`,`totpeople`,`mintotpeople`,`params`,`imgcaptions`,`alias`) VALUES(" . $dbo->quote($pcname) . "," . $dbo->quote($picon) . "," . $dbo->quote($pccatdef) . "," . $dbo->quote($pccaratdef) . "," . $dbo->quote($pcoptionaldef) . "," . $dbo->quote($pcdescr) . "," . $dbo->quote($pcavaildef) . "," . ($punits > 0 ? $dbo->quote($punits) : "'1'") . ", " . $dbo->quote($moreimagestr) . ", '" . $pfromadult . "', '" . $ptoadult . "', '" . $pfromchild . "', '" . $ptochild . "', " . $dbo->quote($psmalldesc) . ", " . $ptotpeople . ", " . $pmintotpeople . ", " . $dbo->quote($roomparamstr) . ", " . $dbo->quote(json_encode($imgcaptions)) . "," . $dbo->quote($psefalias) . ");";
+		$dbo->setQuery($q);
+		$dbo->execute();
+		$lid = $dbo->insertid();
+		if (empty($lid)) {
+			$app->enqueueMessage('Could not store the record on the database', 'error');
+			$app->redirect("index.php?option=com_vikbooking&task=rooms");
+			$app->close();
+		}
+
+		/**
+		 * Share availability calendars with other rooms.
+		 * 
+		 * @since 	1.13
+		 */
+		// always reset relations for this main room
+		$q = "DELETE FROM `#__vikbooking_calendars_xref` WHERE `mainroom`={$lid};";
+		$dbo->setQuery($q);
+		$dbo->execute();
+		$newxref = array();
+		foreach ($pshare_with as $cldroom) {
+			if (!empty($cldroom)) {
+				array_push($newxref, (int)$cldroom);
+			}
+		}
+		foreach ($newxref as $cldroom) {
+			$q = "INSERT INTO `#__vikbooking_calendars_xref` (`mainroom`, `childroom`) VALUES ({$lid}, {$cldroom});";
+			$dbo->setQuery($q);
+			$dbo->execute();
+		}
+
+		/**
+		 * Room upgrade options.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$config = VBOFactory::getConfig();
+		$room_upgrade_options = [];
+		$room_upgrade = VikRequest::getInt('room_upgrade', 0, 'request');
+		$upgrade_rooms = VikRequest::getVar('upgrade_rooms', array());
+		$upgrade_discount = VikRequest::getFloat('upgrade_discount', 0, 'request');
+		if ($room_upgrade && is_array($upgrade_rooms) && count($upgrade_rooms)) {
+			$upgrade_rooms = array_map(function ($rid) {
+				return (int)$rid;
+			}, $upgrade_rooms);
+
+			$room_upgrade_options = [
+				'rooms'    => $upgrade_rooms,
+				'discount' => $upgrade_discount,
+			];
+		}
+		$config->set('room_upgrade_options_' . $lid, json_encode($room_upgrade_options));
+
+		if ($stay === true) {
+			$app->enqueueMessage(JText::translate('VBOROOMSAVEOK') . ' - <a href="index.php?option=com_vikbooking&task=tariffs&cid[]=' . $lid . '">' . JText::translate('VBOGOTORATES') . '</a>');
+			$app->redirect("index.php?option=com_vikbooking&task=editroom&cid[]=" . $lid);
+			$app->close();
+		}
+
+		$app->redirect("index.php?option=com_vikbooking&task=tariffs&cid[]=" . $lid);
+		$app->close();
 	}
 
-	public function updateroom() {
+	public function updateroom()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updateroom();
 	}
 
-	public function updateroomstay() {
+	public function updateroomstay()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updateroom(true);
 	}
 
-	private function do_updateroom($stay = false) {
-		$mainframe = JFactory::getApplication();
+	private function do_updateroom($stay = false)
+	{
+		$app = JFactory::getApplication();
+		$config = VBOFactory::getConfig();
+
 		$pcname = VikRequest::getString('cname', '', 'request');
+		$api_room_id = VikRequest::getString('api_room_id', '', 'request');
 		$pccat = VikRequest::getVar('ccat', array(0));
 		$pcdescr = VikRequest::getString('cdescr', '', 'request', VIKREQUEST_ALLOWRAW);
 		$psmalldesc = VikRequest::getString('smalldesc', '', 'request', VIKREQUEST_ALLOWRAW);
@@ -1205,6 +1283,7 @@ class VikBookingController extends JControllerVikBooking
 		$preqinfo = VikRequest::getInt('reqinfo', '', 'request');
 		$ppricecal = VikRequest::getInt('pricecal', '', 'request');
 		$pdefcalcost = VikRequest::getString('defcalcost', '', 'request');
+		$pdefrplan = VikRequest::getInt('defrplan', 0, 'request');
 		$pmaxminpeople = VikRequest::getString('maxminpeople', '', 'request');
 		$pcimgcaption = VikRequest::getVar('cimgcaption', array());
 		$pimgsorting = VikRequest::getVar('imgsorting', array());
@@ -1240,15 +1319,35 @@ class VikBookingController extends JControllerVikBooking
 			$pseasoncal_nights = '';
 			$pseasoncal = 0;
 		}
-		$roomparams = array('lastavail' => $plastavail, 'suggocc' => $psuggocc, 'custprice' => $pcustprice, 'custpricetxt' => $pcustpricetxt, 'custpricesubtxt' => $pcustpricesubtxt, 'reqinfo' => $preqinfo, 'pricecal' => $ppricecal, 'defcalcost' => floatval($pdefcalcost), 'maxminpeople' => $pmaxminpeople, 'seasoncal' => $pseasoncal, 'seasoncal_nights' => $pseasoncal_nights, 'seasoncal_prices' => $pseasoncal_prices, 'seasoncal_restr' => $pseasoncal_restr, 'multi_units' => $pmulti_units, 'custptitle' => $pcustptitle, 'custptitlew' => $pcustptitlew, 'metakeywords' => $pmetakeywords, 'metadescription' => $pmetadescription);
+		$roomparams = [
+			'lastavail' 	   => $plastavail,
+			'suggocc' 		   => $psuggocc,
+			'custprice' 	   => $pcustprice,
+			'custpricetxt' 	   => $pcustpricetxt,
+			'custpricesubtxt'  => $pcustpricesubtxt,
+			'reqinfo' 		   => $preqinfo,
+			'pricecal' 		   => $ppricecal,
+			'defcalcost' 	   => floatval($pdefcalcost),
+			'defrplan' 		   => $pdefrplan,
+			'maxminpeople' 	   => $pmaxminpeople,
+			'seasoncal' 	   => $pseasoncal,
+			'seasoncal_nights' => $pseasoncal_nights,
+			'seasoncal_prices' => $pseasoncal_prices,
+			'seasoncal_restr'  => $pseasoncal_restr,
+			'multi_units' 	   => $pmulti_units,
+			'custptitle' 	   => $pcustptitle,
+			'custptitlew' 	   => $pcustptitlew,
+			'metakeywords' 	   => $pmetakeywords,
+			'metadescription'  => $pmetadescription,
+		];
 		//distinctive features
 		$roomparams['features'] = array();
 		$newfeatures = array();
 		if ($punits > 0) {
-			for ($i=1; $i <= $punits; $i++) { 
-				$distf_name = VikRequest::getVar('feature-name'.$i, array(0));
-				$distf_lang = VikRequest::getVar('feature-lang'.$i, array(0));
-				$distf_value = VikRequest::getVar('feature-value'.$i, array(0));
+			for ($i = 1; $i <= $punits; $i++) {
+				$distf_name = VikRequest::getVar('feature-name' . $i, array());
+				$distf_lang = VikRequest::getVar('feature-lang' . $i, array());
+				$distf_value = VikRequest::getVar('feature-value' . $i, array());
 				foreach ($distf_name as $distf_k => $distf) {
 					if (strlen($distf) > 0 && strlen($distf_value[$distf_k]) > 0) {
 						$use_key = strlen($distf_lang[$distf_k]) > 0 ? $distf_lang[$distf_k] : $distf;
@@ -1283,34 +1382,34 @@ class VikBookingController extends JControllerVikBooking
 		$roomparamstr = json_encode($roomparams);
 
 		jimport('joomla.filesystem.file');
-		$updpath = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
+		$updpath = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 		if (!empty($pcname)) {
-			if (intval($_FILES['cimg']['error']) == 0 && VikBooking::caniWrite($updpath) && trim($_FILES['cimg']['name'])!="") {
+			if (intval($_FILES['cimg']['error']) == 0 && VikBooking::caniWrite($updpath) && trim($_FILES['cimg']['name']) != "") {
 				if (@is_uploaded_file($_FILES['cimg']['tmp_name'])) {
 					$safename = JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['cimg']['name'])));
-					if (file_exists($updpath.$safename)) {
+					if (file_exists($updpath . $safename)) {
 						$j = 1;
-						while (file_exists($updpath.$j.$safename)) {
+						while (file_exists($updpath . $j . $safename)) {
 							$j++;
 						}
-						$pwhere = $updpath.$j.$safename;
+						$pwhere = $updpath . $j . $safename;
 					} else {
 						$j = "";
-						$pwhere = $updpath.$safename;
+						$pwhere = $updpath . $safename;
 					}
-					if (!getimagesize($_FILES['cimg']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico)\z/i", $safename)) {
+					if (!getimagesize($_FILES['cimg']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico|webp)\z/i", $safename)) {
 						@unlink($pwhere);
 						$picon = "";
 					} else {
 						VikBooking::uploadFile($_FILES['cimg']['tmp_name'], $pwhere);
 						@chmod($pwhere, 0644);
-						$picon = $j.$safename;
+						$picon = $j . $safename;
 						if ($pautoresize == "1" && !empty($presizeto)) {
 							$eforj = new vikResizer();
-							$origmod = $eforj->proportionalImage($pwhere, $updpath.'r_'.$j.$safename, $presizeto, $presizeto);
+							$origmod = $eforj->proportionalImage($pwhere, $updpath . 'r_' . $j . $safename, $presizeto, $presizeto);
 							if ($origmod) {
 								@unlink($pwhere);
-								$picon = 'r_'.$j.$safename;
+								$picon = 'r_' . $j . $safename;
 							}
 						}
 					}
@@ -1334,13 +1433,13 @@ class VikBookingController extends JControllerVikBooking
 				$sploimgs = explode(';;', $pactmoreimgs);
 				foreach ($sploimgs as $ki => $oimg) {
 					if (!empty($oimg)) {
-						$oldcaption = VikRequest::getString('caption'.$ki, '', 'request', VIKREQUEST_ALLOWHTML);
+						$oldcaption = VikRequest::getString('caption' . $ki, '', 'request', VIKREQUEST_ALLOWHTML);
 						$imgcaptions[] = $oldcaption;
 					}
 				}
 			}
 			//
-			foreach ($pimages['name'] as $kk=>$ci) {
+			foreach ($pimages['name'] as $kk => $ci) {
 				if (!empty($ci)) {
 					$arrimgs[] = $kk;
 					$captiontexts[] = isset($pcimgcaption[$kk]) ? $pcimgcaption[$kk] : '';
@@ -1351,41 +1450,41 @@ class VikBookingController extends JControllerVikBooking
 					$filename = JFile::makeSafe(str_replace(" ", "_", strtolower($pimages['name'][$imgk])));
 					$src = $pimages['tmp_name'][$imgk];
 					$j = "";
-					if (file_exists($dest.$filename)) {
+					if (file_exists($dest . $filename)) {
 						$j = rand(171, 1717);
-						while (file_exists($dest.$j.$filename)) {
+						while (file_exists($dest . $j . $filename)) {
 							$j++;
 						}
 					}
-					$finaldest = $dest.$j.$filename;
+					$finaldest = $dest . $j . $filename;
 					$check = getimagesize($pimages['tmp_name'][$imgk]);
-					if (($check[2] & imagetypes()) && preg_match("/\.(a?png|jpe?g|bmp|gif|ico)\z/i", $filename)) {
+					if (($check[2] & imagetypes()) && preg_match("/\.(a?png|jpe?g|bmp|gif|ico|webp)\z/i", $filename)) {
 						if (VikBooking::uploadFile($src, $finaldest)) {
-							$gimg = $j.$filename;
+							$gimg = $j . $filename;
 							//orig img
 							$origmod = true;
 							if ($pautoresizemore == "1" && !empty($presizetomore)) {
-								$origmod = $creativik->proportionalImage($finaldest, $bigsdest.'big_'.$j.$filename, $presizetomore, $presizetomore);
+								$origmod = $creativik->proportionalImage($finaldest, $bigsdest . 'big_' . $j . $filename, $presizetomore, $presizetomore);
 							} else {
-								VikBooking::uploadFile($finaldest, $bigsdest.'big_'.$j.$filename, true);
+								VikBooking::uploadFile($finaldest, $bigsdest . 'big_' . $j . $filename, true);
 							}
 							//thumb
 							$thumbsize = VikBooking::getThumbSize();
-							$thumb = $creativik->proportionalImage($finaldest, $thumbsdest.'thumb_'.$j.$filename, $thumbsize, $thumbsize);
+							$thumb = $creativik->proportionalImage($finaldest, $thumbsdest . 'thumb_' . $j . $filename, $thumbsize, $thumbsize);
 							if (!$thumb || !$origmod) {
-								if (file_exists($bigsdest.'big_'.$j.$filename)) @unlink($bigsdest.'big_'.$j.$filename);
-								if (file_exists($thumbsdest.'thumb_'.$j.$filename)) @unlink($thumbsdest.'thumb_'.$j.$filename);
-								VikError::raiseWarning('', 'Error While Uploading the File: '.$pimages['name'][$imgk]);
+								if (file_exists($bigsdest . 'big_' . $j . $filename)) @unlink($bigsdest . 'big_' . $j . $filename);
+								if (file_exists($thumbsdest . 'thumb_' . $j . $filename)) @unlink($thumbsdest . 'thumb_' . $j . $filename);
+								VikError::raiseWarning('', 'Error While Uploading the File: ' . $pimages['name'][$imgk]);
 							} else {
-								$moreimagestr .= $j.$filename.";;";
+								$moreimagestr .= $j . $filename . ";;";
 								$imgcaptions[] = $captiontexts[$ki];
 							}
 							@unlink($finaldest);
 						} else {
-							VikError::raiseWarning('', 'Error While Uploading the File: '.$pimages['name'][$imgk]);
+							VikError::raiseWarning('', 'Error While Uploading the File: ' . $pimages['name'][$imgk]);
 						}
 					} else {
-						VikError::raiseWarning('', 'Error While Uploading the File: '.$pimages['name'][$imgk]);
+						VikError::raiseWarning('', 'Error While Uploading the File: ' . $pimages['name'][$imgk]);
 					}
 				}
 			}
@@ -1427,7 +1526,7 @@ class VikBookingController extends JControllerVikBooking
 				$pccatdef = "";
 				foreach ($pccat as $ccat) {
 					if (!empty($ccat)) {
-						$pccatdef .= $ccat.";";
+						$pccatdef .= $ccat . ";";
 					}
 				}
 			} else {
@@ -1436,7 +1535,7 @@ class VikBookingController extends JControllerVikBooking
 			if (is_array($pccarat) && count($pccarat)) {
 				$pccaratdef = "";
 				foreach ($pccarat as $ccarat) {
-					$pccaratdef .= $ccarat.";";
+					$pccaratdef .= $ccarat . ";";
 				}
 			} else {
 				$pccaratdef = "";
@@ -1444,12 +1543,12 @@ class VikBookingController extends JControllerVikBooking
 			if (is_array($pcoptional) && count($pcoptional)) {
 				$pcoptionaldef = "";
 				foreach ($pcoptional as $coptional) {
-					$pcoptionaldef .= $coptional.";";
+					$pcoptionaldef .= $coptional . ";";
 				}
 			} else {
 				$pcoptionaldef = "";
 			}
-			$pcavaildef=($pcavail=="yes" ? "1" : "0");
+			$pcavaildef = ($pcavail == "yes" ? "1" : "0");
 			if ($pfromadult > $ptoadult) {
 				$pfromadult = 1;
 				$ptoadult = 1;
@@ -1461,7 +1560,7 @@ class VikBookingController extends JControllerVikBooking
 			$dbo = JFactory::getDBO();
 			//adults charges/discounts
 			$adchdisctouch = false;
-			$q = "SELECT * FROM `#__vikbooking_rooms` WHERE `id`='".$pwhereup."';";
+			$q = "SELECT * FROM `#__vikbooking_rooms` WHERE `id`='" . $pwhereup . "';";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			$oldroom = $dbo->loadAssocList();
@@ -1469,8 +1568,8 @@ class VikBookingController extends JControllerVikBooking
 			if ($oldroom['fromadult'] == $pfromadult && $oldroom['toadult'] == $ptoadult) {
 				if ($oldroom['toadult'] > 1 && $oldroom['fromadult'] < $oldroom['toadult'] && @count($padultsdiffnum) > 0) {
 					$startadind = $oldroom['fromadult'] > 0 ? $oldroom['fromadult'] : 1;
-					for($adi = $startadind; $adi <= $oldroom['toadult']; $adi++) {
-						foreach ($padultsdiffnum as $kad=>$vad) {
+					for ($adi = $startadind; $adi <= $oldroom['toadult']; $adi++) {
+						foreach ($padultsdiffnum as $kad => $vad) {
 							if (intval($vad) == intval($adi) && strlen($padultsdiffval[$kad]) > 0) {
 								$adchdisctouch = true;
 								$inschdisc = intval($padultsdiffchdisc[$kad]) == 1 ? 1 : 2;
@@ -1478,24 +1577,24 @@ class VikBookingController extends JControllerVikBooking
 								$inspernight = intval($padultsdiffpernight[$kad]) == 1 ? 1 : 0;
 								$insvalue = floatval($padultsdiffval[$kad]);
 								//check if it exists
-								$q = "SELECT `id` FROM `#__vikbooking_adultsdiff` WHERE `idroom`='".$oldroom['id']."' AND `adults`='".$adi."';";
+								$q = "SELECT `id` FROM `#__vikbooking_adultsdiff` WHERE `idroom`='" . $oldroom['id'] . "' AND `adults`='" . $adi . "';";
 								$dbo->setQuery($q);
 								$dbo->execute();
 								if ($dbo->getNumRows() > 0) {
 									if ($insvalue > 0) {
 										//update
-										$q = "UPDATE `#__vikbooking_adultsdiff` SET `chdisc`='".$inschdisc."', `valpcent`='".$insvalpcent."', `value`='".$insvalue."', `pernight`='".$inspernight."' WHERE `idroom`='".$oldroom['id']."' AND `adults`='".$adi."';";
+										$q = "UPDATE `#__vikbooking_adultsdiff` SET `chdisc`='" . $inschdisc . "', `valpcent`='" . $insvalpcent . "', `value`='" . $insvalue . "', `pernight`='" . $inspernight . "' WHERE `idroom`='" . $oldroom['id'] . "' AND `adults`='" . $adi . "';";
 										$dbo->setQuery($q);
 										$dbo->execute();
 									} else {
 										//delete
-										$q = "DELETE FROM `#__vikbooking_adultsdiff` WHERE `idroom`='".$oldroom['id']."' AND `adults`='".$adi."';";
+										$q = "DELETE FROM `#__vikbooking_adultsdiff` WHERE `idroom`='" . $oldroom['id'] . "' AND `adults`='" . $adi . "';";
 										$dbo->setQuery($q);
 										$dbo->execute();
 									}
 								} else {
 									//insert
-									$q = "INSERT INTO `#__vikbooking_adultsdiff` (`idroom`,`chdisc`,`valpcent`,`value`,`adults`,`pernight`) VALUES('".$oldroom['id']."', '".$inschdisc."', '".$insvalpcent."', '".$insvalue."', '".$adi."', '".$inspernight."');";
+									$q = "INSERT INTO `#__vikbooking_adultsdiff` (`idroom`,`chdisc`,`valpcent`,`value`,`adults`,`pernight`) VALUES('" . $oldroom['id'] . "', '" . $inschdisc . "', '" . $insvalpcent . "', '" . $insvalue . "', '" . $adi . "', '" . $inspernight . "');";
 									$dbo->setQuery($q);
 									$dbo->execute();
 								}
@@ -1505,12 +1604,11 @@ class VikBookingController extends JControllerVikBooking
 				}
 			} else {
 				//min and max adults num have changed, delete
-				$q = "DELETE FROM `#__vikbooking_adultsdiff` WHERE `idroom`='".$oldroom['id']."';";
+				$q = "DELETE FROM `#__vikbooking_adultsdiff` WHERE `idroom`='" . $oldroom['id'] . "';";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
 			if ($adchdisctouch == true) {
-				$app = JFactory::getApplication();
 				$app->enqueueMessage(JText::translate('VBUPDROOMADCHDISCSAVED'));
 			}
 			//
@@ -1535,13 +1633,13 @@ class VikBookingController extends JControllerVikBooking
 				if ($oldfeatures != $newfeatures && count($newfeatures) < count($oldfeatures)) {
 					// changes were made to the first index (Room Number by default) of the distinctive features
 					// set to NULL all the already set roomindexes in bookings
-					$q = "UPDATE `#__vikbooking_ordersrooms` SET `roomindex`=NULL WHERE `idroom`=".(int)$oldroom['id'].";";
+					$q = "UPDATE `#__vikbooking_ordersrooms` SET `roomindex`=NULL WHERE `idroom`=" . (int)$oldroom['id'] . ";";
 					$dbo->setQuery($q);
 					$dbo->execute();
 				}
 			}
 			//
-			$q = "UPDATE `#__vikbooking_rooms` SET `name`=".$dbo->quote($pcname).",".(strlen($picon) > 0 ? "`img`='".$picon."'," : "")."`idcat`=".$dbo->quote($pccatdef).",`idcarat`=".$dbo->quote($pccaratdef).",`idopt`=".$dbo->quote($pcoptionaldef).",`info`=".$dbo->quote($pcdescr).",`avail`=".$dbo->quote($pcavaildef).",`units`=".($punits > 0 ? $dbo->quote($punits) : "'1'").",`moreimgs`=".$dbo->quote($moreimagestr).",`fromadult`='".$pfromadult."',`toadult`='".$ptoadult."',`fromchild`='".$pfromchild."',`tochild`='".$ptochild."',`smalldesc`=".$dbo->quote($psmalldesc).",`totpeople`=".$ptotpeople.",`mintotpeople`=".$pmintotpeople.",`params`=".$dbo->quote($roomparamstr).",`imgcaptions`=".$dbo->quote(json_encode($imgcaptions)).",`alias`=".$dbo->quote($psefalias)." WHERE `id`=".$dbo->quote($pwhereup).";";
+			$q = "UPDATE `#__vikbooking_rooms` SET    `name`=" . $dbo->quote($pcname) . "," . (strlen($picon) > 0 ? "`img`='" . $picon . "'," : "") . "`idcat`=" . $dbo->quote($pccatdef) . ",`idcarat`=" . $dbo->quote($pccaratdef) . ",`idopt`=" . $dbo->quote($pcoptionaldef) . ",`info`=" . $dbo->quote($pcdescr) . ",`avail`=" . $dbo->quote($pcavaildef) . ",`units`=" . ($punits > 0 ? $dbo->quote($punits) : "'1'") . ",`moreimgs`=" . $dbo->quote($moreimagestr) . ",`fromadult`='" . $pfromadult . "',`toadult`='" . $ptoadult . "',`fromchild`='" . $pfromchild . "',`tochild`='" . $ptochild . "',`smalldesc`=" . $dbo->quote($psmalldesc) . ",`totpeople`=" . $ptotpeople . ",`mintotpeople`=" . $pmintotpeople . ",`params`=" . $dbo->quote($roomparamstr) . ",`imgcaptions`=" . $dbo->quote(json_encode($imgcaptions)) . ",`alias`=" . $dbo->quote($psefalias) . " WHERE `id`=" . $dbo->quote($pwhereup) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 
@@ -1565,26 +1663,67 @@ class VikBookingController extends JControllerVikBooking
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
-			//
+
+			/**
+			 * Room upgrade options.
+			 * 
+			 * @since 	1.16.0 (J) - 1.6.0 (WP)
+			 */
+			$room_upgrade_options = [];
+			$room_upgrade = VikRequest::getInt('room_upgrade', 0, 'request');
+			$upgrade_rooms = VikRequest::getVar('upgrade_rooms', array());
+			$upgrade_discount = VikRequest::getFloat('upgrade_discount', 0, 'request');
+			if ($room_upgrade && is_array($upgrade_rooms) && count($upgrade_rooms)) {
+				$upgrade_rooms = array_map(function ($rid) {
+					return (int)$rid;
+				}, $upgrade_rooms);
+
+				$room_upgrade_options = [
+					'rooms'    => $upgrade_rooms,
+					'discount' => $upgrade_discount,
+				];
+			}
+			$config->set('room_upgrade_options_' . $pwhereup, json_encode($room_upgrade_options));
+
+			/**
+			 * Maximum advance booking offset can be defined at room-level. TODO
+			 * 
+			 * @since 	1.16.3 (J) - 1.6.3 (WP)
+			 */
+			$pmax_adv_notice_room = VikRequest::getInt('max_adv_notice_room', 0, 'request');
+			$pmaxdate = VikRequest::getInt('maxdate', 0, 'request');
+			$pmaxdateinterval = VikRequest::getString('maxdateinterval', '', 'request');
+			$maxdate_str = '';
+			if ($pmax_adv_notice_room && $pmaxdate > 0) {
+				$pmaxdateinterval = !in_array($pmaxdateinterval, array('d', 'w', 'm', 'y')) ? 'y' : $pmaxdateinterval;
+				$maxdate_str = '+' . $pmaxdate . $pmaxdateinterval;
+			}
+			$config->set("room_{$pwhereup}_max_adv_notice", $maxdate_str);
+
+			$app->enqueueMessage(JText::translate('VBUPDROOMOK'));
 		}
-		$mainframe->enqueueMessage(JText::translate('VBUPDROOMOK'));
+
 		if ($pupdatecaption == 1 || $stay === true) {
-			$mainframe->redirect("index.php?option=com_vikbooking&task=editroom&cid[]=".$pwhereup);
+			$app->redirect("index.php?option=com_vikbooking&task=editroom&cid[]=" . $pwhereup);
 		} else {
-			$mainframe->redirect("index.php?option=com_vikbooking&task=rooms");
+			$app->redirect("index.php?option=com_vikbooking&task=rooms");
 		}
 	}
 
-	public function modavail() {
+	public function modavail()
+	{
+		if (!JSession::checkToken() && !JSession::checkToken('get')) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
 		$cid = VikRequest::getVar('cid', array(0));
 		$room = $cid[0];
 		if (!empty($room)) {
 			$dbo = JFactory::getDBO();
-			$q = "SELECT `avail` FROM `#__vikbooking_rooms` WHERE `id`=".$dbo->quote($room).";";
+			$q = "SELECT `avail` FROM `#__vikbooking_rooms` WHERE `id`=" . $dbo->quote($room) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			$get = $dbo->loadAssocList();
-			$q = "UPDATE `#__vikbooking_rooms` SET `avail`='".(intval($get[0]['avail'])==1 ? 0 : 1)."' WHERE `id`=".$dbo->quote($room).";";
+			$q = "UPDATE `#__vikbooking_rooms` SET `avail`='" . (intval($get[0]['avail']) == 1 ? 0 : 1) . "' WHERE `id`=" . $dbo->quote($room) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
@@ -1592,7 +1731,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=rooms");
 	}
 
-	public function removeroom() {
+	public function removeroom()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -1600,10 +1740,10 @@ class VikBookingController extends JControllerVikBooking
 		if (@count($ids)) {
 			$dbo = JFactory::getDBO();
 			foreach ($ids as $d) {
-				$q = "DELETE FROM `#__vikbooking_rooms` WHERE `id`=".$dbo->quote($d).";";
+				$q = "DELETE FROM `#__vikbooking_rooms` WHERE `id`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
-				$q = "DELETE FROM `#__vikbooking_dispcost` WHERE `idroom`=".$dbo->quote($d).";";
+				$q = "DELETE FROM `#__vikbooking_dispcost` WHERE `idroom`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -1612,11 +1752,12 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=rooms");
 	}
 
-	public function tariffs() {
+	public function tariffs()
+	{
 		VikBookingHelper::printHeader("fares");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'tariffs'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -1624,16 +1765,17 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function removetariffs() {
+	public function removetariffs()
+	{
 		$ids = VikRequest::getVar('cid', array(0));
 		$proomid = VikRequest::getInt('roomid', '', 'request');
 		if (@count($ids)) {
 			$dbo = JFactory::getDBO();
 			foreach ($ids as $r) {
-				$x=explode(";", $r);
+				$x = explode(";", $r);
 				foreach ($x as $rm) {
 					if (!empty($rm)) {
-						$q = "DELETE FROM `#__vikbooking_dispcost` WHERE `id`=".$dbo->quote($rm).";";
+						$q = "DELETE FROM `#__vikbooking_dispcost` WHERE `id`=" . $dbo->quote($rm) . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
 					}
@@ -1641,14 +1783,15 @@ class VikBookingController extends JControllerVikBooking
 			}
 		}
 		$mainframe = JFactory::getApplication();
-		$mainframe->redirect("index.php?option=com_vikbooking&task=tariffs&cid[]=".$proomid);
+		$mainframe->redirect("index.php?option=com_vikbooking&task=tariffs&cid[]=" . $proomid);
 	}
 
-	public function editbusy() {
+	public function editbusy()
+	{
 		VikBookingHelper::printHeader("8");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'editbusy'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -1656,15 +1799,18 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function updatebusy() {
+	public function updatebusy()
+	{
 		$this->do_updatebusy();
 	}
 
-	public function updatebusydoinv() {
+	public function updatebusydoinv()
+	{
 		$this->do_updatebusy('geninvoices');
 	}
 
-	private function do_updatebusy($callback = '') {
+	private function do_updatebusy($callback = '')
+	{
 		$pidorder = VikRequest::getInt('idorder', 0, 'request');
 		$pcheckindate = VikRequest::getString('checkindate', '', 'request');
 		$pcheckoutdate = VikRequest::getString('checkoutdate', '', 'request');
@@ -1679,12 +1825,29 @@ class VikBookingController extends JControllerVikBooking
 		$pfrominv = VikRequest::getInt('frominv', '', 'request');
 		$pvcm = VikRequest::getInt('vcm', '', 'request');
 		$pgoto = VikRequest::getString('goto', '', 'request');
-		$pextracn = VikRequest::getVar('extracn', array());
-		$pextracc = VikRequest::getVar('extracc', array());
-		$pextractx = VikRequest::getVar('extractx', array());
+		$pextracn = VikRequest::getVar('extracn', []);
+		$pextracc = VikRequest::getVar('extracc', []);
+		$pextractx = VikRequest::getVar('extractx', []);
+		/**
+		 * This is a "foreign key" integer value useful for other Vik plugins
+		 * to store custom extra services within a VBO reservation. Another
+		 * custom value "extra foreign data" (extracdata) is added. We also
+		 * support a "type" string useful for VCM to determine the type of service.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 * @since 	1.16.1 (J) - 1.6.1 (WP) added the "type" string.
+		 */
+		$pextractype = VikRequest::getVar('extractype', []);
+		$pextracfk = VikRequest::getVar('extracfk', []);
+		$pextracdata = VikRequest::getVar('extracdata', [], 'request', 'array', VIKREQUEST_ALLOWRAW);
+
 		$dbo = JFactory::getDbo();
 		$user = JFactory::getUser();
-		$mainframe = JFactory::getApplication();
+		$app = JFactory::getApplication();
+
+		// availability helper
+		$av_helper = VikBooking::getAvailabilityInstance();
+
 		$actnow = time();
 		$nowdf = VikBooking::getDateFormat(true);
 		if ($nowdf == "%d/%m/%Y") {
@@ -1694,849 +1857,1180 @@ class VikBookingController extends JControllerVikBooking
 		} else {
 			$df = 'Y/m/d';
 		}
-		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=".$pidorder.";";
+
+		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=" . $pidorder;
+		$dbo->setQuery($q, 0, 1);
+		$dbo->execute();
+		if (!$dbo->getNumRows()) {
+			$app->redirect("index.php?option=com_vikbooking&task=rooms");
+			exit;
+		}
+
+		$ord = $dbo->loadAssoc();
+
+		$q = "SELECT `or`.*,`r`.`name`,`r`.`idopt`,`r`.`units`,`r`.`fromadult`,`r`.`toadult` FROM `#__vikbooking_ordersrooms` AS `or`,`#__vikbooking_rooms` AS `r` WHERE `or`.`idorder`=" . $ord['id'] . " AND `or`.`idroom`=`r`.`id` ORDER BY `or`.`id` ASC;";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		if ($dbo->getNumRows() == 1) {
-			$ord = $dbo->loadAssocList();
-			$q = "SELECT `or`.*,`r`.`name`,`r`.`idopt`,`r`.`units`,`r`.`fromadult`,`r`.`toadult` FROM `#__vikbooking_ordersrooms` AS `or`,`#__vikbooking_rooms` AS `r` WHERE `or`.`idorder`=".$ord[0]['id']." AND `or`.`idroom`=`r`.`id` ORDER BY `or`.`id` ASC;";
-			$dbo->setQuery($q);
-			$dbo->execute();
-			$ordersrooms = $dbo->loadAssocList();
-			//do not touch this array property because it's used by VCM
-			$ord[0]['rooms_info'] = $ordersrooms;
-			//Package or custom rate
-			$is_package = !empty($ord[0]['pkg']) ? true : false;
-			$is_cust_cost = false;
-			foreach ($ordersrooms as $kor => $or) {
-				if ($is_package !== true && !empty($or['cust_cost']) && $or['cust_cost'] > 0.00) {
-					$is_cust_cost = true;
-					break;
+		$ordersrooms = $dbo->loadAssocList();
+
+		// do not touch this array property because it's used by VCM
+		$ord['rooms_info'] = $ordersrooms;
+
+		// room stay dates in case of split stay
+		$room_stay_dates = [];
+		if ($ord['split_stay']) {
+			if ($ord['status'] == 'confirmed') {
+				$room_stay_dates = $av_helper->loadSplitStayBusyRecords($ord['id']);
+			} else {
+				$room_stay_dates = VBOFactory::getConfig()->getArray('split_stay_' . $ord['id'], []);
+			}
+			// immediately count the number of nights of stay for each split room
+			foreach ($room_stay_dates as $sps_r_k => $sps_r_v) {
+				if (!empty($sps_r_v['checkin_ts']) && !empty($sps_r_v['checkout_ts'])) {
+					// overwrite values for compatibility with non-confirmed bookings
+					$sps_r_v['checkin'] = $sps_r_v['checkin_ts'];
+					$sps_r_v['checkout'] = $sps_r_v['checkout_ts'];
+				}
+				$sps_r_v['nights'] = $av_helper->countNightsOfStay($sps_r_v['checkin'], $sps_r_v['checkout']);
+				// overwrite the whole array
+				$room_stay_dates[$sps_r_k] = $sps_r_v;
+			}
+		}
+
+		// package or custom rate
+		$is_package = !empty($ord['pkg']) ? true : false;
+		$is_cust_cost = false;
+		foreach ($ordersrooms as $kor => $or) {
+			if ($is_package !== true && !empty($or['cust_cost']) && $or['cust_cost'] > 0.00) {
+				$is_cust_cost = true;
+				break;
+			}
+		}
+
+		// room switching
+		$toswitch = array();
+		$idbooked = array();
+		$rooms_units = array();
+
+		$q = "SELECT `id`,`name`,`units` FROM `#__vikbooking_rooms`;";
+		$dbo->setQuery($q);
+		$dbo->execute();
+		$all_rooms = $dbo->loadAssocList();
+		foreach ($all_rooms as $rr) {
+			$rooms_units[$rr['id']]['name'] = $rr['name'];
+			$rooms_units[$rr['id']]['units'] = $rr['units'];
+		}
+
+		foreach ($ordersrooms as $ind => $or) {
+			$switch_command = VikRequest::getString('switch_' . $or['id'], '', 'request');
+			if (!empty($switch_command) && intval($switch_command) != $or['idroom'] && array_key_exists(intval($switch_command), $rooms_units)) {
+				if (!isset($idbooked[$or['idroom']])) {
+					$idbooked[$or['idroom']] = 0;
+				}
+				$idbooked[$or['idroom']]++;
+				$orkey = count($toswitch);
+				$toswitch[$orkey]['from'] = $or['idroom'];
+				$toswitch[$orkey]['to'] = intval($switch_command);
+				$toswitch[$orkey]['record'] = $or;
+				$toswitch[$orkey]['record_ind'] = $ind;
+			}
+		}
+
+		if (count($toswitch) && (!empty($ordersrooms[0]['idtar']) || $is_package || $is_cust_cost)) {
+			foreach ($toswitch as $ksw => $rsw) {
+				$plusunit = array_key_exists($rsw['to'], $idbooked) ? $idbooked[$rsw['to']] : 0;
+				$room_checkin  = $ord['checkin'];
+				$room_checkout = $ord['checkout'];
+				if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$rsw['record_ind']]) && $room_stay_dates[$rsw['record_ind']]['idroom'] == $rsw['from']) {
+					$room_checkin  = $room_stay_dates[$rsw['record_ind']]['checkin'];
+					$room_checkout = $room_stay_dates[$rsw['record_ind']]['checkout'];
+				}
+				if (!VikBooking::roomBookable($rsw['to'], ($rooms_units[$rsw['to']]['units'] + $plusunit), $room_checkin, $room_checkout)) {
+					// the room is not available
+					unset($toswitch[$ksw]);
+					VikError::raiseWarning('', JText::sprintf('VBSWITCHRERR', $rsw['record']['name'], $rooms_units[$rsw['to']]['name']));
 				}
 			}
-			//
-			//VikBooking 1.5 room switching
-			$toswitch = array();
-			$idbooked = array();
-			$rooms_units = array();
-			$q = "SELECT `id`,`name`,`units` FROM `#__vikbooking_rooms`;";
-			$dbo->setQuery($q);
-			$dbo->execute();
-			$all_rooms = $dbo->loadAssocList();
-			foreach ($all_rooms as $rr) {
-				$rooms_units[$rr['id']]['name'] = $rr['name'];
-				$rooms_units[$rr['id']]['units'] = $rr['units'];
-			}
-			foreach ($ordersrooms as $ind => $or) {
-				$switch_command = VikRequest::getString('switch_'.$or['id'], '', 'request');
-				if (!empty($switch_command) && intval($switch_command) != $or['idroom'] && array_key_exists(intval($switch_command), $rooms_units)) {
-					if (!isset($idbooked[$or['idroom']])) {
-						$idbooked[$or['idroom']] = 0;
-					}
-					$idbooked[$or['idroom']]++;
-					$orkey = count($toswitch);
-					$toswitch[$orkey]['from'] = $or['idroom'];
-					$toswitch[$orkey]['to'] = intval($switch_command);
-					$toswitch[$orkey]['record'] = $or;
-				}
-			}
-			if (count($toswitch) > 0 && (!empty($ordersrooms[0]['idtar']) || $is_package || $is_cust_cost)) {
+			if (count($toswitch)) {
+				// reset first record rate
+				reset($ordersrooms);
+				$q = "UPDATE `#__vikbooking_ordersrooms` SET `idtar`=NULL,`roomindex`=NULL,`room_cost`=NULL WHERE `id`=" . $ordersrooms[0]['id'] . ";";
+				$dbo->setQuery($q);
+				$dbo->execute();
+
+				// flag for invoking VCM at a proper time
+				$vcm_should_run = false;
+
 				foreach ($toswitch as $ksw => $rsw) {
-					$plusunit = array_key_exists($rsw['to'], $idbooked) ? $idbooked[$rsw['to']] : 0;
-					if (!VikBooking::roomBookable($rsw['to'], ($rooms_units[$rsw['to']]['units'] + $plusunit), $ord[0]['checkin'], $ord[0]['checkout'])) {
-						unset($toswitch[$ksw]);
-						VikError::raiseWarning('', JText::sprintf('VBSWITCHRERR', $rsw['record']['name'], $rooms_units[$rsw['to']]['name']));
-					}
-				}
-				if (count($toswitch) > 0) {
-					//reset first record rate
-					reset($ordersrooms);
-					$q = "UPDATE `#__vikbooking_ordersrooms` SET `idtar`=NULL,`roomindex`=NULL,`room_cost`=NULL WHERE `id`=".$ordersrooms[0]['id'].";";
+					// update room reservation record
+					$q = "UPDATE `#__vikbooking_ordersrooms` SET `idroom`=" . $rsw['to'] . ",`idtar`=NULL,`roomindex`=NULL,`room_cost`=NULL WHERE `id`=" . $rsw['record']['id'] . ";";
 					$dbo->setQuery($q);
 					$dbo->execute();
-					//
-					$app = JFactory::getApplication();
-					foreach ($toswitch as $ksw => $rsw) {
-						$q = "UPDATE `#__vikbooking_ordersrooms` SET `idroom`=".$rsw['to'].",`idtar`=NULL,`roomindex`=NULL,`room_cost`=NULL WHERE `id`=".$rsw['record']['id'].";";
+					$app->enqueueMessage(JText::sprintf('VBSWITCHROK', $rsw['record']['name'], $rooms_units[$rsw['to']]['name']));
+
+					// update Notes field for this booking to keep track of the previous room that was assigned
+					$prev_room_name = array_key_exists($rsw['from'], $rooms_units) ? $rooms_units[$rsw['from']]['name'] : '';
+					if (!empty($prev_room_name)) {
+						$new_notes = JText::sprintf('VBOPREVROOMMOVED', $prev_room_name, date($df . ' H:i:s')) . "\n" . $ord['adminnotes'];
+						$q = "UPDATE `#__vikbooking_orders` SET `adminnotes`=" . $dbo->quote($new_notes) . " WHERE `id`=" . (int)$ord['id'] . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
-						$app->enqueueMessage(JText::sprintf('VBSWITCHROK', $rsw['record']['name'], $rooms_units[$rsw['to']]['name']));
-						//update Notes field for this booking to keep track of the previous room that was assigned
-						$prev_room_name = array_key_exists($rsw['from'], $rooms_units) ? $rooms_units[$rsw['from']]['name'] : '';
-						if (!empty($prev_room_name)) {
-							$new_notes = JText::sprintf('VBOPREVROOMMOVED', $prev_room_name, date($df.' H:i:s'))."\n".$ord[0]['adminnotes'];
-							$q = "UPDATE `#__vikbooking_orders` SET `adminnotes`=".$dbo->quote($new_notes)." WHERE `id`=".(int)$ord[0]['id'].";";
+					}
+
+					if ($ord['status'] == 'confirmed') {
+						// update room record in _busy
+						if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$rsw['record_ind']]) && $room_stay_dates[$rsw['record_ind']]['idroom'] == $rsw['from'] && !empty($room_stay_dates[$rsw['record_ind']]['id'])) {
+							// in case of a split stay it is fundamental to update the exact busy record ID
+							$q = "UPDATE `#__vikbooking_busy` SET `idroom`=" . $rsw['to'] . " WHERE `id`=" . (int)$room_stay_dates[$rsw['record_ind']]['id'];
 							$dbo->setQuery($q);
 							$dbo->execute();
-						}
-						//
-						if ($ord[0]['status'] == 'confirmed') {
-							//update record in _busy
-							$q = "SELECT `b`.`id`,`b`.`idroom`,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`idroom`=" . $rsw['from'] . " AND `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`=".$ord[0]['id']." LIMIT 1;";
+						} else {
+							// regular processing of a room ID for a reservation, no matter which one, we switch it
+							$q = "SELECT `b`.`id`,`b`.`idroom`,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`idroom`=" . $rsw['from'] . " AND `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`=" . $ord['id'] . " LIMIT 1;";
 							$dbo->setQuery($q);
 							$dbo->execute();
 							if ($dbo->getNumRows() == 1) {
 								$cur_busy = $dbo->loadAssocList();
-								$q = "UPDATE `#__vikbooking_busy` SET `idroom`=".$rsw['to']." WHERE `id`=".$cur_busy[0]['id']." AND `idroom`=".$cur_busy[0]['idroom']." LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_busy` SET `idroom`=" . $rsw['to'] . " WHERE `id`=" . $cur_busy[0]['id'] . " AND `idroom`=" . $cur_busy[0]['idroom'] . " LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
 							}
-							//Invoke Channel Manager
-							$vcm_autosync = VikBooking::vcmAutoUpdate();
-							if ($vcm_autosync > 0) {
-								$vcm_obj = VikBooking::getVcmInvoker();
-								$vcm_obj->setOids(array($ord[0]['id']))->setSyncType('modify')->setOriginalBooking($ord[0]);
-								$sync_result = $vcm_obj->doSync();
-								if ($sync_result === false) {
-									$vcm_err = $vcm_obj->getError();
-									VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO').' <a href="index.php?option=com_vikchannelmanager" target="_blank">'.JText::translate('VBCHANNELMANAGEROPEN').'</a> '.(strlen($vcm_err) > 0 ? '('.$vcm_err.')' : ''));
-								}
-							} elseif (file_exists(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
-								VikError::raiseNotice('', JText::translate('VBCHANNELMANAGERINVOKEASK').' <form action="index.php?option=com_vikbooking" method="post"><input type="hidden" name="option" value="com_vikbooking"/><input type="hidden" name="task" value="invoke_vcm"/><input type="hidden" name="stype" value="modify"/><input type="hidden" name="cid[]" value="'.$ord[0]['id'].'"/><input type="hidden" name="origb" value="'.urlencode(json_encode($ord[0])).'"/><input type="hidden" name="returl" value="'.urlencode("index.php?option=com_vikbooking&task=editbusy".($pvcm == 1 ? '&vcm=1' : '')."&cid[]=".$ord[0]['id']).'"/><button type="submit" class="btn btn-primary">'.JText::translate('VBCHANNELMANAGERSENDRQ').'</button></form>');
-							}
-							//
-						} elseif ($ord[0]['status'] == 'standby') {
-							//remove record in _tmplock
-							$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `idorder`=" . intval($ord[0]['id']) . ";";
-							$dbo->setQuery($q);
-							$dbo->execute();
+						}
+
+						/**
+						 * Make sure to take care of the shared calendars before invoking VCM.
+						 * Register the flag to run the Channel Manager and leave the booking
+						 * array unchanged to run just one update request.
+						 * 
+						 * @since 	1.16.0 (J) - 1.6.0 (WP)
+						 */
+						$vcm_should_run = true;
+					} elseif ($ord['status'] == 'standby') {
+						// remove record in _tmplock
+						$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `idorder`=" . intval($ord['id']) . ";";
+						$dbo->setQuery($q);
+						$dbo->execute();
+						// check if it's a split stay
+						if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$rsw['record_ind']]) && $room_stay_dates[$rsw['record_ind']]['idroom'] == $rsw['from']) {
+							// update room ID in split stay data
+							$room_stay_dates[$rsw['record_ind']]['idroom'] = $rsw['to'];
+							// update configuration record
+							VBOFactory::getConfig()->set('split_stay_' . $ord['id'], json_encode($room_stay_dates));
 						}
 					}
+				}
 
-					// unset any previously booked room due to calendar sharing
-					VikBooking::cleanSharedCalendarsBusy($ord[0]['id']);
-					// check if some of the rooms booked have shared calendars
-					VikBooking::updateSharedCalendars($ord[0]['id']);
-					//
+				// unset any previously booked room due to calendar sharing
+				VikBooking::cleanSharedCalendarsBusy($ord['id']);
+				// check if some of the rooms booked have shared calendars
+				VikBooking::updateSharedCalendars($ord['id']);
 
-					//Booking History
-					VikBooking::getBookingHistoryInstance()->setBid($ord[0]['id'])->store('MB', "({$user->name}) " . VikBooking::getLogBookingModification($ord[0]));
-					//
-					$app->redirect("index.php?option=com_vikbooking&task=editbusy".($pvcm == 1 ? '&vcm=1' : '').($pfrominv == 1 ? '&frominv=1' : '')."&cid[]=".$ord[0]['id'].($pgoto == 'overv' ? "&goto=overv" : ""));
-					exit;
+				if ($vcm_should_run) {
+					// we can now run the Channel Manager after having updated the shared calendars
+					$vcm_autosync = VikBooking::vcmAutoUpdate();
+					if ($vcm_autosync > 0) {
+						$vcm_obj = VikBooking::getVcmInvoker();
+						$vcm_obj->setOids(array($ord['id']))->setSyncType('modify')->setOriginalBooking($ord);
+						$sync_result = $vcm_obj->doSync();
+						if ($sync_result === false) {
+							$vcm_err = $vcm_obj->getError();
+							VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO') . ' <a href="index.php?option=com_vikchannelmanager" target="_blank">' . JText::translate('VBCHANNELMANAGEROPEN') . '</a> ' . (strlen($vcm_err) > 0 ? '(' . $vcm_err . ')' : ''));
+						}
+					} elseif (file_exists(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
+						VikError::raiseNotice('', JText::translate('VBCHANNELMANAGERINVOKEASK') . ' <form action="index.php?option=com_vikbooking" method="post"><input type="hidden" name="option" value="com_vikbooking"/><input type="hidden" name="task" value="invoke_vcm"/><input type="hidden" name="stype" value="modify"/><input type="hidden" name="cid[]" value="' . $ord['id'] . '"/><input type="hidden" name="origb" value="' . urlencode(json_encode($ord)) . '"/><input type="hidden" name="returl" value="' . urlencode("index.php?option=com_vikbooking&task=editbusy" . ($pvcm == 1 ? '&vcm=1' : '') . "&cid[]=" . $ord['id']) . '"/><button type="submit" class="btn btn-primary">' . JText::translate('VBCHANNELMANAGERSENDRQ') . '</button></form>');
+					}
+				}
+
+				//Booking History
+				VikBooking::getBookingHistoryInstance()->setBid($ord['id'])->store('MB', "({$user->name}) " . VikBooking::getLogBookingModification($ord));
+				//
+				$app->redirect("index.php?option=com_vikbooking&task=editbusy" . ($pvcm == 1 ? '&vcm=1' : '') . ($pfrominv == 1 ? '&frominv=1' : '') . "&cid[]=" . $ord['id'] . ($pgoto == 'overv' ? "&goto=overv" : ""));
+				exit;
+			}
+		}
+
+		// update booking data
+		$first = VikBooking::getDateTimestamp($pcheckindate, $pcheckinh, $pcheckinm);
+		$second = VikBooking::getDateTimestamp($pcheckoutdate, $pcheckouth, $pcheckoutm);
+		if ($second <= $first) {
+			VikError::raiseWarning('', JText::translate('ERRPREV'));
+			$app->redirect("index.php?option=com_vikbooking&task=editbusy" . ($pvcm == 1 ? '&vcm=1' : '') . ($pfrominv == 1 ? '&frominv=1' : '') . "&cid[]=" . $ord['id'] . ($pgoto == 'overv' ? "&goto=overv" : ""));
+			exit;
+		}
+
+		$secdiff = $second - $first;
+		$daysdiff = $secdiff / 86400;
+		if (is_int($daysdiff)) {
+			if ($daysdiff < 1) {
+				$daysdiff = 1;
+			}
+		} else {
+			if ($daysdiff < 1) {
+				$daysdiff = 1;
+			} else {
+				$sum = floor($daysdiff) * 86400;
+				$newdiff = $secdiff - $sum;
+				$maxhmore = VikBooking::getHoursMoreRb() * 3600;
+				if ($maxhmore >= $newdiff) {
+					$daysdiff = floor($daysdiff);
+				} else {
+					$daysdiff = ceil($daysdiff);
 				}
 			}
-			//
-			$first = VikBooking::getDateTimestamp($pcheckindate, $pcheckinh, $pcheckinm);
-			$second = VikBooking::getDateTimestamp($pcheckoutdate, $pcheckouth, $pcheckoutm);
-			if ($second > $first) {
-				$secdiff = $second - $first;
-				$daysdiff = $secdiff / 86400;
-				if (is_int($daysdiff)) {
-					if ($daysdiff < 1) {
-						$daysdiff = 1;
-					}
-				} else {
-					if ($daysdiff < 1) {
-						$daysdiff = 1;
-					} else {
-						$sum = floor($daysdiff) * 86400;
-						$newdiff = $secdiff - $sum;
-						$maxhmore = VikBooking::getHoursMoreRb() * 3600;
-						if ($maxhmore >= $newdiff) {
-							$daysdiff = floor($daysdiff);
-						} else {
-							$daysdiff = ceil($daysdiff);
-						}
-					}
+		}
+
+		$groupdays = VikBooking::getGroupDays($first, $second, $daysdiff);
+		$opertwounits = true;
+
+		$units_counter = array();
+		$prm_room_oid = VikRequest::getInt('rm_room_oid', 0, 'request');
+		foreach ($ordersrooms as $ind => $or) {
+			if (!isset($units_counter[$or['idroom']])) {
+				$units_counter[$or['idroom']] = -1;
+			}
+			if ($prm_room_oid != $or['id']) {
+				$units_counter[$or['idroom']]++;
+			}
+		}
+
+		/**
+		 * Split stay data for booking and rooms different stay dates.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$split_stay_data   = VikRequest::getVar('split_stay_data', array());
+		$room_modify_dates = VikRequest::getVar('room_modify_dates', array());
+		$split_stay_checkins  = [];
+		$split_stay_checkouts = [];
+
+		if ($ord['split_stay'] && !empty($split_stay_data)) {
+			// make sure the min/max split stay dates match the booking global dates
+			foreach ($split_stay_data as $sps_k => $split_stay) {
+				if (empty($split_stay['checkin']) || empty($split_stay['checkout'])) {
+					continue;
 				}
-				$groupdays = VikBooking::getGroupDays($first, $second, $daysdiff);
-				$opertwounits = true;
-				$units_counter = array();
-				$prm_room_oid = VikRequest::getInt('rm_room_oid', '', 'request');
-				foreach ($ordersrooms as $ind => $or) {
-					if (!isset($units_counter[$or['idroom']])) {
-						$units_counter[$or['idroom']] = -1;
-					}
-					if ($prm_room_oid != $or['id']) {
-						$units_counter[$or['idroom']]++;
+				$new_room_checkin  = VikBooking::getDateTimestamp($split_stay['checkin'], $pcheckinh, $pcheckinm);
+				$new_room_checkout = VikBooking::getDateTimestamp($split_stay['checkout'], $pcheckouth, $pcheckoutm);
+				$split_stay_checkins[]  = $new_room_checkin;
+				$split_stay_checkouts[] = $new_room_checkout;
+				if (isset($room_stay_dates[$sps_k])) {
+					$room_stay_dates[$sps_k]['new_checkin']  = $new_room_checkin;
+					$room_stay_dates[$sps_k]['new_checkout'] = $new_room_checkout;
+					$room_stay_dates[$sps_k]['new_nights'] 	 = $av_helper->countNightsOfStay($new_room_checkin, $new_room_checkout);
+				}
+			}
+			if (empty($split_stay_checkins) || empty($split_stay_checkouts)) {
+				// error
+				VikError::raiseWarning('', 'Error, split stay rooms must have their own stay dates matching the booking check-in and check-out dates');
+				$app->redirect("index.php?option=com_vikbooking&task=editbusy" . ($pvcm == 1 ? '&vcm=1' : '') . ($pfrominv == 1 ? '&frominv=1' : '') . "&cid[]=" . $ord['id'] . ($pgoto == 'overv' ? "&goto=overv" : ""));
+				exit;
+			}
+			if (min($split_stay_checkins) != $first) {
+				// error
+				VikError::raiseWarning('', sprintf('Error, the earliest check-in (%s) for the split stay rooms must match the booking check-in date (%s)', date('Y-m-d H:i:s', min($split_stay_checkins)), date('Y-m-d H:i:s', $first)));
+				$app->redirect("index.php?option=com_vikbooking&task=editbusy" . ($pvcm == 1 ? '&vcm=1' : '') . ($pfrominv == 1 ? '&frominv=1' : '') . "&cid[]=" . $ord['id'] . ($pgoto == 'overv' ? "&goto=overv" : ""));
+				exit;
+			}
+			if (max($split_stay_checkouts) != $second) {
+				// error
+				VikError::raiseWarning('', sprintf('Error, the latest check-out (%s) for the split stay rooms must match the booking check-out date (%s)', date('Y-m-d H:i:s', max($split_stay_checkouts)), date('Y-m-d H:i:s', $second)));
+				$app->redirect("index.php?option=com_vikbooking&task=editbusy" . ($pvcm == 1 ? '&vcm=1' : '') . ($pfrominv == 1 ? '&frominv=1' : '') . "&cid[]=" . $ord['id'] . ($pgoto == 'overv' ? "&goto=overv" : ""));
+				exit;
+			}
+		}
+
+		/**
+		 * We need to make sure the sub-units of the rooms involved are not being overbooked.
+		 * In this case, we simply raise an error message by not stopping the process.
+		 * 
+		 * @since 	1.13.0 (J) - 1.3.0 (WP)
+		 */
+		$subunits_involved_bids = array();
+		//
+
+		foreach ($ordersrooms as $ind => $or) {
+			$num = $ind + 1;
+			$check = "SELECT `b`.`id`,`b`.`checkin`,`b`.`realback`,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`idroom`=" . $or['idroom'] . " AND `b`.`realback`>=" . $first . " AND `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`!=" . $ord['id'] . ";";
+			$dbo->setQuery($check);
+			$dbo->execute();
+			if ($dbo->getNumRows() > 0) {
+				$busy = $dbo->loadAssocList();
+
+				// determine the days to consider for the count of the availability
+				$use_groupdays = $groupdays;
+				$room_checkin  = $first;
+				$room_checkout = $second;
+				if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$ind]) && $room_stay_dates[$ind]['idroom'] == $or['idroom'] && !empty($room_stay_dates[$ind]['new_nights'])) {
+					$use_groupdays = VikBooking::getGroupDays($room_stay_dates[$ind]['new_checkin'], $room_stay_dates[$ind]['new_checkout'], $room_stay_dates[$ind]['new_nights']);
+					$room_checkin  = $room_stay_dates[$ind]['new_checkin'];
+					$room_checkout = $room_stay_dates[$ind]['new_checkout'];
+				} elseif (!$ord['split_stay'] && !$ord['closure'] && $ord['roomsnum'] > 1 && $ord['days'] > 1 && $ord['status'] == 'confirmed' && VikRequest::getInt('room_modify_dates' . $ind, 0, 'request')) {
+					// room may have individual stay dates
+					if (isset($room_modify_dates[$ind]) && !empty($room_modify_dates[$ind]['checkin']) && !empty($room_modify_dates[$ind]['checkout'])) {
+						// get new stay dates (if changed)
+						$new_room_checkin  = VikBooking::getDateTimestamp($room_modify_dates[$ind]['checkin'], $pcheckinh, $pcheckinm);
+						$new_room_checkout = VikBooking::getDateTimestamp($room_modify_dates[$ind]['checkout'], $pcheckouth, $pcheckoutm);
+						$use_groupdays = VikBooking::getGroupDays($new_room_checkin, $new_room_checkout, $av_helper->countNightsOfStay($new_room_checkin, $new_room_checkout));
+						$room_checkin  = $new_room_checkin;
+						$room_checkout = $new_room_checkout;
 					}
 				}
 
-				/**
-				 * We need to make sure the sub-units of the rooms involved are not being overbooked.
-				 * In this case, we simply raise an error message by not stopping the process.
-				 * 
-				 * @since 	1.3.0
-				 */
-				$subunits_involved_bids = array();
-				//
-
-				foreach ($ordersrooms as $ind => $or) {
-					$num = $ind + 1;
-					$check = "SELECT `b`.`id`,`b`.`checkin`,`b`.`realback`,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`idroom`=" . $or['idroom'] . " AND `b`.`realback`>=" . $first . " AND `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`!=" . $ord[0]['id'] . ";";
-					$dbo->setQuery($check);
-					$dbo->execute();
-					if ($dbo->getNumRows() > 0) {
-						$busy = $dbo->loadAssocList();
-						foreach ($groupdays as $gday) {
-							$bfound = 0;
-							foreach ($busy as $bu) {
-								if ($gday >= $bu['checkin'] && $gday <= $bu['realback']) {
-									$bfound++;
-									// keep track of the IDs involved to avoid overbooking for the sub-units
-									if (!empty($or['roomindex'])) {
-										if (!isset($subunits_involved_bids[$bu['idorder']])) {
-											$subunits_involved_bids[$bu['idorder']] = array();
-										}
-										array_push($subunits_involved_bids[$bu['idorder']], array(
-											'idroom' 	=> $or['idroom'],
-											'roomindex' => $or['roomindex'],
-										));
-									}
-									//
+				foreach ($use_groupdays as $gday) {
+					// count units booked for each stay timestamp
+					$bfound = 0;
+					foreach ($busy as $bu) {
+						if ($gday >= $bu['checkin'] && $gday <= $bu['realback']) {
+							// increase units booked found
+							$bfound++;
+							// keep track of the IDs involved to avoid overbooking for the sub-units
+							if (!empty($or['roomindex'])) {
+								if (!isset($subunits_involved_bids[$bu['idorder']])) {
+									$subunits_involved_bids[$bu['idorder']] = array();
 								}
-							}
-							if ($bfound >= ($or['units'] - $units_counter[$or['idroom']]) || ($ord[0]['status'] == 'confirmed' && !VikBooking::roomNotLocked($or['idroom'], $or['units'], $first, $second))) {
-								$opertwounits = false;
-								break 2;
+								array_push($subunits_involved_bids[$bu['idorder']], array(
+									'idroom' 	=> $or['idroom'],
+									'roomindex' => $or['roomindex'],
+								));
 							}
 						}
 					}
-				}
 
-				/**
-				 * Make sure no sub-units are overbooked even though the main room is available.
-				 * 
-				 * @since 	1.3.0
-				 */
-				if ($opertwounits === true && count($subunits_involved_bids)) {
-					$subunits_involved_bids = array_unique($subunits_involved_bids);
-					// grab all the information about the bids involved and the related rooms/indexes
-					$q = "SELECT `or`.`idorder`, `or`.`idroom`, `or`.`roomindex`, `o`.`checkin`, `o`.`checkout`, `r`.`name`, `r`.`params` 
-						FROM `#__vikbooking_ordersrooms` AS `or` LEFT JOIN `#__vikbooking_orders` AS `o` ON `or`.`idorder`=`o`.`id` 
-						LEFT JOIN `#__vikbooking_rooms` AS `r` ON `or`.`idroom`=`r`.`id` 
-						WHERE `or`.`idorder` IN (" . implode(', ', array_keys($subunits_involved_bids)) . ");";
-					$dbo->setQuery($q);
-					$dbo->execute();
-					if ($dbo->getNumRows()) {
-						$involved_data = $dbo->loadAssocList();
-						foreach ($involved_data as $invb) {
-							if (empty($invb['roomindex'])) {
-								continue;
-							}
-							foreach ($subunits_involved_bids[$invb['idorder']] as $bookedindex) {
-								if ($bookedindex['idroom'] == $invb['idroom'] && $bookedindex['roomindex'] == $invb['roomindex']) {
-									// this same sub-unit is occupied by this booking ID: raise an error message to inform the administrator
-									$subunit_name = $invb['roomindex'];
-									$room_params = json_decode($invb['params'], true);
-									if (is_array($room_params) && isset($room_params['features']) && @count($room_params['features'])) {
-										foreach ($room_params['features'] as $rind => $rfeatures) {
-											if ($rind == $invb['roomindex']) {
-												foreach ($rfeatures as $fname => $fval) {
-													if (strlen($fval)) {
-														$subunit_name = '#' . $rind . ' - ' . JText::translate($fname) . ': ' . $fval;
-														break;
-													}
-												}
+					// units booked must be greater than zero in case of split stays involving the same room multiple times
+					$detract_multi_units = $units_counter[$or['idroom']];
+					if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$ind]) && $room_stay_dates[$ind]['idroom'] == $or['idroom']) {
+						// split stay bookings never occupy the same room on the same dates
+						$detract_multi_units = 0;
+					}
+					if ($bfound > 0 && $bfound >= ($or['units'] - $detract_multi_units)) {
+						$opertwounits = false;
+						break 2;
+					}
+
+					// make sure the room is not temporarily locked while waiting to be paid/confirmed
+					if ($ord['status'] == 'confirmed' && !VikBooking::roomNotLocked($or['idroom'], $or['units'], $room_checkin, $room_checkout)) {
+						$opertwounits = false;
+						break 2;
+					}
+				}
+			}
+		}
+
+		/**
+		 * Make sure no sub-units are overbooked even though the main room is available.
+		 * 
+		 * @since 	1.13.0 (J) - 1.3.0 (WP)
+		 */
+		if ($opertwounits === true && count($subunits_involved_bids)) {
+			$subunits_involved_bids = array_unique($subunits_involved_bids);
+			// grab all the information about the bids involved and the related rooms/indexes
+			$q = "SELECT `or`.`idorder`, `or`.`idroom`, `or`.`roomindex`, `o`.`checkin`, `o`.`checkout`, `r`.`name`, `r`.`params` 
+				FROM `#__vikbooking_ordersrooms` AS `or` LEFT JOIN `#__vikbooking_orders` AS `o` ON `or`.`idorder`=`o`.`id` 
+				LEFT JOIN `#__vikbooking_rooms` AS `r` ON `or`.`idroom`=`r`.`id` 
+				WHERE `or`.`idorder` IN (" . implode(', ', array_keys($subunits_involved_bids)) . ");";
+			$dbo->setQuery($q);
+			$dbo->execute();
+			if ($dbo->getNumRows()) {
+				$involved_data = $dbo->loadAssocList();
+				foreach ($involved_data as $invb) {
+					if (empty($invb['roomindex'])) {
+						continue;
+					}
+					foreach ($subunits_involved_bids[$invb['idorder']] as $bookedindex) {
+						if ($bookedindex['idroom'] == $invb['idroom'] && $bookedindex['roomindex'] == $invb['roomindex']) {
+							// this same sub-unit is occupied by this booking ID: raise an error message to inform the administrator
+							$subunit_name = $invb['roomindex'];
+							$room_params = json_decode($invb['params'], true);
+							if (is_array($room_params) && isset($room_params['features']) && @count($room_params['features'])) {
+								foreach ($room_params['features'] as $rind => $rfeatures) {
+									if ($rind == $invb['roomindex']) {
+										foreach ($rfeatures as $fname => $fval) {
+											if (strlen($fval)) {
+												$subunit_name = '#' . $rind . ' - ' . JText::translate($fname) . ': ' . $fval;
+												break;
 											}
 										}
 									}
-									$adjust_link = '<br/><a class="btn btn-danger" target="_blank" href="index.php?option=com_vikbooking&task=editorder&cid[]=' . $invb['idorder'] . '">' . JText::translate('VBOSUBUNITOVERBOOKEDGOTO') . '</a>';
-									VikError::raiseWarning('', JText::sprintf('VBOSUBUNITOVERBOOKEDERR', $subunit_name, $invb['name'], date($df, $invb['checkin']), date($df, $invb['checkout']), $invb['idorder']) . $adjust_link);
 								}
 							}
+							$adjust_link = '<br/><a class="btn btn-danger" target="_blank" href="index.php?option=com_vikbooking&task=editorder&cid[]=' . $invb['idorder'] . '">' . JText::translate('VBOSUBUNITOVERBOOKEDGOTO') . '</a>';
+							VikError::raiseWarning('', JText::sprintf('VBOSUBUNITOVERBOOKEDERR', $subunit_name, $invb['name'], date($df, $invb['checkin']), date($df, $invb['checkout']), $invb['idorder']) . $adjust_link);
 						}
 					}
 				}
-				//
+			}
+		}
 
-				$forcebooking = VikRequest::getInt('forcebooking', 0, 'request');
-				if ($opertwounits === true || $forcebooking) {
-					//update dates, customer information, amount paid and busy records before checking the rates
-					$realback = VikBooking::getHoursRoomAvail() * 3600;
-					$realback += $second;
-					$newtotalpaid = strlen($ptotpaid) > 0 ? floatval($ptotpaid) : "";
-					$newrefund = strlen($prefund) > 0 ? floatval($prefund) : null;
-					$roomsnum = $ord[0]['roomsnum'];
-					//Vik Booking 1.10 - Add Room to existing booking
-					$room_added = false;
-					$padd_room_id = VikRequest::getInt('add_room_id', '', 'request');
-					$padd_room_adults = VikRequest::getInt('add_room_adults', 2, 'request');
-					$padd_room_children = VikRequest::getInt('add_room_children', 0, 'request');
-					$padd_room_fname = VikRequest::getString('add_room_fname', '', 'request');
-					$padd_room_lname = VikRequest::getString('add_room_lname', '', 'request');
-					$padd_room_price = VikRequest::getFloat('add_room_price', 0, 'request');
-					$paliq_add_room = VikRequest::getInt('aliq_add_room', 0, 'request');
-					if ($padd_room_id > 0 && ($padd_room_adults + $padd_room_children) > 0) {
-						//no need to re-validate the availability for this new room, as it was made via JS in the View.
-						//increase the rooms number for later update, and insert the new room record
-						$roomsnum++;
-						$q = "INSERT INTO `#__vikbooking_ordersrooms` (`idorder`,`idroom`,`adults`,`children`,`t_first_name`,`t_last_name`,`cust_cost`,`cust_idiva`) VALUES(".$ord[0]['id'].", ".$padd_room_id.", ".$padd_room_adults.", ".$padd_room_children.", ".$dbo->quote($padd_room_fname).", ".$dbo->quote($padd_room_lname).", ".($padd_room_price > 0 ? $dbo->quote($padd_room_price) : 'NULL').", ".($padd_room_price > 0 && !empty($paliq_add_room) ? $dbo->quote($paliq_add_room) : 'NULL').");";
-						$dbo->setQuery($q);
-						$dbo->execute();
-						$room_added = true;
-					}
-					//Vik Booking 1.10 - Remove Room from existing booking
-					$room_removed = false;
-					if ($prm_room_oid > 0 && $roomsnum > 1) {
-						//check if the requested room record exists for removal
-						$q = "SELECT * FROM `#__vikbooking_ordersrooms` WHERE `id`=".$prm_room_oid." AND `idorder`=".$ord[0]['id'].";";
-						$dbo->setQuery($q);
-						$dbo->execute();
-						if ($dbo->getNumRows() == 1) {
-							$room_before_rm = $dbo->loadAssoc();
-							//decrease the rooms number for later update, and remove the requested room record
-							$roomsnum--;
-							$q = "DELETE FROM `#__vikbooking_ordersrooms` WHERE `id`=".$prm_room_oid." AND `idorder`=".$ord[0]['id']." LIMIT 1;";
-							$dbo->setQuery($q);
-							$dbo->execute();
-							$room_removed = $room_before_rm['idroom'];
-						}
-					}
-					//
-					//update booking's basic information (customer data, dates, tot paid, number of rooms, refund)
-					$q = "UPDATE `#__vikbooking_orders` SET `custdata`= " .$dbo->quote($pcustdata) . ", `days`=" . (int)$daysdiff . ", `checkin`='" . $first . "', `checkout`='" . $second . "'" . (strlen($newtotalpaid) > 0 ? ", `totpaid`='" . $newtotalpaid . "'" : "") . ", `roomsnum`=" . (int)$roomsnum . ($newrefund !== null ? ', refund=' . $dbo->quote($newrefund) : '') . " WHERE `id`=" . $ord[0]['id'] . ";";
-					$dbo->setQuery($q);
-					$dbo->execute();
-					//
-					// Booking History log for new amount paid (payment update)
-					if ($newtotalpaid > 0 && $newtotalpaid > (float)$ord[0]['totpaid']) {
-						$extra_data = new stdClass;
-						$extra_data->amount_paid = ($newtotalpaid - (float)$ord[0]['totpaid']);
-						VikBooking::getBookingHistoryInstance()->setBid($ord[0]['id'])->setExtraData($extra_data)->store('PU', JText::sprintf('VBOPREVAMOUNTPAID', VikBooking::numberFormat((float)$ord[0]['totpaid'])));
-					}
-					// booking history log for new refund amount
-					if ($newrefund !== null && $newrefund != (float)$ord[0]['refund']) {
-						// update current refund value
-						$ord[0]['refund'] = $newrefund;
-						// store event
-						VikBooking::getBookingHistoryInstance()->setBid($ord[0]['id'])->setExtraData(null)->store('RU', JText::sprintf('VBO_NEWREFUND_AMOUNT', VikBooking::numberFormat($ord[0]['refund']), VikBooking::numberFormat($newrefund)));
-					}
-					//
-					if ($ord[0]['status'] == 'confirmed') {
-						$q = "SELECT `b`.`id`,`b`.`idroom` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`=".$ord[0]['id'].";";
-						$dbo->setQuery($q);
-						$dbo->execute();
-						$allbusy = $dbo->loadAssocList();
-						foreach ($allbusy as $bb) {
-							$q = "UPDATE `#__vikbooking_busy` SET `checkin`='".$first."', `checkout`='".$second."', `realback`='".$realback."' WHERE `id`='".$bb['id']."';";
-							$dbo->setQuery($q);
-							$dbo->execute();
-						}
-						// Vik Booking 1.10 - Add Room to existing (Confirmed) booking
-						if ($room_added === true) {
-							//add busy record for the new room unit
-							$q = "INSERT INTO `#__vikbooking_busy` (`idroom`,`checkin`,`checkout`,`realback`) VALUES(".$padd_room_id.", ".$dbo->quote($first).", ".$dbo->quote($second).", ".$dbo->quote($realback).");";
-							$dbo->setQuery($q);
-							$dbo->execute();
-							$newbusyid = $dbo->insertid();
-							$q = "INSERT INTO `#__vikbooking_ordersbusy` (`idorder`,`idbusy`) VALUES(".$ord[0]['id'].", ".(int)$newbusyid.");";
-							$dbo->setQuery($q);
-							$dbo->execute();
-						}
-						// Vik Booking 1.10 - Remove Room from existing (Confirmed) booking
-						if ($room_removed !== false) {
-							//remove busy record for the removed room
-							foreach ($allbusy as $bb) {
-								if ($bb['idroom'] == $room_removed) {
-									//remove the first room with this ID that was booked
-									$q = "DELETE FROM `#__vikbooking_busy` WHERE `id`=".$bb['id']." AND `idroom`=".$room_removed.";";
-									$dbo->setQuery($q);
-									$dbo->execute();
-									$q = "DELETE FROM `#__vikbooking_ordersbusy` WHERE `idorder`=".$ord[0]['id']." AND `idbusy`=".$bb['id'].";";
-									$dbo->setQuery($q);
-									$dbo->execute();
-									break;
-								}
-							}
-						}
-						
-						if ($room_added === true || $room_removed !== false) {
-							// unset any previously booked room due to calendar sharing
-							VikBooking::cleanSharedCalendarsBusy($ord[0]['id']);
-							// check if some of the rooms booked have shared calendars
-							VikBooking::updateSharedCalendars($ord[0]['id'], array(), $first, $second);
-							//
-						}
-						
-						if ($ord[0]['checkin'] != $first || $ord[0]['checkout'] != $second || $room_added === true || $room_removed !== false) {
-							//Invoke Channel Manager
-							$vcm_autosync = VikBooking::vcmAutoUpdate();
-							if ($vcm_autosync > 0) {
-								$vcm_obj = VikBooking::getVcmInvoker();
-								$vcm_obj->setOids(array($ord[0]['id']))->setSyncType('modify')->setOriginalBooking($ord[0]);
-								$sync_result = $vcm_obj->doSync();
-								if ($sync_result === false) {
-									$vcm_err = $vcm_obj->getError();
-									VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO').' <a href="index.php?option=com_vikchannelmanager" target="_blank">'.JText::translate('VBCHANNELMANAGEROPEN').'</a> '.(strlen($vcm_err) > 0 ? '('.$vcm_err.')' : ''));
-								}
-							} elseif (file_exists(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
-								VikError::raiseNotice('', JText::translate('VBCHANNELMANAGERINVOKEASK').' <form action="index.php?option=com_vikbooking" method="post"><input type="hidden" name="option" value="com_vikbooking"/><input type="hidden" name="task" value="invoke_vcm"/><input type="hidden" name="stype" value="modify"/><input type="hidden" name="cid[]" value="'.$ord[0]['id'].'"/><input type="hidden" name="origb" value="'.urlencode(json_encode($ord[0])).'"/><input type="hidden" name="returl" value="'.urlencode("index.php?option=com_vikbooking&task=editbusy".($pvcm == 1 ? '&vcm=1' : '')."&cid[]=".$ord[0]['id']).'"/><button type="submit" class="btn btn-primary">'.JText::translate('VBCHANNELMANAGERSENDRQ').'</button></form>');
-							}
-							//
-						}
-					}
-					$upd_esit = JText::translate('RESUPDATED');
-					//
-					$isdue = 0;
-					$tot_taxes = 0;
-					$tot_city_taxes = 0;
-					$tot_fees = 0;
-					$doup = true;
-					$tars = array();
-					$cust_costs = array();
-					$rooms_costs_map = array();
-					$arrpeople = array();
+		$forcebooking = VikRequest::getInt('forcebooking', 0, 'request');
+		if ($opertwounits === true || $forcebooking) {
+			// update dates, customer information, amount paid and busy records before checking the rates
+			$turnover_secs = VikBooking::getHoursRoomAvail() * 3600;
+			$realback = $turnover_secs + $second;
+
+			$newtotalpaid = strlen($ptotpaid) > 0 ? floatval($ptotpaid) : "";
+			$newrefund = strlen($prefund) > 0 ? floatval($prefund) : null;
+			$roomsnum = $ord['roomsnum'];
+
+			// add room to existing booking
+			$room_added = false;
+			$padd_room_id = VikRequest::getInt('add_room_id', '', 'request');
+			$padd_room_adults = VikRequest::getInt('add_room_adults', 2, 'request');
+			$padd_room_children = VikRequest::getInt('add_room_children', 0, 'request');
+			$padd_room_fname = VikRequest::getString('add_room_fname', '', 'request');
+			$padd_room_lname = VikRequest::getString('add_room_lname', '', 'request');
+			$padd_room_price = VikRequest::getFloat('add_room_price', 0, 'request');
+			$paliq_add_room = VikRequest::getInt('aliq_add_room', 0, 'request');
+			if ($padd_room_id > 0 && ($padd_room_adults + $padd_room_children) > 0) {
+				// no need to re-validate the availability for this new room, as it was made via JS in the View.
+				// increase the rooms number for later update, and insert the new room record
+				$roomsnum++;
+				$q = "INSERT INTO `#__vikbooking_ordersrooms` (`idorder`,`idroom`,`adults`,`children`,`t_first_name`,`t_last_name`,`cust_cost`,`cust_idiva`) VALUES(" . $ord['id'] . ", " . $padd_room_id . ", " . $padd_room_adults . ", " . $padd_room_children . ", " . $dbo->quote($padd_room_fname) . ", " . $dbo->quote($padd_room_lname) . ", " . ($padd_room_price > 0 ? $dbo->quote($padd_room_price) : 'NULL') . ", " . ($padd_room_price > 0 && !empty($paliq_add_room) ? $dbo->quote($paliq_add_room) : 'NULL') . ");";
+				$dbo->setQuery($q);
+				$dbo->execute();
+				$room_added = true;
+			}
+
+			// remove room from existing booking
+			$room_removed = false;
+			$room_removed_index = null;
+			if ($prm_room_oid > 0 && $roomsnum > 1) {
+				// check if the requested room record exists for removal
+				$q = "SELECT * FROM `#__vikbooking_ordersrooms` WHERE `id`=" . $prm_room_oid . " AND `idorder`=" . $ord['id'] . ";";
+				$dbo->setQuery($q);
+				$dbo->execute();
+				if ($dbo->getNumRows() == 1) {
+					$room_before_rm = $dbo->loadAssoc();
+					// decrease the rooms number for later update, and remove the requested room record
+					$roomsnum--;
+					// find the index of this room in the current list before removal
 					foreach ($ordersrooms as $kor => $or) {
-						//Vik Booking 1.10 - Remove from existing booking
-						if ($room_removed !== false) {
-							if ($or['id'] == $prm_room_oid) {
-								//do not consider this room for the calculation of the new total amount
-								//we can unset this array for later use, because the channel manager has already been invoked.
-								unset($ordersrooms[$kor]);
-								continue;
-							}
-						}
-						//
-						$num = $kor + 1;
-						$padults = VikRequest::getString('adults'.$num, '', 'request');
-						$pchildren = VikRequest::getString('children'.$num, '', 'request');
-						if (strlen($padults) || strlen($pchildren)) {
-							$arrpeople[$num]['adults'] = (int)$padults;
-							$arrpeople[$num]['children'] = (int)$pchildren;
-						}
-						$ppriceid = VikRequest::getString('priceid'.$num, '', 'request');
-						$polderpriceid = VikRequest::getString('olderpriceid'.$num, '', 'request');
-						$ppkgid = VikRequest::getString('pkgid'.$num, '', 'request');
-						$pcust_cost = VikRequest::getString('cust_cost'.$num, '', 'request');
-						$paliq = VikRequest::getString('aliq'.$num, '', 'request');
-						if ($is_package === true && !empty($ppkgid)) {
-							$pkg_cost = $or['cust_cost'];
-							$pkg_idiva = $or['cust_idiva'];
-							$pkg_info = VikBooking::getPackage($ppkgid);
-							if (is_array($pkg_info) && count($pkg_info) > 0) {
-								$use_adults = array_key_exists($num, $arrpeople) && array_key_exists('adults', $arrpeople[$num]) ? $arrpeople[$num]['adults'] : $or['adults'];
-								$pkg_cost = $pkg_info['pernight_total'] == 1 ? ($pkg_info['cost'] * $daysdiff) : $pkg_info['cost'];
-								$pkg_cost = $pkg_info['perperson'] == 1 ? ($pkg_cost * ($use_adults > 0 ? $use_adults : 1)) : $pkg_cost;
-								$pkg_cost = VikBooking::sayPackagePlusIva($pkg_cost, $pkg_info['idiva']);
-							}
-							$cust_costs[$num] = array('pkgid' => $ppkgid, 'cust_cost' => $pkg_cost, 'aliq' => $pkg_idiva);
-							$isdue += $pkg_cost;
-							$cost_minus_tax = VikBooking::sayPackageMinusIva($pkg_cost, $pkg_idiva);
-							$tot_taxes += ($pkg_cost - $cost_minus_tax);
-							continue;
-						}
-						if (empty($ppriceid) && !empty($pcust_cost) && floatval($pcust_cost) > 0) {
-							$cust_costs[$num] = array('cust_cost' => $pcust_cost, 'aliq' => $paliq);
-							$cost_after_tax = VikBooking::sayPackagePlusIva((float)$pcust_cost, (int)$paliq);
-							$isdue += $cost_after_tax;
-							$cost_minus_tax = VikBooking::sayPackageMinusIva((float)$pcust_cost, (int)$paliq);
-							$tot_taxes += ($cost_after_tax - $cost_minus_tax);
-							continue;
-						}
-						$q = "SELECT * FROM `#__vikbooking_dispcost` WHERE `idroom`='".$or['idroom']."' AND `days`='".$daysdiff."' AND `idprice`='".$ppriceid."';";
-						$dbo->setQuery($q);
-						$dbo->execute();
-						if ($dbo->getNumRows() == 1) {
-							$tar = $dbo->loadAssocList();
-							/**
-							 * The current price may be different from the price paid at the time of booking.
-							 * Check whether it has been asked to keep the old price of the time of booking.
-							 * 
-							 * @since 	1.3.0
-							 */
-							$old_price_used = false;
-							if (!empty($polderpriceid)) {
-								$older_info = explode(':', $polderpriceid);
-								if ((int)$older_info[0] == (int)$ppriceid) {
-									$old_price = isset($older_info[1]) ? (float)$older_info[1] : 0;
-									if ($old_price > 0) {
-										// we override the 'cost' property of the tar array by taking the previous cost
-										$old_price_used = true;
-										$tar[0]['cost'] = $old_price;
-									}
-								}
-							}
-							//
-							if (!$old_price_used) {
-								$tar = VikBooking::applySeasonsRoom($tar, $ord[0]['checkin'], $ord[0]['checkout']);
-							}
-							//different usage
-							if (!$old_price_used && $or['fromadult'] <= $or['adults'] && $or['toadult'] >= $or['adults']) {
-								$diffusageprice = VikBooking::loadAdultsDiff($or['idroom'], $or['adults']);
-								//Occupancy Override
-								$occ_ovr = VikBooking::occupancyOverrideExists($tar, $or['adults']);
-								$diffusageprice = $occ_ovr !== false ? $occ_ovr : $diffusageprice;
-								//
-								if (is_array($diffusageprice)) {
-									//set a charge or discount to the price(s) for the different usage of the room
-									foreach ($tar as $kpr => $vpr) {
-										if ($diffusageprice['chdisc'] == 1) {
-											//charge
-											if ($diffusageprice['valpcent'] == 1) {
-												//fixed value
-												$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
-												$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $tar[$kpr]['days'] : $diffusageprice['value'];
-												$tar[$kpr]['diffusagecost'] = "+".$aduseval;
-												$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-												$tar[$kpr]['cost'] = $vpr['cost'] + $aduseval;
-											} else {
-												//percentage value
-												$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
-												$aduseval = $diffusageprice['pernight'] == 1 ? round(($vpr['cost'] * $diffusageprice['value'] / 100) * $tar[$kpr]['days'] + $vpr['cost'], 2) : round(($vpr['cost'] * (100 + $diffusageprice['value']) / 100), 2);
-												$tar[$kpr]['diffusagecost'] = "+".$diffusageprice['value']."%";
-												$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-												$tar[$kpr]['cost'] = $aduseval;
-											}
-										} else {
-											//discount
-											if ($diffusageprice['valpcent'] == 1) {
-												//fixed value
-												$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
-												$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $tar[$kpr]['days'] : $diffusageprice['value'];
-												$tar[$kpr]['diffusagecost'] = "-".$aduseval;
-												$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-												$tar[$kpr]['cost'] = $vpr['cost'] - $aduseval;
-											} else {
-												//percentage value
-												$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
-												$aduseval = $diffusageprice['pernight'] == 1 ? round($vpr['cost'] - ((($vpr['cost'] / $tar[$kpr]['days']) * $diffusageprice['value'] / 100) * $tar[$kpr]['days']), 2) : round(($vpr['cost'] * (100 - $diffusageprice['value']) / 100), 2);
-												$tar[$kpr]['diffusagecost'] = "-".$diffusageprice['value']."%";
-												$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-												$tar[$kpr]['cost'] = $aduseval;
-											}
-										}
-									}
-								}
-							}
-							//
-							$cost_plus_tax = VikBooking::sayCostPlusIva($tar[0]['cost'], $tar[0]['idprice']);
-							$isdue += $cost_plus_tax;
-							if ($cost_plus_tax == $tar[0]['cost']) {
-								$cost_minus_tax = VikBooking::sayCostMinusIva($tar[0]['cost'], $tar[0]['idprice']);
-								$tot_taxes += ($tar[0]['cost'] - $cost_minus_tax);
-							} else {
-								$tot_taxes += ($cost_plus_tax - $tar[0]['cost']);
-							}
-							$tars[$num] = $tar;
-							$rooms_costs_map[$num] = $tar[0]['cost'];
-						} else {
-							$doup = false;
+						if ($or['id'] == $prm_room_oid) {
+							$room_removed_index = $kor;
 							break;
 						}
 					}
-					if ($doup === true) {
-						if ($room_added === true) {
-							//Vik Booking 1.10 - Add Room to existing booking may require to increase the total amount, and taxes
-							$padd_room_price = VikRequest::getFloat('add_room_price', 0, 'request');
-							$paliq_add_room = VikRequest::getInt('aliq_add_room', 0, 'request');
-							if (!empty($padd_room_price) && floatval($padd_room_price) > 0) {
-								$isdue += (float)$padd_room_price;
-								$cost_minus_tax = VikBooking::sayPackageMinusIva((float)$padd_room_price, (int)$paliq_add_room);
-								$tot_taxes += ((float)$padd_room_price - $cost_minus_tax);
-							}
-							//
+					// go ahead with the deletion of the room record
+					$q = "DELETE FROM `#__vikbooking_ordersrooms` WHERE `id`=" . $prm_room_oid . " AND `idorder`=" . $ord['id'] . " LIMIT 1;";
+					$dbo->setQuery($q);
+					$dbo->execute();
+					$room_removed = $room_before_rm['idroom'];
+				}
+			}
+
+			if ($ord['split_stay'] && !empty($split_stay_data) && count($split_stay_checkins) && ($room_added !== false || $room_removed !== false)) {
+				// split stay booking (even if only 1 room left) and one room was either added or removed: set new global stay dates
+				if ($room_removed !== false && isset($room_removed_index) && isset($split_stay_checkins[$room_removed_index])) {
+					// exclude the split stay dates of this room that was just removed
+					unset($split_stay_checkins[$room_removed_index], $split_stay_checkouts[$room_removed_index]);
+				}
+				if (count($split_stay_checkins) && count($split_stay_checkouts)) {
+					// if we still have rooms, and we should, update the booking global stay dates
+					$first = min($split_stay_checkins);
+					$second = max($split_stay_checkouts);
+					$daysdiff = $av_helper->countNightsOfStay($first, $second);
+				}
+			}
+
+			// update booking's basic information (customer data, dates, tot paid, number of rooms, refund)
+			$basic_booking = new stdClass;
+			$basic_booking->id = $ord['id'];
+			$basic_booking->custdata = $pcustdata;
+			$basic_booking->days = (int)$daysdiff;
+			$basic_booking->checkin = $first;
+			$basic_booking->checkout = $second;
+			if (strlen($newtotalpaid) > 0) {
+				$basic_booking->totpaid = $newtotalpaid;
+			}
+			$basic_booking->roomsnum = (int)$roomsnum;
+			if ($newrefund !== null) {
+				$basic_booking->refund = $newrefund;
+			}
+			if ($ord['split_stay'] && $roomsnum < 2 && $room_removed !== false) {
+				// there is no point in keep treating this reservation as a split stay
+				$basic_booking->split_stay = 0;
+			}
+			$dbo->updateObject('#__vikbooking_orders', $basic_booking, 'id');
+
+			// Booking History log for new amount paid (payment update)
+			if ($newtotalpaid > 0 && $newtotalpaid > (float)$ord['totpaid']) {
+				$extra_data = new stdClass;
+				$extra_data->amount_paid = ($newtotalpaid - (float)$ord['totpaid']);
+				VikBooking::getBookingHistoryInstance()->setBid($ord['id'])->setExtraData($extra_data)->store('PU', JText::sprintf('VBOPREVAMOUNTPAID', VikBooking::numberFormat((float)$ord['totpaid'])));
+			}
+
+			// booking history log for new refund amount
+			if ($newrefund !== null && $newrefund != (float)$ord['refund']) {
+				// update current refund value
+				$ord['refund'] = $newrefund;
+				// store event
+				VikBooking::getBookingHistoryInstance()->setBid($ord['id'])->setExtraData(null)->store('RU', JText::sprintf('VBO_NEWREFUND_AMOUNT', VikBooking::numberFormat($ord['refund']), VikBooking::numberFormat($newrefund)));
+			}
+
+			// update busy records
+			if ($ord['status'] == 'confirmed') {
+				$allbusy = [];
+				if ($ord['split_stay'] && !empty($split_stay_data)) {
+					// in case of split stay we need to update the busy records according to the nights selected
+					foreach ($split_stay_data as $sps_k => $split_stay) {
+						if (empty($split_stay['idbusy']) || empty($split_stay['checkin']) || empty($split_stay['checkout'])) {
+							// missing data
+							continue;
 						}
-						$toptionals = '';
-						$q = "SELECT * FROM `#__vikbooking_optionals` ORDER BY `#__vikbooking_optionals`.`ordering` ASC;";
+						// get selected dates
+						$room_checkin  = VikBooking::getDateTimestamp($split_stay['checkin'], $pcheckinh, $pcheckinm);
+						$room_checkout = VikBooking::getDateTimestamp($split_stay['checkout'], $pcheckouth, $pcheckoutm);
+						$room_realback = $turnover_secs + $room_checkout;
+						// update the exact record
+						$q = "UPDATE `#__vikbooking_busy` SET `checkin`=" . $room_checkin . ", `checkout`=" . $room_checkout . ", `realback`=" . $room_realback . " WHERE `id`=" . (int)$split_stay['idbusy'] . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
-						if ($dbo->getNumRows() > 0) {
-							$toptionals = $dbo->loadAssocList();
-						}
-						foreach ($ordersrooms as $kor => $or) {
-							$num = $kor + 1;
-							$pt_first_name = VikRequest::getString('t_first_name'.$num, '', 'request');
-							$pt_last_name = VikRequest::getString('t_last_name'.$num, '', 'request');
-							$wop = "";
-							if (is_array($toptionals)) {
-								foreach ($toptionals as $opt) {
-									if (!empty($opt['ageintervals']) && ($or['children'] > 0 || (array_key_exists($num, $arrpeople) && array_key_exists('children', $arrpeople[$num]))) ) {
-										$tmpvar = VikRequest::getVar('optid'.$num.$opt['id'], array(0));
-										if (is_array($tmpvar) && count($tmpvar) > 0 && !empty($tmpvar[0])) {
-											$opt['quan'] = 1;
-											$optagenames = VikBooking::getOptionIntervalsAges($opt['ageintervals']);
-											$optagepcent = VikBooking::getOptionIntervalsPercentage($opt['ageintervals']);
-											$optageovrct = VikBooking::getOptionIntervalChildOverrides($opt, (isset($arrpeople[$num]) ? $arrpeople[$num]['adults'] : 0), (isset($arrpeople[$num]) ? $arrpeople[$num]['children'] : 0));
-											$optorigname = $opt['name'];
-											foreach ($tmpvar as $child_num => $chvar) {
-												$ageintervals_child_string = isset($optageovrct['ageintervals_child' . ($child_num + 1)]) ? $optageovrct['ageintervals_child' . ($child_num + 1)] : $opt['ageintervals'];
-												$optagecosts = VikBooking::getOptionIntervalsCosts($ageintervals_child_string);
-												$optorigcost = $optagecosts[($chvar - 1)];
-												if (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 1) {
-													//percentage value of the adults tariff
-													if ($is_package !== true && array_key_exists($num, $tars)) {
-														//type of price
-														$optorigcost = $tars[$num][0]['cost'] * $optagecosts[($chvar - 1)] / 100;
-													} elseif ($is_package === true && array_key_exists($num, $cust_costs)) {
-														//package
-														$optorigcost = $cust_costs[$num]['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
-													} elseif (array_key_exists($num, $cust_costs) && array_key_exists('cust_cost', $cust_costs[$num])) {
-														//custom rate + custom tax rate
-														$optorigcost = $cust_costs[$num]['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
-													}
-												} elseif (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 2) {
-													//VBO 1.10 - percentage value of room base cost
-													if ($is_package !== true && array_key_exists($num, $tars)) {
-														//type of price
-														$usecost = isset($tars[$num][0]['room_base_cost']) ? $tars[$num][0]['room_base_cost'] : $tars[$num][0]['cost'];
-														$optorigcost = $usecost * $optagecosts[($chvar - 1)] / 100;
-													} elseif ($is_package === true && array_key_exists($num, $cust_costs)) {
-														//package
-														$optorigcost = $cust_costs[$num]['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
-													} elseif (array_key_exists($num, $cust_costs) && array_key_exists('cust_cost', $cust_costs[$num])) {
-														//custom rate + custom tax rate
-														$optorigcost = $cust_costs[$num]['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
-													}
-												}
-												$opt['cost'] = $optorigcost;
-												$opt['name'] = $optorigname.' ('.$optagenames[($chvar - 1)].')';
-												$opt['chageintv'] = $chvar;
-												$wop.=$opt['id'].":".$opt['quan']."-".$chvar.";";
-												$realcost = (intval($opt['perday']) == 1 ? ($opt['cost'] * $daysdiff * $opt['quan']) : ($opt['cost'] * $opt['quan']));
-												if (!empty($opt['maxprice']) && $opt['maxprice'] > 0 && $realcost > $opt['maxprice']) {
-													$realcost = $opt['maxprice'];
-												}
-												$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $opt['idiva']);
-												if ($opt['is_citytax'] == 1) {
-													$tot_city_taxes += $tmpopr;
-												} elseif ($opt['is_fee'] == 1) {
-													$tot_fees += $tmpopr;
-												}
-												// VBO 1.11 - always calculate the amount of tax no matter if this is already a tax or a fee
-												if ($tmpopr == $realcost) {
-													$opt_minus_iva = VikBooking::sayOptionalsMinusIva($realcost, $opt['idiva']);
-													$tot_taxes += ($realcost - $opt_minus_iva);
-												} else {
-													$tot_taxes += ($tmpopr - $realcost);
-												}
-												//
-												$isdue += $tmpopr;
-											}
-										}
-									} else {
-										$tmpvar = VikRequest::getString('optid'.$num.$opt['id'], '', 'request');
-										//options forced per child fix, no age intervals, like children tourist taxes
-										$forcedquan = 1;
-										$forceperday = false;
-										$forceperchild = false;
-										if (intval($opt['forcesel']) == 1 && strlen($opt['forceval']) > 0 && strlen($tmpvar) > 0) {
-											$forceparts = explode("-", $opt['forceval']);
-											$forcedquan = intval($forceparts[0]);
-											$forceperday = intval($forceparts[1]) == 1 ? true : false;
-											$forceperchild = intval($forceparts[2]) == 1 ? true : false;
-											$tmpvar = $forcedquan;
-											$tmpvar = $forceperchild === true && array_key_exists($num, $arrpeople) && array_key_exists('children', $arrpeople[$num]) ? ($tmpvar * $arrpeople[$num]['children']) : $tmpvar;
-										}
-										//
-										if (!empty($tmpvar)) {
-											$wop .= $opt['id'].":".$tmpvar.";";
-											// VBO 1.11 - options percentage cost of the room total fee
-											if ($is_package !== true && array_key_exists($num, $tars)) {
-												//type of price
-												$deftar_basecosts = $tars[$num][0]['cost'];
-											} elseif ($is_package === true && array_key_exists($num, $cust_costs)) {
-												//package
-												$deftar_basecosts = $cust_costs[$num]['cust_cost'];
-											} elseif (array_key_exists($num, $cust_costs) && array_key_exists('cust_cost', $cust_costs[$num])) {
-												//custom rate + custom tax rate
-												$deftar_basecosts = $cust_costs[$num]['cust_cost'];
-											}
-											$opt['cost'] = (int)$opt['pcentroom'] ? ($deftar_basecosts * $opt['cost'] / 100) : $opt['cost'];
-											//
-											$realcost = (intval($opt['perday']) == 1 ? ($opt['cost'] * $daysdiff * $tmpvar) : ($opt['cost'] * $tmpvar));
-											if (!empty($opt['maxprice']) && $opt['maxprice'] > 0 && $realcost > $opt['maxprice']) {
-												$realcost = $opt['maxprice'];
-												if (intval($opt['hmany']) == 1 && intval($tmpvar) > 1) {
-													$realcost = $opt['maxprice'] * $tmpvar;
-												}
-											}
-											if ($opt['perperson'] == 1) {
-												$num_adults = array_key_exists($num, $arrpeople) && array_key_exists('adults', $arrpeople[$num]) ? $arrpeople[$num]['adults'] : 1;
-												$realcost = $realcost * $num_adults;
-											}
-											$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $opt['idiva']);
-											if ($opt['is_citytax'] == 1) {
-												$tot_city_taxes += $tmpopr;
-											} elseif ($opt['is_fee'] == 1) {
-												$tot_fees += $tmpopr;
-											}
-											// VBO 1.11 - always calculate the amount of tax no matter if this is already a tax or a fee
-											if ($tmpopr == $realcost) {
-												$opt_minus_iva = VikBooking::sayOptionalsMinusIva($realcost, $opt['idiva']);
-												$tot_taxes += ($realcost - $opt_minus_iva);
-											} else {
-												$tot_taxes += ($tmpopr - $realcost);
-											}
-											//
-											$isdue += $tmpopr;
-										}
-									}
-								}
-							}
-							$upd_fields = array();
-							if ($is_package !== true && array_key_exists($num, $tars)) {
-								//type of price
-								$upd_fields[] = "`idtar`='".$tars[$num][0]['id']."'";
-								$upd_fields[] = "`cust_cost`=NULL";
-								$upd_fields[] = "`cust_idiva`=NULL";
-								$upd_fields[] = "`room_cost`=".(array_key_exists($num, $rooms_costs_map) ? $dbo->quote($rooms_costs_map[$num]) : "NULL");
-							} elseif ($is_package === true && array_key_exists($num, $cust_costs)) {
-								//packages do not update name or cost, just set again the same package ID to avoid risks of empty upd_fields to update
-								$upd_fields[] = "`idtar`=NULL";
-								$upd_fields[] = "`pkg_id`='".$cust_costs[$num]['pkgid']."'";
-								$upd_fields[] = "`cust_cost`='".$cust_costs[$num]['cust_cost']."'";
-								$upd_fields[] = "`cust_idiva`='".$cust_costs[$num]['aliq']."'";
-								$upd_fields[] = "`room_cost`=NULL";
-							} elseif (array_key_exists($num, $cust_costs) && array_key_exists('cust_cost', $cust_costs[$num])) {
-								//custom rate + custom tax rate
-								$upd_fields[] = "`idtar`=NULL";
-								$upd_fields[] = "`cust_cost`='".$cust_costs[$num]['cust_cost']."'";
-								$upd_fields[] = "`cust_idiva`='".$cust_costs[$num]['aliq']."'";
-								$upd_fields[] = "`room_cost`=NULL";
-							}
-							if (is_array($toptionals)) {
-								$upd_fields[] = "`optionals`='".$wop."'";
-							}
-							if (!empty($pt_first_name) || !empty($pt_last_name)) {
-								$upd_fields[] = "`t_first_name`=".$dbo->quote($pt_first_name);
-								$upd_fields[] = "`t_last_name`=".$dbo->quote($pt_last_name);
-							}
-							if (array_key_exists($num, $arrpeople) && array_key_exists('adults', $arrpeople[$num])) {
-								$upd_fields[] = "`adults`=".intval($arrpeople[$num]['adults']);
-								$upd_fields[] = "`children`=".intval($arrpeople[$num]['children']);
-							}
-							//calculate the extra costs and increase taxes + isdue
-							$extracosts_arr = array();
-							if (count($pextracn) && isset($pextracn[$num]) && count($pextracn[$num])) {
-								foreach ($pextracn[$num] as $eck => $ecn) {
-									if (strlen($ecn) > 0 && array_key_exists($eck, $pextracc[$num]) && is_numeric($pextracc[$num][$eck])) {
-										$ecidtax = array_key_exists($eck, $pextractx[$num]) && intval($pextractx[$num][$eck]) > 0 ? (int)$pextractx[$num][$eck] : '';
-										$extracosts_arr[] = array('name' => $ecn, 'cost' => (float)$pextracc[$num][$eck], 'idtax' => $ecidtax);
-										$ecplustax = !empty($ecidtax) ? VikBooking::sayOptionalsPlusIva((float)$pextracc[$num][$eck], $ecidtax) : (float)$pextracc[$num][$eck];
-										$ecminustax = !empty($ecidtax) ? VikBooking::sayOptionalsMinusIva((float)$pextracc[$num][$eck], $ecidtax) : (float)$pextracc[$num][$eck];
-										$ectottax = (float)$pextracc[$num][$eck] - $ecminustax;
-										$isdue += $ecplustax;
-										$tot_taxes += $ectottax;
-									}
-								}
-							}
-							if (count($extracosts_arr) > 0) {
-								$upd_fields[] = "`extracosts`=".$dbo->quote(json_encode($extracosts_arr));
-							} else {
-								$upd_fields[] = "`extracosts`=NULL";
-							}
-							//end extra costs
-							if (count($upd_fields) > 0) {
-								$q = "UPDATE `#__vikbooking_ordersrooms` SET ".implode(', ', $upd_fields)." WHERE `idorder`=".$ord[0]['id']." AND `idroom`='".$or['idroom']."' AND `id`='".$or['id']."';";
-								$dbo->setQuery($q);
-								$dbo->execute();
-							}
-						}
-						// make sure to re-apply the discount with the coupon code
-						if (strlen($ord[0]['coupon']) > 0) {
-							$expcoupon = explode(";", $ord[0]['coupon']);
-							$isdue -= $expcoupon[1];
-						}
-						// make sure to apply any previously refunded amount
-						if ($ord[0]['refund'] > 0) {
-							$isdue -= $ord[0]['refund'];
-						}
-						//
-						$q = "UPDATE `#__vikbooking_orders` SET `total`='".$isdue."', `tot_taxes`='".$tot_taxes."', `tot_city_taxes`='".$tot_city_taxes."', `tot_fees`='".$tot_fees."' WHERE `id`=".$ord[0]['id'].";";
+					}
+				} else {
+					// regularly update busy records for all rooms involved
+					$q = "SELECT `b`.`id`,`b`.`idroom` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`=" . $ord['id'] . ";";
+					$dbo->setQuery($q);
+					$dbo->execute();
+					$allbusy = $dbo->loadAssocList();
+					foreach ($allbusy as $bb) {
+						$q = "UPDATE `#__vikbooking_busy` SET `checkin`=" . $first . ", `checkout`=" . $second . ", `realback`=" . $realback . " WHERE `id`=" . $bb['id'] . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
-						$upd_esit = JText::translate('VBORESRATESUPDATED');
-						//Customer Booking
-						if ($ord[0]['status'] == 'confirmed') {
-							$q = "SELECT `idcustomer` FROM `#__vikbooking_customers_orders` WHERE `idorder`=".$ord[0]['id'].";";
+					}
+				}
+
+				/**
+				 * Check if some rooms have modified stay dates different than the booking stay dates.
+				 * 
+				 * @since 	1.16.0 (J) - 1.6.0 (WP)
+				 */
+				if (!$ord['split_stay'] && !$ord['closure'] && $ord['roomsnum'] > 1 && $ord['days'] > 1) {
+					// load the occupied stay dates for each room in case they were modified
+					$room_stay_records = $av_helper->loadSplitStayBusyRecords($ord['id']);
+					// loop over all rooms to check the requested operations
+					foreach ($ordersrooms as $ind => $or) {
+						if (!VikRequest::getInt('room_modify_dates' . $ind, 0, 'request') || !isset($room_stay_records[$ind]) || empty($room_stay_records[$ind]['id'])) {
+							// toggle is disabled or data is missing
+							continue;
+						}
+						if (isset($room_modify_dates[$ind]) && !empty($room_modify_dates[$ind]['checkin']) && !empty($room_modify_dates[$ind]['checkout'])) {
+							// calculate the check-in and check-out timestamps, we expect them to be different from the global booking dates
+							$room_checkin  = VikBooking::getDateTimestamp($room_modify_dates[$ind]['checkin'], $pcheckinh, $pcheckinm);
+							$room_checkout = VikBooking::getDateTimestamp($room_modify_dates[$ind]['checkout'], $pcheckouth, $pcheckoutm);
+							$room_realback = $turnover_secs + $room_checkout;
+							// we don't need to check if the dates are different, we just update the record
+							$q = "UPDATE `#__vikbooking_busy` SET `checkin`=" . $room_checkin . ", `checkout`=" . $room_checkout . ", `realback`=" . $room_realback . " WHERE `id`=" . (int)$room_stay_records[$ind]['id'] . ";";
 							$dbo->setQuery($q);
 							$dbo->execute();
-							if ($dbo->getNumRows() > 0) {
-								$customer_id = $dbo->loadResult();
-								$cpin = VikBooking::getCPinIstance();
-								$cpin->is_admin = true;
-								$cpin->updateBookingCommissions($ord[0]['id'], $customer_id);
+						}
+					}
+				}
+
+				// add room to existing (confirmed) booking
+				if ($room_added === true) {
+					// add busy record for the new room unit
+					$q = "INSERT INTO `#__vikbooking_busy` (`idroom`,`checkin`,`checkout`,`realback`) VALUES(" . $padd_room_id . ", " . $dbo->quote($first) . ", " . $dbo->quote($second) . ", " . $dbo->quote($realback) . ");";
+					$dbo->setQuery($q);
+					$dbo->execute();
+					$newbusyid = $dbo->insertid();
+					$q = "INSERT INTO `#__vikbooking_ordersbusy` (`idorder`,`idbusy`) VALUES(" . $ord['id'] . ", " . (int)$newbusyid . ");";
+					$dbo->setQuery($q);
+					$dbo->execute();
+				}
+
+				// remove room from existing (confirmed) booking
+				if ($room_removed !== false) {
+					// remove busy record for the removed room
+					if ($ord['split_stay'] && !empty($split_stay_data) && !empty($room_removed_index)) {
+						// in case of split stay we want to remove the exact dates of the previously booked room
+						if (count($room_stay_dates) && isset($room_stay_dates[$room_removed_index]) && $room_stay_dates[$room_removed_index]['idroom'] == $room_removed && !empty($room_stay_dates[$room_removed_index]['id'])) {
+							// remove the exact records
+							$q = "DELETE FROM `#__vikbooking_busy` WHERE `id`=" . $room_stay_dates[$room_removed_index]['id'] . " AND `idroom`=" . $room_removed . ";";
+							$dbo->setQuery($q);
+							$dbo->execute();
+							$q = "DELETE FROM `#__vikbooking_ordersbusy` WHERE `idorder`=" . $ord['id'] . " AND `idbusy`=" . $room_stay_dates[$room_removed_index]['id'] . ";";
+							$dbo->setQuery($q);
+							$dbo->execute();
+						}
+					} else {
+						// regularly remove the first matching room
+						foreach ($allbusy as $bb) {
+							if ($bb['idroom'] == $room_removed) {
+								// remove the first room with this ID that was booked
+								$q = "DELETE FROM `#__vikbooking_busy` WHERE `id`=" . $bb['id'] . " AND `idroom`=" . $room_removed . ";";
+								$dbo->setQuery($q);
+								$dbo->execute();
+								$q = "DELETE FROM `#__vikbooking_ordersbusy` WHERE `idorder`=" . $ord['id'] . " AND `idbusy`=" . $bb['id'] . ";";
+								$dbo->setQuery($q);
+								$dbo->execute();
+								break;
 							}
 						}
-						//
 					}
-					//Booking History
-					$history_descr = "({$user->name}) " . VikBooking::getLogBookingModification($ord[0]);
-					if (!$opertwounits && $forcebooking) {
-						$history_descr .= "\n" . JText::translate('VBO_FORCED_BOOKDATES');
-					}
-					VikBooking::getBookingHistoryInstance()->setBid($ord[0]['id'])->store('MB', $history_descr);
-					//
-					$mainframe->enqueueMessage($upd_esit);
-				} else {
-					VikError::raiseWarning('', JText::translate('VBROOMNOTRIT')." ".date($df.' H:i', $first)." ".JText::translate('VBROOMNOTCONSTO')." ".date($df.' H:i', $second));
-					$allow_force = 1;
-					$mainframe->enqueueMessage(JText::translate('VBO_BOOKING_SHOULDFORCE'), 'notice');
 				}
-			} else {
-				VikError::raiseWarning('', JText::translate('ERRPREV'));
+
+				if ($ord['checkin'] != $first || $ord['checkout'] != $second || $room_added === true || $room_removed !== false) {
+					// unset any previously booked room due to calendar sharing
+					VikBooking::cleanSharedCalendarsBusy($ord['id']);
+					// check if some of the rooms booked have shared calendars
+					VikBooking::updateSharedCalendars($ord['id'], array(), $first, $second);
+
+					// invoke Channel Manager
+					$vcm_autosync = VikBooking::vcmAutoUpdate();
+					if ($vcm_autosync > 0) {
+						$vcm_obj = VikBooking::getVcmInvoker();
+						$vcm_obj->setOids(array($ord['id']))->setSyncType('modify')->setOriginalBooking($ord);
+						$sync_result = $vcm_obj->doSync();
+						if ($sync_result === false) {
+							$vcm_err = $vcm_obj->getError();
+							VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO') . ' <a href="index.php?option=com_vikchannelmanager" target="_blank">' . JText::translate('VBCHANNELMANAGEROPEN') . '</a> ' . (strlen($vcm_err) > 0 ? '(' . $vcm_err . ')' : ''));
+						}
+					} elseif (file_exists(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
+						VikError::raiseNotice('', JText::translate('VBCHANNELMANAGERINVOKEASK') . ' <form action="index.php?option=com_vikbooking" method="post"><input type="hidden" name="option" value="com_vikbooking"/><input type="hidden" name="task" value="invoke_vcm"/><input type="hidden" name="stype" value="modify"/><input type="hidden" name="cid[]" value="' . $ord['id'] . '"/><input type="hidden" name="origb" value="' . urlencode(json_encode($ord)) . '"/><input type="hidden" name="returl" value="' . urlencode("index.php?option=com_vikbooking&task=editbusy" . ($pvcm == 1 ? '&vcm=1' : '') . "&cid[]=" . $ord['id']) . '"/><button type="submit" class="btn btn-primary">' . JText::translate('VBCHANNELMANAGERSENDRQ') . '</button></form>');
+					}
+					//
+				}
 			}
-			if ($callback == 'geninvoices') {
-				$mainframe->redirect("index.php?option=com_vikbooking&task=orders&cid[]=".$ord[0]['id']."&confirmgen=1");
-			} else {
-				$mainframe->redirect("index.php?option=com_vikbooking&task=editbusy".($pvcm == 1 ? '&vcm=1' : '').(isset($allow_force) ? '&canforce=1' : '').($pfrominv == 1 ? '&frominv=1' : '')."&cid[]=".$ord[0]['id'].($pgoto == 'overv' ? "&goto=overv" : ""));
+
+			$upd_esit = JText::translate('RESUPDATED');
+
+			// update the room rates
+			$isdue = 0;
+			$tot_taxes = 0;
+			$tot_city_taxes = 0;
+			$tot_fees = 0;
+			$doup = true;
+			$tars = array();
+			$cust_costs = array();
+			$rooms_costs_map = array();
+			$arrpeople = array();
+			foreach ($ordersrooms as $kor => $or) {
+				// remove from existing booking
+				if ($room_removed !== false) {
+					if ($or['id'] == $prm_room_oid) {
+						// do not consider this room for the calculation of the new total amount
+						// we can unset this array for later use, because the channel manager has already been invoked.
+						unset($ordersrooms[$kor]);
+						continue;
+					}
+				}
+
+				// room index starting from 1
+				$num = $kor + 1;
+
+				// default values to be considered
+				$room_nights   = $daysdiff;
+				$room_checkin  = $ord['checkin'];
+				$room_checkout = $ord['checkout'];
+				if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$kor]) && $room_stay_dates[$kor]['idroom'] == $or['idroom'] && !empty($room_stay_dates[$kor]['new_nights'])) {
+					$room_nights   = $room_stay_dates[$kor]['new_nights'];
+					$room_checkin  = $room_stay_dates[$kor]['new_checkin'];
+					$room_checkout = $room_stay_dates[$kor]['new_checkout'];
+				}
+
+				$padults = VikRequest::getString('adults' . $num, '', 'request');
+				$pchildren = VikRequest::getString('children' . $num, '', 'request');
+				$ppets = VikRequest::getInt('pets' . $num, 0, 'request');
+				if (strlen($padults) || strlen($pchildren)) {
+					$arrpeople[$num]['adults'] = (int)$padults;
+					$arrpeople[$num]['children'] = (int)$pchildren;
+					$arrpeople[$num]['pets'] = $ppets;
+				}
+				$ppriceid = VikRequest::getString('priceid' . $num, '', 'request');
+				$polderpriceid = VikRequest::getString('olderpriceid' . $num, '', 'request');
+				$ppkgid = VikRequest::getString('pkgid' . $num, '', 'request');
+				$pcust_cost = VikRequest::getString('cust_cost' . $num, '', 'request');
+				$paliq = VikRequest::getString('aliq' . $num, '', 'request');
+				if ($is_package === true && !empty($ppkgid)) {
+					$pkg_cost = $or['cust_cost'];
+					$pkg_idiva = $or['cust_idiva'];
+					$pkg_info = VikBooking::getPackage($ppkgid);
+					if (is_array($pkg_info) && count($pkg_info) > 0) {
+						$use_adults = array_key_exists($num, $arrpeople) && array_key_exists('adults', $arrpeople[$num]) ? $arrpeople[$num]['adults'] : $or['adults'];
+						$pkg_cost = $pkg_info['pernight_total'] == 1 ? ($pkg_info['cost'] * $room_nights) : $pkg_info['cost'];
+						$pkg_cost = $pkg_info['perperson'] == 1 ? ($pkg_cost * ($use_adults > 0 ? $use_adults : 1)) : $pkg_cost;
+						$pkg_cost = VikBooking::sayPackagePlusIva($pkg_cost, $pkg_info['idiva']);
+					}
+					$cust_costs[$num] = array('pkgid' => $ppkgid, 'cust_cost' => $pkg_cost, 'aliq' => $pkg_idiva);
+					$isdue += $pkg_cost;
+					$cost_minus_tax = VikBooking::sayPackageMinusIva($pkg_cost, $pkg_idiva);
+					$tot_taxes += ($pkg_cost - $cost_minus_tax);
+					continue;
+				}
+				if (empty($ppriceid) && !empty($pcust_cost) && floatval($pcust_cost) > 0) {
+					$cust_costs[$num] = array('cust_cost' => $pcust_cost, 'aliq' => $paliq);
+					$cost_after_tax = VikBooking::sayPackagePlusIva((float)$pcust_cost, (int)$paliq);
+					$isdue += $cost_after_tax;
+					$cost_minus_tax = VikBooking::sayPackageMinusIva((float)$pcust_cost, (int)$paliq);
+					$tot_taxes += ($cost_after_tax - $cost_minus_tax);
+					continue;
+				}
+
+				// load room rates for the requested rate plan and nights
+				$q = "SELECT * FROM `#__vikbooking_dispcost` WHERE `idroom`=" . (int)$or['idroom'] . " AND `days`=" . $room_nights . " AND `idprice`=" . (int)$ppriceid . ";";
+				$dbo->setQuery($q);
+				$dbo->execute();
+				if (!$dbo->getNumRows()) {
+					$doup = false;
+					break;
+				}
+
+				// load room tariffs
+				$tar = $dbo->loadAssocList();
+
+				/**
+				 * The current price may be different from the price paid at the time of booking.
+				 * Check whether it has been asked to keep the old price of the time of booking.
+				 * 
+				 * @since 	1.13.0 (J) - 1.3.0 (WP)
+				 */
+				$old_price_used = false;
+				if (!empty($polderpriceid)) {
+					$older_info = explode(':', $polderpriceid);
+					if ((int)$older_info[0] == (int)$ppriceid) {
+						$old_price = isset($older_info[1]) ? (float)$older_info[1] : 0;
+						if ($old_price > 0) {
+							// we override the 'cost' property of the tar array by taking the previous cost
+							$old_price_used = true;
+							$tar[0]['cost'] = $old_price;
+						}
+					}
+				}
+
+				if (!$old_price_used) {
+					// apply seasonal rates
+					$tar = VikBooking::applySeasonsRoom($tar, $room_checkin, $room_checkout);
+				}
+
+				// different usage
+				if (!$old_price_used && $or['fromadult'] <= $or['adults'] && $or['toadult'] >= $or['adults']) {
+					// apply OBP rules
+					$tar = VBORoomHelper::getInstance()->applyOBPRules($tar, $or, $or['adults']);
+				}
+
+				$cost_plus_tax = VikBooking::sayCostPlusIva($tar[0]['cost'], $tar[0]['idprice']);
+				$isdue += $cost_plus_tax;
+				if ($cost_plus_tax == $tar[0]['cost']) {
+					$cost_minus_tax = VikBooking::sayCostMinusIva($tar[0]['cost'], $tar[0]['idprice']);
+					$tot_taxes += ($tar[0]['cost'] - $cost_minus_tax);
+				} else {
+					$tot_taxes += ($cost_plus_tax - $tar[0]['cost']);
+				}
+				$tars[$num] = $tar;
+				$rooms_costs_map[$num] = $tar[0]['cost'];
 			}
+
+			if ($doup === true) {
+				if ($room_added === true) {
+					// add room to existing booking may require to increase the total amount, and taxes
+					$padd_room_price = VikRequest::getFloat('add_room_price', 0, 'request');
+					$paliq_add_room = VikRequest::getInt('aliq_add_room', 0, 'request');
+					if (!empty($padd_room_price) && floatval($padd_room_price) > 0) {
+						$isdue += (float)$padd_room_price;
+						$cost_minus_tax = VikBooking::sayPackageMinusIva((float)$padd_room_price, (int)$paliq_add_room);
+						$tot_taxes += ((float)$padd_room_price - $cost_minus_tax);
+					}
+				}
+				$toptionals = '';
+				$q = "SELECT * FROM `#__vikbooking_optionals` ORDER BY `#__vikbooking_optionals`.`ordering` ASC;";
+				$dbo->setQuery($q);
+				$dbo->execute();
+				if ($dbo->getNumRows() > 0) {
+					$toptionals = $dbo->loadAssocList();
+				}
+				foreach ($ordersrooms as $kor => $or) {
+					$num = $kor + 1;
+
+					// default values to be considered
+					$room_nights   = $daysdiff;
+					$room_checkin  = $ord['checkin'];
+					$room_checkout = $ord['checkout'];
+					if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$kor]) && $room_stay_dates[$kor]['idroom'] == $or['idroom'] && !empty($room_stay_dates[$kor]['new_nights'])) {
+						$room_nights   = $room_stay_dates[$kor]['new_nights'];
+						$room_checkin  = $room_stay_dates[$kor]['new_checkin'];
+						$room_checkout = $room_stay_dates[$kor]['new_checkout'];
+					}
+
+					$pt_first_name = VikRequest::getString('t_first_name' . $num, '', 'request');
+					$pt_last_name = VikRequest::getString('t_last_name' . $num, '', 'request');
+					$wop = "";
+					if (is_array($toptionals)) {
+						foreach ($toptionals as $opt) {
+							if (!empty($opt['ageintervals']) && ($or['children'] > 0 || (array_key_exists($num, $arrpeople) && array_key_exists('children', $arrpeople[$num])))) {
+								$tmpvar = VikRequest::getInt('optid' . $num . $opt['id'], []);
+								if (is_array($tmpvar) && $tmpvar) {
+									$opt['quan'] = 1;
+									$optagenames = VikBooking::getOptionIntervalsAges($opt['ageintervals']);
+									$optagepcent = VikBooking::getOptionIntervalsPercentage($opt['ageintervals']);
+									$optageovrct = VikBooking::getOptionIntervalChildOverrides($opt, (isset($arrpeople[$num]) ? $arrpeople[$num]['adults'] : 0), (isset($arrpeople[$num]) ? $arrpeople[$num]['children'] : 0));
+									$optorigname = $opt['name'];
+									foreach ($tmpvar as $child_num => $chvar) {
+										$ageintervals_child_string = isset($optageovrct['ageintervals_child' . ($child_num + 1)]) ? $optageovrct['ageintervals_child' . ($child_num + 1)] : $opt['ageintervals'];
+										$optagecosts = VikBooking::getOptionIntervalsCosts($ageintervals_child_string);
+										$optorigcost = $optagecosts[($chvar - 1)];
+										if (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 1) {
+											//percentage value of the adults tariff
+											if ($is_package !== true && array_key_exists($num, $tars)) {
+												//type of price
+												$optorigcost = $tars[$num][0]['cost'] * $optagecosts[($chvar - 1)] / 100;
+											} elseif ($is_package === true && array_key_exists($num, $cust_costs)) {
+												//package
+												$optorigcost = $cust_costs[$num]['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
+											} elseif (array_key_exists($num, $cust_costs) && array_key_exists('cust_cost', $cust_costs[$num])) {
+												//custom rate + custom tax rate
+												$optorigcost = $cust_costs[$num]['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
+											}
+										} elseif (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 2) {
+											//VBO 1.10 - percentage value of room base cost
+											if ($is_package !== true && array_key_exists($num, $tars)) {
+												//type of price
+												$usecost = isset($tars[$num][0]['room_base_cost']) ? $tars[$num][0]['room_base_cost'] : $tars[$num][0]['cost'];
+												$optorigcost = $usecost * $optagecosts[($chvar - 1)] / 100;
+											} elseif ($is_package === true && array_key_exists($num, $cust_costs)) {
+												//package
+												$optorigcost = $cust_costs[$num]['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
+											} elseif (array_key_exists($num, $cust_costs) && array_key_exists('cust_cost', $cust_costs[$num])) {
+												//custom rate + custom tax rate
+												$optorigcost = $cust_costs[$num]['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
+											}
+										}
+										$opt['cost'] = $optorigcost;
+										$opt['name'] = $optorigname . ' (' . $optagenames[($chvar - 1)] . ')';
+										$opt['chageintv'] = $chvar;
+										$wop .= $opt['id'] . ":" . $opt['quan'] . "-" . $chvar . ";";
+										$realcost = (intval($opt['perday']) == 1 ? ($opt['cost'] * $room_nights * $opt['quan']) : ($opt['cost'] * $opt['quan']));
+										if (!empty($opt['maxprice']) && $opt['maxprice'] > 0 && $realcost > $opt['maxprice']) {
+											$realcost = $opt['maxprice'];
+										}
+										$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $opt['idiva']);
+										if ($opt['is_citytax'] == 1) {
+											$tot_city_taxes += $tmpopr;
+										} elseif ($opt['is_fee'] == 1) {
+											$tot_fees += $tmpopr;
+										}
+										// VBO 1.11 - always calculate the amount of tax no matter if this is already a tax or a fee
+										if ($tmpopr == $realcost) {
+											$opt_minus_iva = VikBooking::sayOptionalsMinusIva($realcost, $opt['idiva']);
+											$tot_taxes += ($realcost - $opt_minus_iva);
+										} else {
+											$tot_taxes += ($tmpopr - $realcost);
+										}
+										//
+										$isdue += $tmpopr;
+									}
+								}
+							} else {
+								$tmpvar = VikRequest::getString('optid' . $num . $opt['id'], '', 'request');
+								//options forced per child fix, no age intervals, like children tourist taxes
+								$forcedquan = 1;
+								$forceperday = false;
+								$forceperchild = false;
+								if (intval($opt['forcesel']) == 1 && strlen($opt['forceval']) > 0 && strlen($tmpvar) > 0) {
+									$forceparts = explode("-", $opt['forceval']);
+									$forcedquan = intval($forceparts[0]);
+									$forceperday = intval($forceparts[1]) == 1 ? true : false;
+									$forceperchild = intval($forceparts[2]) == 1 ? true : false;
+									$tmpvar = $forcedquan;
+									$tmpvar = $forceperchild === true && array_key_exists($num, $arrpeople) && array_key_exists('children', $arrpeople[$num]) ? ($tmpvar * $arrpeople[$num]['children']) : $tmpvar;
+								}
+								//
+								if (!empty($tmpvar)) {
+									$wop .= $opt['id'] . ":" . $tmpvar . ";";
+									// VBO 1.11 - options percentage cost of the room total fee
+									if ($is_package !== true && array_key_exists($num, $tars)) {
+										//type of price
+										$deftar_basecosts = $tars[$num][0]['cost'];
+									} elseif ($is_package === true && array_key_exists($num, $cust_costs)) {
+										//package
+										$deftar_basecosts = $cust_costs[$num]['cust_cost'];
+									} elseif (array_key_exists($num, $cust_costs) && array_key_exists('cust_cost', $cust_costs[$num])) {
+										//custom rate + custom tax rate
+										$deftar_basecosts = $cust_costs[$num]['cust_cost'];
+									}
+									$opt['cost'] = (int)$opt['pcentroom'] ? ($deftar_basecosts * $opt['cost'] / 100) : $opt['cost'];
+									//
+									$realcost = (intval($opt['perday']) == 1 ? ($opt['cost'] * $room_nights * $tmpvar) : ($opt['cost'] * $tmpvar));
+									if (!empty($opt['maxprice']) && $opt['maxprice'] > 0 && $realcost > $opt['maxprice']) {
+										$realcost = $opt['maxprice'];
+										if (intval($opt['hmany']) == 1 && intval($tmpvar) > 1) {
+											$realcost = $opt['maxprice'] * $tmpvar;
+										}
+									}
+									if ($opt['perperson'] == 1) {
+										$num_adults = array_key_exists($num, $arrpeople) && array_key_exists('adults', $arrpeople[$num]) ? $arrpeople[$num]['adults'] : 1;
+										$realcost = $realcost * $num_adults;
+									}
+									$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $opt['idiva']);
+									if ($opt['is_citytax'] == 1) {
+										$tot_city_taxes += $tmpopr;
+									} elseif ($opt['is_fee'] == 1) {
+										$tot_fees += $tmpopr;
+									}
+									// VBO 1.11 - always calculate the amount of tax no matter if this is already a tax or a fee
+									if ($tmpopr == $realcost) {
+										$opt_minus_iva = VikBooking::sayOptionalsMinusIva($realcost, $opt['idiva']);
+										$tot_taxes += ($realcost - $opt_minus_iva);
+									} else {
+										$tot_taxes += ($tmpopr - $realcost);
+									}
+									//
+									$isdue += $tmpopr;
+								}
+							}
+						}
+					}
+
+					$upd_fields = array();
+					if ($is_package !== true && array_key_exists($num, $tars)) {
+						//type of price
+						$upd_fields[] = "`idtar`='" . $tars[$num][0]['id'] . "'";
+						$upd_fields[] = "`cust_cost`=NULL";
+						$upd_fields[] = "`cust_idiva`=NULL";
+						$upd_fields[] = "`room_cost`=" . (array_key_exists($num, $rooms_costs_map) ? $dbo->quote($rooms_costs_map[$num]) : "NULL");
+					} elseif ($is_package === true && array_key_exists($num, $cust_costs)) {
+						//packages do not update name or cost, just set again the same package ID to avoid risks of empty upd_fields to update
+						$upd_fields[] = "`idtar`=NULL";
+						$upd_fields[] = "`pkg_id`='" . $cust_costs[$num]['pkgid'] . "'";
+						$upd_fields[] = "`cust_cost`='" . $cust_costs[$num]['cust_cost'] . "'";
+						$upd_fields[] = "`cust_idiva`='" . $cust_costs[$num]['aliq'] . "'";
+						$upd_fields[] = "`room_cost`=NULL";
+					} elseif (array_key_exists($num, $cust_costs) && array_key_exists('cust_cost', $cust_costs[$num])) {
+						//custom rate + custom tax rate
+						$upd_fields[] = "`idtar`=NULL";
+						$upd_fields[] = "`cust_cost`='" . $cust_costs[$num]['cust_cost'] . "'";
+						$upd_fields[] = "`cust_idiva`='" . $cust_costs[$num]['aliq'] . "'";
+						$upd_fields[] = "`room_cost`=NULL";
+					}
+					if (is_array($toptionals)) {
+						$upd_fields[] = "`optionals`='" . $wop . "'";
+					}
+					if (!empty($pt_first_name) || !empty($pt_last_name)) {
+						$upd_fields[] = "`t_first_name`=" . $dbo->quote($pt_first_name);
+						$upd_fields[] = "`t_last_name`=" . $dbo->quote($pt_last_name);
+					}
+					if (array_key_exists($num, $arrpeople) && array_key_exists('adults', $arrpeople[$num])) {
+						$upd_fields[] = "`adults`=" . intval($arrpeople[$num]['adults']);
+						$upd_fields[] = "`children`=" . intval($arrpeople[$num]['children']);
+						if (isset($arrpeople[$num]['pets'])) {
+							$upd_fields[] = "`pets`=" . $arrpeople[$num]['pets'];
+						}
+					}
+
+					/**
+					 * Meal plans at room-reservation level.
+					 * 
+					 * @since 	1.16.1 (J) - 1.6.1 (WP)
+					 */
+					$pmealplans = VikRequest::getVar('mealplan' . $num, []);
+					$upd_fields[] = "`meals`=" . ($pmealplans ? $dbo->q(json_encode($pmealplans)) : 'NULL');
+
+					//calculate the extra costs and increase taxes + isdue
+					$extracosts_arr = array();
+					if (count($pextracn) && isset($pextracn[$num]) && count($pextracn[$num])) {
+						foreach ($pextracn[$num] as $eck => $ecn) {
+							if (strlen($ecn) > 0 && array_key_exists($eck, $pextracc[$num]) && is_numeric($pextracc[$num][$eck])) {
+								$ecidtax = array_key_exists($eck, $pextractx[$num]) && intval($pextractx[$num][$eck]) > 0 ? (int)$pextractx[$num][$eck] : '';
+								$extracosts_arr[] = array(
+									'name'  => $ecn,
+									'cost'  => (float)$pextracc[$num][$eck],
+									'idtax' => $ecidtax,
+									'type' 	=> isset($pextractype[$num][$eck]) ? $pextractype[$num][$eck] : '',
+									'fk' 	=> isset($pextracfk[$num][$eck]) ? (string)$pextracfk[$num][$eck] : '',
+									'data'  => isset($pextracdata[$num][$eck]) ? json_decode($pextracdata[$num][$eck]) : null,
+								);
+								$ecplustax = !empty($ecidtax) ? VikBooking::sayOptionalsPlusIva((float)$pextracc[$num][$eck], $ecidtax) : (float)$pextracc[$num][$eck];
+								$ecminustax = !empty($ecidtax) ? VikBooking::sayOptionalsMinusIva((float)$pextracc[$num][$eck], $ecidtax) : (float)$pextracc[$num][$eck];
+								$ectottax = (float)$pextracc[$num][$eck] - $ecminustax;
+								$isdue += $ecplustax;
+								$tot_taxes += $ectottax;
+							}
+						}
+					}
+					if (count($extracosts_arr) > 0) {
+						$upd_fields[] = "`extracosts`=" . $dbo->quote(json_encode($extracosts_arr));
+					} else {
+						$upd_fields[] = "`extracosts`=NULL";
+					}
+					//end extra costs
+					if (count($upd_fields) > 0) {
+						$q = "UPDATE `#__vikbooking_ordersrooms` SET " . implode(', ', $upd_fields) . " WHERE `idorder`=" . $ord['id'] . " AND `idroom`='" . $or['idroom'] . "' AND `id`='" . $or['id'] . "';";
+						$dbo->setQuery($q);
+						$dbo->execute();
+					}
+				}
+
+				// update split stay transient record if not confirmed booking
+				if ($ord['split_stay'] && $ord['status'] != 'confirmed' && !empty($room_stay_dates) && !empty($split_stay_data)) {
+					/**
+					 * Important: if no rates have been selected for all rooms, we won't enter this inner statement.
+					 * It is necessary to select a rate plan for each room in order to update the split stay data.
+					 */
+					$new_room_stay_dates = [];
+					foreach ($room_stay_dates as $kor => $room_stay_info) {
+						// clone the current information
+						$clean_room_stay_info = $room_stay_info;
+						// set new stay values
+						if (!empty($clean_room_stay_info['checkin_ts'])) {
+							$clean_room_stay_info['checkin_ts']  = $clean_room_stay_info['new_checkin'];
+							$clean_room_stay_info['checkout_ts'] = $clean_room_stay_info['new_checkout'];
+						} else {
+							$clean_room_stay_info['checkin']  = $clean_room_stay_info['new_checkin'];
+							$clean_room_stay_info['checkout'] = $clean_room_stay_info['new_checkout'];
+						}
+						$clean_room_stay_info['nights'] = $clean_room_stay_info['new_nights'];
+						// clean up unnecessary keys
+						unset($clean_room_stay_info['new_checkin'], $clean_room_stay_info['new_checkout'], $clean_room_stay_info['new_nights']);
+						// push new array info
+						$new_room_stay_dates[$kor] = $clean_room_stay_info;
+					}
+					// update configuration record
+					VBOFactory::getConfig()->set('split_stay_' . $ord['id'], json_encode($new_room_stay_dates));
+				}
+
+				// make sure to re-apply the discount with the coupon code
+				if (strlen($ord['coupon']) > 0) {
+					$expcoupon = explode(";", $ord['coupon']);
+					$isdue -= $expcoupon[1];
+				}
+
+				// make sure to apply any previously refunded amount
+				if ($ord['refund'] > 0) {
+					$isdue -= $ord['refund'];
+				}
+
+				// update totals
+				$q = "UPDATE `#__vikbooking_orders` SET `total`='" . $isdue . "', `tot_taxes`='" . $tot_taxes . "', `tot_city_taxes`='" . $tot_city_taxes . "', `tot_fees`='" . $tot_fees . "' WHERE `id`=" . $ord['id'] . ";";
+				$dbo->setQuery($q);
+				$dbo->execute();
+				$upd_esit = JText::translate('VBORESRATESUPDATED');
+
+				// Customer Booking
+				if ($ord['status'] == 'confirmed') {
+					$q = "SELECT `idcustomer` FROM `#__vikbooking_customers_orders` WHERE `idorder`=" . $ord['id'] . ";";
+					$dbo->setQuery($q);
+					$dbo->execute();
+					if ($dbo->getNumRows() > 0) {
+						$customer_id = $dbo->loadResult();
+						$cpin = VikBooking::getCPinIstance();
+						$cpin->is_admin = true;
+						$cpin->updateBookingCommissions($ord['id'], $customer_id);
+					}
+				}
+			}
+			//Booking History
+			$history_descr = "({$user->name}) " . VikBooking::getLogBookingModification($ord, $room_stay_dates);
+			if (!$opertwounits && $forcebooking) {
+				$history_descr .= "\n" . JText::translate('VBO_FORCED_BOOKDATES');
+			}
+			VikBooking::getBookingHistoryInstance()->setBid($ord['id'])->store('MB', $history_descr);
+			//
+			$app->enqueueMessage($upd_esit);
 		} else {
-			$mainframe->redirect("index.php?option=com_vikbooking&task=rooms");
+			VikError::raiseWarning('', JText::translate('VBROOMNOTRIT') . " " . date($df . ' H:i', $first) . " " . JText::translate('VBROOMNOTCONSTO') . " " . date($df . ' H:i', $second));
+			$allow_force = 1;
+			$app->enqueueMessage(JText::translate('VBO_BOOKING_SHOULDFORCE'), 'notice');
+		}
+
+		if ($callback == 'geninvoices') {
+			$app->redirect("index.php?option=com_vikbooking&task=orders&cid[]=" . $ord['id'] . "&confirmgen=1");
+		} else {
+			$app->redirect("index.php?option=com_vikbooking&task=editbusy" . ($pvcm == 1 ? '&vcm=1' : '') . (isset($allow_force) ? '&canforce=1' : '') . ($pfrominv == 1 ? '&frominv=1' : '') . "&cid[]=" . $ord['id'] . ($pgoto == 'overv' ? "&goto=overv" : ""));
 		}
 	}
 
-	public function removebusy() {
-		$dbo = JFactory::getDBO();
-		$prev_conf_ids = array();
-		$pidorder = VikRequest::getString('idorder', '', 'request');
+	public function removebusy()
+	{
+		$dbo = JFactory::getDbo();
+		$app = JFactory::getApplication();
+
+		$user 	= JFactory::getUser();
+		$config = VBOFactory::getConfig();
+
+		$prev_conf_ids = [];
+		$pidorder = VikRequest::getInt('idorder', 0, 'request');
 		$pgoto = VikRequest::getString('goto', '', 'request');
-		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=".$dbo->quote($pidorder).";";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() == 1) {
-			$rows = $dbo->loadAssocList();
-			if ($rows[0]['status'] != 'cancelled') {
-				$q = "UPDATE `#__vikbooking_orders` SET `status`='cancelled' WHERE `id`=".(int)$rows[0]['id'].";";
-				$dbo->setQuery($q);
-				$dbo->execute();
-				$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `idorder`=" . intval($rows[0]['id']) . ";";
-				$dbo->setQuery($q);
-				$dbo->execute();
-				if ($rows[0]['status'] == 'confirmed') {
-					$prev_conf_ids[] = $rows[0]['id'];
+
+		$purged = false;
+
+		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=" . $pidorder;
+		$dbo->setQuery($q, 0, 1);
+		$row = $dbo->loadAssoc();
+
+		// check for any cancellation constraints
+		$canc_denied = false;
+		if ($row && class_exists('VCMFeesCancellation')) {
+			// let VCM detect if there are any constraints for the cancellation
+			$canc_denied = VCMFeesCancellation::getInstance($row, $anew = true)->isBookingConstrained();
+			if ($canc_denied) {
+				// set error message
+				$canc_deny_error = VCMFeesCancellation::getInstance()->getError();
+				if ($canc_deny_error) {
+					$app->enqueueMessage($canc_deny_error, 'error');
 				}
-				//Booking History
-				VikBooking::getBookingHistoryInstance()->setBid($rows[0]['id'])->store('CB');
-				//
 			}
-			$q = "SELECT * FROM `#__vikbooking_ordersbusy` WHERE `idorder`=".(int)$rows[0]['id'].";";
+		}
+
+		if ($row && !$canc_denied) {
+			// set status to cancelled
+			if ($row['status'] != 'cancelled') {
+				$q = "UPDATE `#__vikbooking_orders` SET `status`='cancelled' WHERE `id`=" . (int)$row['id'] . ";";
+				$dbo->setQuery($q);
+				$dbo->execute();
+				$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `idorder`=" . intval($row['id']) . ";";
+				$dbo->setQuery($q);
+				$dbo->execute();
+				if ($row['status'] == 'confirmed') {
+					$prev_conf_ids[] = $row['id'];
+				}
+				// Booking History
+				VikBooking::getBookingHistoryInstance()->setBid($row['id'])->store('CB', "({$user->name})");
+			}
+
+			// free records up
+			$q = "SELECT * FROM `#__vikbooking_ordersbusy` WHERE `idorder`=" . (int)$row['id'] . ";";
 			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows() > 0) {
-				$ordbusy = $dbo->loadAssocList();
+			$ordbusy = $dbo->loadAssocList();
+			if ($ordbusy) {
 				foreach ($ordbusy as $ob) {
-					$q = "DELETE FROM `#__vikbooking_busy` WHERE `id`='".$ob['idbusy']."';";
+					$q = "DELETE FROM `#__vikbooking_busy` WHERE `id`='" . $ob['idbusy'] . "';";
 					$dbo->setQuery($q);
 					$dbo->execute();
 				}
 			}
-			$q = "DELETE FROM `#__vikbooking_ordersbusy` WHERE `idorder`=".(int)$rows[0]['id'].";";
+
+			$q = "DELETE FROM `#__vikbooking_ordersbusy` WHERE `idorder`=" . (int)$row['id'] . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
-			if ($rows[0]['status'] == 'cancelled') {
-				$q = "DELETE FROM `#__vikbooking_customers_orders` WHERE `idorder`=" . intval($rows[0]['id']) . ";";
+
+			// check for purge removal
+			if ($row['status'] == 'cancelled') {
+				$q = "DELETE FROM `#__vikbooking_customers_orders` WHERE `idorder`=" . intval($row['id']) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
-				$q = "DELETE FROM `#__vikbooking_ordersrooms` WHERE `idorder`=".(int)$rows[0]['id'].";";
+				$q = "DELETE FROM `#__vikbooking_ordersrooms` WHERE `idorder`=" . (int)$row['id'] . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
-				$q = "DELETE FROM `#__vikbooking_orderhistory` WHERE `idorder`=".(int)$rows[0]['id'].";";
+				$q = "DELETE FROM `#__vikbooking_orderhistory` WHERE `idorder`=" . (int)$row['id'] . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
-				$q = "DELETE FROM `#__vikbooking_orders` WHERE `id`=".(int)$rows[0]['id'].";";
+				$q = "DELETE FROM `#__vikbooking_orders` WHERE `id`=" . (int)$row['id'] . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
+				// in case of split stay booking, remove the transient
+				if ($row['split_stay']) {
+					$config->remove('split_stay_' . $row['id']);
+				}
+				// turn flag on
+				$purged = true;
 			}
-			$app = JFactory::getApplication();
+
+			// enqueue message
 			$app->enqueueMessage(JText::translate('VBMESSDELBUSY'));
 		}
-		if (count($prev_conf_ids) > 0) {
+
+		if ($prev_conf_ids) {
 			$prev_conf_ids_str = '';
 			foreach ($prev_conf_ids as $prev_id) {
-				$prev_conf_ids_str .= '&cid[]='.$prev_id;
+				$prev_conf_ids_str .= '&cid[]=' . $prev_id;
 			}
 			//Invoke Channel Manager
 			$vcm_autosync = VikBooking::vcmAutoUpdate();
@@ -2546,24 +3040,33 @@ class VikBookingController extends JControllerVikBooking
 				$sync_result = $vcm_obj->doSync();
 				if ($sync_result === false) {
 					$vcm_err = $vcm_obj->getError();
-					VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO').' <a href="index.php?option=com_vikchannelmanager" target="_blank">'.JText::translate('VBCHANNELMANAGEROPEN').'</a> '.(strlen($vcm_err) > 0 ? '('.$vcm_err.')' : ''));
+					VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO') . ' <a href="index.php?option=com_vikchannelmanager" target="_blank">' . JText::translate('VBCHANNELMANAGEROPEN') . '</a> ' . (strlen($vcm_err) > 0 ? '(' . $vcm_err . ')' : ''));
 				}
 			} elseif (file_exists(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
-				$vcm_sync_url = 'index.php?option=com_vikbooking&task=invoke_vcm&stype=cancel'.$prev_conf_ids_str.'&returl='.urlencode('index.php?option=com_vikbooking&task=orders');
-				VikError::raiseNotice('', JText::translate('VBCHANNELMANAGERINVOKEASK').' <button type="button" class="btn btn-primary" onclick="document.location.href=\''.$vcm_sync_url.'\';">'.JText::translate('VBCHANNELMANAGERSENDRQ').'</button>');
+				$vcm_sync_url = 'index.php?option=com_vikbooking&task=invoke_vcm&stype=cancel' . $prev_conf_ids_str . '&returl=' . urlencode('index.php?option=com_vikbooking&task=orders');
+				VikError::raiseNotice('', JText::translate('VBCHANNELMANAGERINVOKEASK') . ' <button type="button" class="btn btn-primary" onclick="document.location.href=\'' . $vcm_sync_url . '\';">' . JText::translate('VBCHANNELMANAGERSENDRQ') . '</button>');
 			}
 			//
 		}
-		$mainframe = JFactory::getApplication();
-		$mainframe->redirect("index.php?option=com_vikbooking&task=".($pgoto == 'overv' ? 'overv' : 'orders'));
+
+		if ($pgoto == 'overv') {
+			$app->redirect("index.php?option=com_vikbooking&task=overv");
+		} elseif (!$purged) {
+			$app->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . $pidorder);
+		} else {
+			$app->redirect("index.php?option=com_vikbooking&task=orders");
+		}
+
+		$app->close();
 	}
 
-	public function unlockrecords() {
+	public function unlockrecords()
+	{
 		$ids = VikRequest::getVar('cid', array(0));
 		if (@count($ids)) {
 			$dbo = JFactory::getDBO();
 			foreach ($ids as $d) {
-				$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `id`=".$dbo->quote($d).";";
+				$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `id`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -2572,7 +3075,11 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking");
 	}
 
-	public function sortoption() {
+	public function sortoption()
+	{
+		if (!JSession::checkToken('get')) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
 		$sortid = VikRequest::getVar('cid', array(0));
 		$pmode = VikRequest::getString('mode', '', 'request');
 		$dbo = JFactory::getDBO();
@@ -2596,17 +3103,17 @@ class VikBookingController extends JControllerVikBooking
 						foreach ($data as $v) {
 							if (intval($v['ordering']) == intval($vik)) {
 								$found = true;
-								$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='".$y."' WHERE `id`='".$v['id']."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='" . $y . "' WHERE `id`='" . $v['id'] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
-								$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
 								break;
 							}
 						}
 						if (!$found) {
-							$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+							$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 							$dbo->setQuery($q);
 							$dbo->execute();
 						}
@@ -2623,17 +3130,17 @@ class VikBookingController extends JControllerVikBooking
 						foreach ($data as $v) {
 							if (intval($v['ordering']) == intval($vik)) {
 								$found = true;
-								$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='".$y."' WHERE `id`='".$v['id']."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='" . $y . "' WHERE `id`='" . $v['id'] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
-								$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
 								break;
 							}
 						}
 						if (!$found) {
-							$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+							$q = "UPDATE `#__vikbooking_optionals` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 							$dbo->setQuery($q);
 							$dbo->execute();
 						}
@@ -2646,7 +3153,11 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function sortpayment() {
+	public function sortpayment()
+	{
+		if (!JSession::checkToken('get')) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
 		$cid = VikRequest::getVar('cid', array(0));
 		$sortid = $cid[0];
 		$dbo = JFactory::getDBO();
@@ -2656,7 +3167,7 @@ class VikBookingController extends JControllerVikBooking
 			$q = "SELECT `id`,`ordering` FROM `#__vikbooking_gpayments` ORDER BY `#__vikbooking_gpayments`.`ordering` ASC;";
 			$dbo->setQuery($q);
 			$dbo->execute();
-			$totr=$dbo->getNumRows();
+			$totr = $dbo->getNumRows();
 			if ($totr > 1) {
 				$data = $dbo->loadAssocList();
 				if ($pmode == "up") {
@@ -2671,17 +3182,17 @@ class VikBookingController extends JControllerVikBooking
 						foreach ($data as $v) {
 							if (intval($v['ordering']) == intval($vik)) {
 								$found = true;
-								$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='".$y."' WHERE `id`='".$v['id']."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='" . $y . "' WHERE `id`='" . $v['id'] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
-								$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='".$vik."' WHERE `id`='".$sortid."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
 								break;
 							}
 						}
 						if (!$found) {
-							$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='".$vik."' WHERE `id`='".$sortid."' LIMIT 1;";
+							$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid . "' LIMIT 1;";
 							$dbo->setQuery($q);
 							$dbo->execute();
 						}
@@ -2697,18 +3208,18 @@ class VikBookingController extends JControllerVikBooking
 						$found = false;
 						foreach ($data as $v) {
 							if (intval($v['ordering']) == intval($vik)) {
-								$found=true;
-								$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='".$y."' WHERE `id`='".$v['id']."' LIMIT 1;";
+								$found = true;
+								$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='" . $y . "' WHERE `id`='" . $v['id'] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
-								$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='".$vik."' WHERE `id`='".$sortid."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
 								break;
 							}
 						}
 						if (!$found) {
-							$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='".$vik."' WHERE `id`='".$sortid."' LIMIT 1;";
+							$q = "UPDATE `#__vikbooking_gpayments` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid . "' LIMIT 1;";
 							$dbo->setQuery($q);
 							$dbo->execute();
 						}
@@ -2721,7 +3232,11 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function sortcarat() {
+	public function sortcarat()
+	{
+		if (!JSession::checkToken('get')) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
 		$sortid = VikRequest::getVar('cid', array(0));
 		$pmode = VikRequest::getString('mode', '', 'request');
 		$dbo = JFactory::getDBO();
@@ -2745,17 +3260,17 @@ class VikBookingController extends JControllerVikBooking
 						foreach ($data as $v) {
 							if (intval($v['ordering']) == intval($vik)) {
 								$found = true;
-								$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='".$y."' WHERE `id`='".$v['id']."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='" . $y . "' WHERE `id`='" . $v['id'] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
-								$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
 								break;
 							}
 						}
 						if (!$found) {
-							$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+							$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 							$dbo->setQuery($q);
 							$dbo->execute();
 						}
@@ -2772,17 +3287,17 @@ class VikBookingController extends JControllerVikBooking
 						foreach ($data as $v) {
 							if (intval($v['ordering']) == intval($vik)) {
 								$found = true;
-								$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='".$y."' WHERE `id`='".$v['id']."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='" . $y . "' WHERE `id`='" . $v['id'] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
-								$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
 								break;
 							}
 						}
 						if (!$found) {
-							$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+							$q = "UPDATE `#__vikbooking_characteristics` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 							$dbo->setQuery($q);
 							$dbo->execute();
 						}
@@ -2795,677 +3310,732 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function resendordemail() {
+	public function resendordemail()
+	{
 		$this->do_resendorderemail();
 	}
 
-	public function sendcancordemail() {
+	public function sendcancordemail()
+	{
 		$this->do_resendorderemail(true);
 	}
 
-	private function do_resendorderemail($cancellation = false) {
+	private function do_resendorderemail($cancellation = false)
+	{
+		$dbo = JFactory::getDbo();
+		$app = JFactory::getApplication();
+		$vbo_tn = VikBooking::getTranslator();
+
 		$cid = VikRequest::getVar('cid', array(0));
 		$oid = (int)$cid[0];
-		$dbo = JFactory::getDBO();
-		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=".(int)$oid.";";
+
+		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=" . $oid . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		if ($dbo->getNumRows() == 1) {
-			$order = $dbo->loadAssocList();
-			$vbo_tn = VikBooking::getTranslator();
-			//check if the language in use is the same as the one used during the checkout
-			if (!empty($order[0]['lang'])) {
-				$lang = JFactory::getLanguage();
-				if ($lang->getTag() != $order[0]['lang']) {
-					/**
-					 * @wponly 	constant name for lang path is different
-					 */
-					$lang->load('com_vikbooking', VIKBOOKING_LANG, $order[0]['lang'], true);
-				}
-				if ($vbo_tn->getDefaultLang() != $order[0]['lang']) {
-					// force the translation to start because contents should be translated
-					$vbo_tn::$force_tolang = $order[0]['lang'];
-				}
-			}
-			//
-			$q = "SELECT `or`.*,`r`.`id` AS `r_reference_id`,`r`.`name`,`r`.`units`,`r`.`fromadult`,`r`.`toadult`,`r`.`params` FROM `#__vikbooking_ordersrooms` AS `or`,`#__vikbooking_rooms` AS `r` WHERE `or`.`idorder`=" . (int)$order[0]['id'] . " AND `or`.`idroom`=`r`.`id` ORDER BY `or`.`id` ASC;";
-			$dbo->setQuery($q);
-			$dbo->execute();
-			$ordersrooms = $dbo->loadAssocList();
-			$vbo_tn->translateContents($ordersrooms, '#__vikbooking_rooms', array('id' => 'r_reference_id'));
-			$currencyname = VikBooking::getCurrencyName();
-			$realback = VikBooking::getHoursRoomAvail() * 3600;
-			$realback += $order[0]['checkout'];
-			$rooms = array();
-			$tars = array();
-			$arrpeople = array();
-			$is_package = !empty($order[0]['pkg']) ? true : false;
-			//send mail
-			$ftitle = VikBooking::getFrontTitle();
-			$nowts = time();
-			$viklink = JURI::root()."index.php?option=com_vikbooking&view=booking&sid=".$order[0]['sid']."&ts=".$order[0]['ts'];
-			foreach ($ordersrooms as $kor => $or) {
-				$num = $kor + 1;
-				$rooms[$num] = $or;
-				$arrpeople[$num]['adults'] = $or['adults'];
-				$arrpeople[$num]['children'] = $or['children'];
-				if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-					//package or custom cost set from the back-end
-					continue;
-				}
-				$q = "SELECT * FROM `#__vikbooking_dispcost` WHERE `id`=" . (int)$or['idtar'] . ";";
-				$dbo->setQuery($q);
-				$dbo->execute();
-				if ($dbo->getNumRows() > 0) {
-					$tar = $dbo->loadAssocList();
-					$tar = VikBooking::applySeasonsRoom($tar, $order[0]['checkin'], $order[0]['checkout']);
-					//different usage
-					if ($or['fromadult'] <= $or['adults'] && $or['toadult'] >= $or['adults']) {
-						$diffusageprice = VikBooking::loadAdultsDiff($or['idroom'], $or['adults']);
-						//Occupancy Override
-						$occ_ovr = VikBooking::occupancyOverrideExists($tar, $or['adults']);
-						$diffusageprice = $occ_ovr !== false ? $occ_ovr : $diffusageprice;
-						//
-						if (is_array($diffusageprice)) {
-							//set a charge or discount to the price(s) for the different usage of the room
-							foreach ($tar as $kpr => $vpr) {
-								$tar[$kpr]['diffusage'] = $or['adults'];
-								if ($diffusageprice['chdisc'] == 1) {
-									//charge
-									if ($diffusageprice['valpcent'] == 1) {
-										//fixed value
-										$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
-										$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $tar[$kpr]['days'] : $diffusageprice['value'];
-										$tar[$kpr]['diffusagecost'] = "+".$aduseval;
-										$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-										$tar[$kpr]['cost'] = $vpr['cost'] + $aduseval;
-									} else {
-										//percentage value
-										$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
-										$aduseval = $diffusageprice['pernight'] == 1 ? round(($vpr['cost'] * $diffusageprice['value'] / 100) * $tar[$kpr]['days'] + $vpr['cost'], 2) : round(($vpr['cost'] * (100 + $diffusageprice['value']) / 100), 2);
-										$tar[$kpr]['diffusagecost'] = "+".$diffusageprice['value']."%";
-										$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-										$tar[$kpr]['cost'] = $aduseval;
-									}
-								} else {
-									//discount
-									if ($diffusageprice['valpcent'] == 1) {
-										//fixed value
-										$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
-										$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $tar[$kpr]['days'] : $diffusageprice['value'];
-										$tar[$kpr]['diffusagecost'] = "-".$aduseval;
-										$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-										$tar[$kpr]['cost'] = $vpr['cost'] - $aduseval;
-									} else {
-										//percentage value
-										$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
-										$aduseval = $diffusageprice['pernight'] == 1 ? round($vpr['cost'] - ((($vpr['cost'] / $tar[$kpr]['days']) * $diffusageprice['value'] / 100) * $tar[$kpr]['days']), 2) : round(($vpr['cost'] * (100 - $diffusageprice['value']) / 100), 2);
-										$tar[$kpr]['diffusagecost'] = "-".$diffusageprice['value']."%";
-										$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-										$tar[$kpr]['cost'] = $aduseval;
-									}
-								}
-							}
-						}
-					}
-					//
-					$tars[$num] = $tar[0];
-				} else {
-					VikError::raiseWarning('', JText::translate('VBERRNOFAREFOUND'));
-				}
-			}
-			$pcheckin = $order[0]['checkin'];
-			$pcheckout = $order[0]['checkout'];
-			$secdiff = $pcheckout - $pcheckin;
-			$daysdiff = $secdiff / 86400;
-			if (is_int($daysdiff)) {
-				if ($daysdiff < 1) {
-					$daysdiff = 1;
-				}
-			} else {
-				if ($daysdiff < 1) {
-					$daysdiff = 1;
-				} else {
-					$sum = floor($daysdiff) * 86400;
-					$newdiff = $secdiff - $sum;
-					$maxhmore = VikBooking::getHoursMoreRb() * 3600;
-					if ($maxhmore >= $newdiff) {
-						$daysdiff = floor($daysdiff);
-					} else {
-						$daysdiff = ceil($daysdiff);
-					}
-				}
-			}
-			$isdue = 0;
-			$pricestr = array();
-			$optstr = array();
-			foreach ($ordersrooms as $kor => $or) {
-				$num = $kor + 1;
-				if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-					// package cost or cust_cost may not be inclusive of taxes if prices tax included is off
-					$calctar = VikBooking::sayPackagePlusIva($or['cust_cost'], $or['cust_idiva']);
-					$isdue += $calctar;
-					$pricestr[$num] = (!empty($or['pkg_name']) ? $or['pkg_name'] : (!empty($or['otarplan']) ? ucwords($or['otarplan']) : JText::translate('VBOROOMCUSTRATEPLAN'))).": ".$calctar." ".$currencyname;
-				} elseif (array_key_exists($num, $tars) && is_array($tars[$num])) {
-					$display_rate = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
-					$calctar = VikBooking::sayCostPlusIva($display_rate, $tars[$num]['idprice']);
-					$tars[$num]['calctar'] = $calctar;
-					$isdue += $calctar;
-					$pricestr[$num] = VikBooking::getPriceName($tars[$num]['idprice'], $vbo_tn) . ": " . $calctar . " " . $currencyname . (!empty($tars[$num]['attrdata']) ? "\n" . VikBooking::getPriceAttr($tars[$num]['idprice'], $vbo_tn) . ": " . $tars[$num]['attrdata'] : "");
-				}
-				if (!empty($or['optionals'])) {
-					$stepo = explode(";", $or['optionals']);
-					foreach ($stepo as $roptkey => $oo) {
-						if (!empty($oo)) {
-							$stept = explode(":", $oo);
-							$q = "SELECT * FROM `#__vikbooking_optionals` WHERE `id`=" . $dbo->quote($stept[0]) . ";";
-							$dbo->setQuery($q);
-							$dbo->execute();
-							if ($dbo->getNumRows() == 1) {
-								$actopt = $dbo->loadAssocList();
-								$vbo_tn->translateContents($actopt, '#__vikbooking_optionals', array(), array(), (!empty($order[0]['lang']) ? $order[0]['lang'] : null));
-								$chvar = '';
-								if (!empty($actopt[0]['ageintervals']) && $or['children'] > 0 && strstr($stept[1], '-') != false) {
-									$optagenames = VikBooking::getOptionIntervalsAges($actopt[0]['ageintervals']);
-									$optagepcent = VikBooking::getOptionIntervalsPercentage($actopt[0]['ageintervals']);
-									$optageovrct = VikBooking::getOptionIntervalChildOverrides($actopt[0], $or['adults'], $or['children']);
-									$child_num 	 = VikBooking::getRoomOptionChildNumber($or['optionals'], $actopt[0]['id'], $roptkey, $or['children']);
-									$optagecosts = VikBooking::getOptionIntervalsCosts(isset($optageovrct['ageintervals_child' . ($child_num + 1)]) ? $optageovrct['ageintervals_child' . ($child_num + 1)] : $actopt[0]['ageintervals']);
-									$agestept = explode('-', $stept[1]);
-									$stept[1] = $agestept[0];
-									$chvar = $agestept[1];
-									if (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 1) {
-										//percentage value of the adults tariff
-										if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-											$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
-										} else {
-											$display_rate = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
-											$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
-										}
-									} elseif (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 2) {
-										//VBO 1.10 - percentage value of room base cost
-										if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-											$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
-										} else {
-											$display_rate = isset($tars[$num]['room_base_cost']) ? $tars[$num]['room_base_cost'] : (!empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost']);
-											$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
-										}
-									}
-									$actopt[0]['chageintv'] = $chvar;
-									$actopt[0]['name'] .= ' ('.$optagenames[($chvar - 1)].')';
-									$actopt[0]['quan'] = $stept[1];
-									$realcost = (intval($actopt[0]['perday']) == 1 ? (floatval($optagecosts[($chvar - 1)]) * $order[0]['days'] * $stept[1]) : (floatval($optagecosts[($chvar - 1)]) * $stept[1]));
-								} else {
-									$actopt[0]['quan'] = $stept[1];
-									// VBO 1.11 - options percentage cost of the room total fee
-									if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-										$deftar_basecosts = $or['cust_cost'];
-									} else {
-										$deftar_basecosts = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
-									}
-									$actopt[0]['cost'] = (int)$actopt[0]['pcentroom'] ? ($deftar_basecosts * $actopt[0]['cost'] / 100) : $actopt[0]['cost'];
-									//
-									$realcost = (intval($actopt[0]['perday']) == 1 ? ($actopt[0]['cost'] * $order[0]['days'] * $stept[1]) : ($actopt[0]['cost'] * $stept[1]));
-								}
-								if (!empty($actopt[0]['maxprice']) && $actopt[0]['maxprice'] > 0 && $realcost > $actopt[0]['maxprice']) {
-									$realcost = $actopt[0]['maxprice'];
-									if (intval($actopt[0]['hmany']) == 1 && intval($stept[1]) > 1) {
-										$realcost = $actopt[0]['maxprice'] * $stept[1];
-									}
-								}
-								if ($actopt[0]['perperson'] == 1) {
-									$realcost = $realcost * $or['adults'];
-								}
-								$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $actopt[0]['idiva']);
-								$isdue += $tmpopr;
-								$optstr[$num][] = ($stept[1] > 1 ? $stept[1] . " " : "") . $actopt[0]['name'] . ": " . $tmpopr . " " . $currencyname . "\n";
-							}
-						}
-					}
-				}
-				//custom extra costs
-				if (!empty($or['extracosts'])) {
-					$cur_extra_costs = json_decode($or['extracosts'], true);
-					foreach ($cur_extra_costs as $eck => $ecv) {
-						$ecplustax = !empty($ecv['idtax']) ? VikBooking::sayOptionalsPlusIva($ecv['cost'], $ecv['idtax']) : $ecv['cost'];
-						$isdue += $ecplustax;
-						$optstr[$num][] = $ecv['name'] . ": " . $ecplustax . " " . $currencyname."\n";
-					}
-				}
-				//
-			}
-			//vikbooking 1.1 coupon
-			$usedcoupon = false;
-			$origisdue = $isdue;
-			if (strlen($order[0]['coupon']) > 0) {
-				$usedcoupon = true;
-				$expcoupon = explode(";", $order[0]['coupon']);
-				$isdue = $isdue - $expcoupon[1];
-			}
-			// make sure to apply any previously refunded amount
-			if ($order[0]['refund'] > 0) {
-				$isdue -= $order[0]['refund'];
-			}
-			//
-			//ConfirmationNumber
-			$confirmnumber = $order[0]['confirmnumber'];
-			//end ConfirmationNumber
-			$esit_mess = JText::sprintf('VBORDEREMAILRESENT', $order[0]['custmail']);
-			$status_str = JText::translate('VBCOMPLETED');
-			if ($cancellation) {
-				$confirmnumber = '';
-				$esit_mess = JText::sprintf('VBCANCORDEREMAILSENT', $order[0]['custmail']);
-				$status_str = JText::translate('VBCANCELLED');
-			} elseif ($order[0]['status'] == 'standby') {
-				$confirmnumber = '';
-				$status_str = JText::translate('VBWAITINGFORPAYMENT');
-			}
-			$app = JFactory::getApplication();
-			$app->enqueueMessage($esit_mess);
-			//force the original total amount if rates have changed
-			if (number_format($isdue, 2) != number_format($order[0]['total'], 2)) {
-				$isdue = $order[0]['total'];
-			}
-			//
-			
-			// VikBooking::sendCustMailFromBack($order[0]['custmail'], strip_tags($ftitle)." ".JText::translate('VBRENTALORD'), $ftitle, $nowts, $order[0]['custdata'], $rooms, $order[0]['checkin'], $order[0]['checkout'], $pricestr, $optstr, $isdue, $viklink, $status_str, $order[0]['id'], $order[0]['coupon'], $arrpeople, $confirmnumber);
+		if (!$dbo->getNumRows()) {
+			$app->redirect("index.php?option=com_vikbooking&task=orders");
+			$app->close();
+		}
+		$order = $dbo->loadAssoc();
 
-			// send email notification to guest
-			VikBooking::sendBookingEmail($order[0]['id'], array('guest'));
-			//
-
-			if ($cancellation) {
-				/**
-				 * If "send cancellation email", we log the event in the history.
-				 * 
-				 * @since 	1.14 (J) - 1.4.0 (WP)
-				 */
-				VikBooking::getBookingHistoryInstance()->setBid($order[0]['id'])->store('EC');
+		// check if the language in use is the same as the one used during the checkout
+		if (!empty($order['lang'])) {
+			$lang = JFactory::getLanguage();
+			if ($lang->getTag() != $order['lang']) {
+				$lang->load('com_vikbooking', (VBOPlatformDetection::isWordPress() ? VIKBOOKING_LANG : JPATH_ADMINISTRATOR), $order['lang'], true);
+				if (defined('_JEXEC') && !defined('ABSPATH')) {
+					$lang->load('joomla', JPATH_ADMINISTRATOR, $order['lang'], true);
+				}
+			}
+			if ($vbo_tn->getDefaultLang() != $order['lang']) {
+				// force the translation to start because contents should be translated
+				$vbo_tn::$force_tolang = $order['lang'];
 			}
 		}
-		$mainframe = JFactory::getApplication();
-		$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=".$oid);
-	}
 
-	public function setordconfirmed() {
-		$cid = VikRequest::getVar('cid', array(0));
-		$oid = $cid[0];
-		$dbo = JFactory::getDBO();
-		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=".(int)$oid." AND `status` != 'confirmed';";
+		// availability helper
+		$av_helper = VikBooking::getAvailabilityInstance();
+
+		/**
+		 * Split stay reservation.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$room_stay_dates = [];
+		if ($order['split_stay']) {
+			if ($order['status'] == 'confirmed') {
+				$room_stay_dates = $av_helper->loadSplitStayBusyRecords($order['id']);
+			} else {
+				$room_stay_dates = VBOFactory::getConfig()->getArray('split_stay_' . $order['id'], []);
+			}
+			// immediately count the number of nights of stay for each split room
+			foreach ($room_stay_dates as $sps_r_k => $sps_r_v) {
+				if (!empty($sps_r_v['checkin_ts']) && !empty($sps_r_v['checkout_ts'])) {
+					// overwrite values for compatibility with non-confirmed bookings
+					$sps_r_v['checkin'] = $sps_r_v['checkin_ts'];
+					$sps_r_v['checkout'] = $sps_r_v['checkout_ts'];
+				}
+				$sps_r_v['nights'] = $av_helper->countNightsOfStay($sps_r_v['checkin'], $sps_r_v['checkout']);
+				// overwrite the whole array
+				$room_stay_dates[$sps_r_k] = $sps_r_v;
+			}
+		}
+
+		// load rooms booked
+		$q = "SELECT `or`.*,`r`.`id` AS `r_reference_id`,`r`.`name`,`r`.`units`,`r`.`fromadult`,`r`.`toadult`,`r`.`params` FROM `#__vikbooking_ordersrooms` AS `or`,`#__vikbooking_rooms` AS `r` WHERE `or`.`idorder`=" . (int)$order['id'] . " AND `or`.`idroom`=`r`.`id` ORDER BY `or`.`id` ASC;";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		if ($dbo->getNumRows() == 1) {
-			$order = $dbo->loadAssocList();
+		$ordersrooms = $dbo->loadAssocList();
+		$vbo_tn->translateContents($ordersrooms, '#__vikbooking_rooms', array('id' => 'r_reference_id'));
 
+		$ftitle = VikBooking::getFrontTitle();
+		$currencyname = VikBooking::getCurrencyName();
+
+		$turnover_secs = VikBooking::getHoursRoomAvail() * 3600;
+		$realback = $turnover_secs + $order['checkout'];
+
+		$rooms = array();
+		$tars = array();
+		$arrpeople = array();
+		$is_package = !empty($order['pkg']) ? true : false;
+		$nowts = time();
+		foreach ($ordersrooms as $kor => $or) {
+			$num = $kor + 1;
+			$rooms[$num] = $or;
+			$arrpeople[$num]['adults'] = $or['adults'];
+			$arrpeople[$num]['children'] = $or['children'];
+			if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+				// package or custom cost set from the back-end
+				continue;
+			}
+
+			// determine the proper values for this room
+			$room_nights   = $order['days'];
+			$room_checkin  = $order['checkin'];
+			$room_checkout = $order['checkout'];
+			if ($order['split_stay'] && !empty($room_stay_dates) && isset($room_stay_dates[$kor]) && $room_stay_dates[$kor]['idroom'] == $or['idroom']) {
+				$room_nights   = $room_stay_dates[$kor]['nights'];
+				$room_checkin  = $room_stay_dates[$kor]['checkin'];
+				$room_checkout = $room_stay_dates[$kor]['checkout'];
+			}
+
+			// load tariff
+			$q = "SELECT * FROM `#__vikbooking_dispcost` WHERE `id`=" . (int)$or['idtar'] . ";";
+			$dbo->setQuery($q);
+			$dbo->execute();
+			if ($dbo->getNumRows() > 0) {
+				$tar = $dbo->loadAssocList();
+				$tar = VikBooking::applySeasonsRoom($tar, $room_checkin, $room_checkout);
+
+				// different usage
+				$tar = VBORoomHelper::getInstance()->applyOBPRules($tar, $or, $or['adults']);
+
+				$tars[$num] = $tar[0];
+			} else {
+				VikError::raiseWarning('', JText::translate('VBERRNOFAREFOUND'));
+			}
+		}
+
+		$secdiff = $order['checkout'] - $order['checkin'];
+		$daysdiff = $secdiff / 86400;
+		if (is_int($daysdiff)) {
+			if ($daysdiff < 1) {
+				$daysdiff = 1;
+			}
+		} else {
+			if ($daysdiff < 1) {
+				$daysdiff = 1;
+			} else {
+				$sum = floor($daysdiff) * 86400;
+				$newdiff = $secdiff - $sum;
+				$maxhmore = VikBooking::getHoursMoreRb() * 3600;
+				if ($maxhmore >= $newdiff) {
+					$daysdiff = floor($daysdiff);
+				} else {
+					$daysdiff = ceil($daysdiff);
+				}
+			}
+		}
+
+		$isdue = 0;
+		$pricestr = array();
+		$optstr = array();
+		foreach ($ordersrooms as $kor => $or) {
+			$num = $kor + 1;
+
+			// determine the proper values for this room
+			$room_nights   = $order['days'];
+			$room_checkin  = $order['checkin'];
+			$room_checkout = $order['checkout'];
+			if ($order['split_stay'] && !empty($room_stay_dates) && isset($room_stay_dates[$kor]) && $room_stay_dates[$kor]['idroom'] == $or['idroom']) {
+				$room_nights   = $room_stay_dates[$kor]['nights'];
+				$room_checkin  = $room_stay_dates[$kor]['checkin'];
+				$room_checkout = $room_stay_dates[$kor]['checkout'];
+			}
+
+			if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+				// package cost or cust_cost may not be inclusive of taxes if prices tax included is off
+				$calctar = VikBooking::sayPackagePlusIva($or['cust_cost'], $or['cust_idiva']);
+				$isdue += $calctar;
+				$pricestr[$num] = (!empty($or['pkg_name']) ? $or['pkg_name'] : (!empty($or['otarplan']) ? ucwords($or['otarplan']) : JText::translate('VBOROOMCUSTRATEPLAN'))) . ": " . $calctar . " " . $currencyname;
+			} elseif (array_key_exists($num, $tars) && is_array($tars[$num])) {
+				$display_rate = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
+				$calctar = VikBooking::sayCostPlusIva($display_rate, $tars[$num]['idprice']);
+				$tars[$num]['calctar'] = $calctar;
+				$isdue += $calctar;
+				$pricestr[$num] = VikBooking::getPriceName($tars[$num]['idprice'], $vbo_tn) . ": " . $calctar . " " . $currencyname . (!empty($tars[$num]['attrdata']) ? "\n" . VikBooking::getPriceAttr($tars[$num]['idprice'], $vbo_tn) . ": " . $tars[$num]['attrdata'] : "");
+			}
+			if (!empty($or['optionals'])) {
+				$stepo = explode(";", $or['optionals']);
+				foreach ($stepo as $roptkey => $oo) {
+					if (empty($oo)) {
+						continue;
+					}
+					$stept = explode(":", $oo);
+					$q = "SELECT * FROM `#__vikbooking_optionals` WHERE `id`=" . $dbo->quote($stept[0]) . ";";
+					$dbo->setQuery($q);
+					$dbo->execute();
+					if (!$dbo->getNumRows()) {
+						continue;
+					}
+					$actopt = $dbo->loadAssocList();
+					$vbo_tn->translateContents($actopt, '#__vikbooking_optionals', array(), array(), (!empty($order['lang']) ? $order['lang'] : null));
+					$chvar = '';
+					if (!empty($actopt[0]['ageintervals']) && $or['children'] > 0 && strstr($stept[1], '-') != false) {
+						$optagenames = VikBooking::getOptionIntervalsAges($actopt[0]['ageintervals']);
+						$optagepcent = VikBooking::getOptionIntervalsPercentage($actopt[0]['ageintervals']);
+						$optageovrct = VikBooking::getOptionIntervalChildOverrides($actopt[0], $or['adults'], $or['children']);
+						$child_num 	 = VikBooking::getRoomOptionChildNumber($or['optionals'], $actopt[0]['id'], $roptkey, $or['children']);
+						$optagecosts = VikBooking::getOptionIntervalsCosts(isset($optageovrct['ageintervals_child' . ($child_num + 1)]) ? $optageovrct['ageintervals_child' . ($child_num + 1)] : $actopt[0]['ageintervals']);
+						$agestept = explode('-', $stept[1]);
+						$stept[1] = $agestept[0];
+						$chvar = $agestept[1];
+						if (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 1) {
+							//percentage value of the adults tariff
+							if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+								$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
+							} else {
+								$display_rate = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
+								$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
+							}
+						} elseif (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 2) {
+							//VBO 1.10 - percentage value of room base cost
+							if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+								$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
+							} else {
+								$display_rate = isset($tars[$num]['room_base_cost']) ? $tars[$num]['room_base_cost'] : (!empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost']);
+								$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
+							}
+						}
+						$actopt[0]['chageintv'] = $chvar;
+						$actopt[0]['name'] .= ' (' . $optagenames[($chvar - 1)] . ')';
+						$actopt[0]['quan'] = $stept[1];
+						$realcost = (intval($actopt[0]['perday']) == 1 ? (floatval($optagecosts[($chvar - 1)]) * $room_nights * $stept[1]) : (floatval($optagecosts[($chvar - 1)]) * $stept[1]));
+					} else {
+						$actopt[0]['quan'] = $stept[1];
+						// VBO 1.11 - options percentage cost of the room total fee
+						if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+							$deftar_basecosts = $or['cust_cost'];
+						} else {
+							$deftar_basecosts = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
+						}
+						$actopt[0]['cost'] = (int)$actopt[0]['pcentroom'] ? ($deftar_basecosts * $actopt[0]['cost'] / 100) : $actopt[0]['cost'];
+						//
+						$realcost = (intval($actopt[0]['perday']) == 1 ? ($actopt[0]['cost'] * $room_nights * $stept[1]) : ($actopt[0]['cost'] * $stept[1]));
+					}
+					if (!empty($actopt[0]['maxprice']) && $actopt[0]['maxprice'] > 0 && $realcost > $actopt[0]['maxprice']) {
+						$realcost = $actopt[0]['maxprice'];
+						if (intval($actopt[0]['hmany']) == 1 && intval($stept[1]) > 1) {
+							$realcost = $actopt[0]['maxprice'] * $stept[1];
+						}
+					}
+					if ($actopt[0]['perperson'] == 1) {
+						$realcost = $realcost * $or['adults'];
+					}
+					$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $actopt[0]['idiva']);
+					$isdue += $tmpopr;
+					$optstr[$num][] = ($stept[1] > 1 ? $stept[1] . " " : "") . $actopt[0]['name'] . ": " . $tmpopr . " " . $currencyname . "\n";
+				}
+			}
+
+			// custom extra costs
+			if (!empty($or['extracosts'])) {
+				$cur_extra_costs = json_decode($or['extracosts'], true);
+				foreach ($cur_extra_costs as $eck => $ecv) {
+					$ecplustax = !empty($ecv['idtax']) ? VikBooking::sayOptionalsPlusIva($ecv['cost'], $ecv['idtax']) : $ecv['cost'];
+					$isdue += $ecplustax;
+					$optstr[$num][] = $ecv['name'] . ": " . $ecplustax . " " . $currencyname . "\n";
+				}
+			}
+		}
+
+		// coupon
+		$usedcoupon = false;
+		$origisdue = $isdue;
+		if (strlen($order['coupon']) > 0) {
+			$usedcoupon = true;
+			$expcoupon = explode(";", $order['coupon']);
+			$isdue = $isdue - $expcoupon[1];
+		}
+
+		// make sure to apply any previously refunded amount
+		if ($order['refund'] > 0) {
+			$isdue -= $order['refund'];
+		}
+
+		// ConfirmationNumber
+		$confirmnumber = $order['confirmnumber'];
+
+		$esit_mess = JText::sprintf('VBORDEREMAILRESENT', $order['custmail']);
+		$status_str = JText::translate('VBCOMPLETED');
+		if ($cancellation) {
+			$confirmnumber = '';
+			$esit_mess = JText::sprintf('VBCANCORDEREMAILSENT', $order['custmail']);
+			$status_str = JText::translate('VBCANCELLED');
+		} elseif ($order['status'] == 'standby') {
+			$confirmnumber = '';
+			$status_str = JText::translate('VBWAITINGFORPAYMENT');
+		}
+		$app->enqueueMessage($esit_mess);
+
+		// force the original total amount if rates have changed
+		if (number_format($isdue, 2) != number_format($order['total'], 2)) {
+			$isdue = $order['total'];
+		}
+
+		// send email notification to guest (by ignoring the configuration settings)
+		VikBooking::sendBookingEmail($order['id'], ['guest'], $send = true, $no_config = true);
+
+		if ($cancellation) {
 			/**
-			 * Memorize the original booking status for VCM in case of OTA booking.
+			 * If "send cancellation email", we log the event in the history.
 			 * 
 			 * @since 	1.14 (J) - 1.4.0 (WP)
 			 */
-			$original_book_status = null;
-			if (!empty($order[0]['idorderota']) && !empty($order[0]['channel'])) {
-				$original_book_status = $order[0]['status'];
-			}
-			//
-
-			$vbo_tn = VikBooking::getTranslator();
-			//check if the language in use is the same as the one used during the checkout
-			if (!empty($order[0]['lang'])) {
-				$lang = JFactory::getLanguage();
-				if ($lang->getTag() != $order[0]['lang']) {
-					/**
-					 * @wponly 	constant name for lang path is different
-					 */
-					$lang->load('com_vikbooking', VIKBOOKING_LANG, $order[0]['lang'], true);
-				}
-				if ($vbo_tn->getDefaultLang() != $order[0]['lang']) {
-					// force the translation to start because contents should be translated
-					$vbo_tn::$force_tolang = $order[0]['lang'];
-				}
-			}
-			//
-			$q = "SELECT `or`.*,`r`.`id` AS `r_reference_id`,`r`.`name`,`r`.`units`,`r`.`fromadult`,`r`.`toadult`,`r`.`params` FROM `#__vikbooking_ordersrooms` AS `or`,`#__vikbooking_rooms` AS `r` WHERE `or`.`idorder`=" . (int)$order[0]['id'] . " AND `or`.`idroom`=`r`.`id` ORDER BY `or`.`id` ASC;";
-			$dbo->setQuery($q);
-			$dbo->execute();
-			$ordersrooms = $dbo->loadAssocList();
-			$vbo_tn->translateContents($ordersrooms, '#__vikbooking_rooms', array('id' => 'r_reference_id'));
-			$currencyname = VikBooking::getCurrencyName();
-			$realback = VikBooking::getHoursRoomAvail() * 3600;
-			$realback += $order[0]['checkout'];
-			$allbook = true;
-			$notavail = array();
-
+			VikBooking::getBookingHistoryInstance()->setBid($order['id'])->store('EC');
+		} else {
 			/**
-			 * We need to calculate a minus operator for each room that was booked more than once.
-			 * In case we are confirming a booking for more than one unit of the same room, we need to
-			 * make sure the calculation is made properly, as only one unit of that room could be free.
+			 * Instead, we store an event log to remind that the email was re-sent to the guest
 			 * 
-			 * @since 	1.3.0
+			 * @since 	1.16.3 (J) - 1.6.3 (WP)
 			 */
-			$units_minus_oper = array();
-			foreach ($ordersrooms as $ind => $or) {
-				if (!isset($units_minus_oper[$or['idroom']])) {
-					$units_minus_oper[$or['idroom']] = -1;
-				}
-				// increase counter
-				$units_minus_oper[$or['idroom']]++;
-			}
-			//
-
-			foreach ($ordersrooms as $ind => $or) {
-				if (!VikBooking::roomBookable($or['idroom'], ($or['units'] - $units_minus_oper[$or['idroom']]), $order[0]['checkin'], $order[0]['checkout'])) {
-					$allbook = false;
-					$notavail[] = $or['name']." (".JText::translate('VBMAILADULTS').": ".$or['adults'].($or['children'] > 0 ? " - ".JText::translate('VBMAILCHILDREN').": ".$or['children'] : "").")";
-				}
-			}
-
-			if (!$allbook) {
-				VikError::raiseWarning('', JText::translate('VBERRCONFORDERNOTAVROOM').' '.implode(", ", $notavail).'<br/>'.JText::translate('VBUNABLESETRESCONF'));
-			} else {
-				$rooms = array();
-				$tars = array();
-				$arrpeople = array();
-				$is_package = !empty($order[0]['pkg']) ? true : false;
-				$rooms_booked = array();
-				foreach ($ordersrooms as $ind => $or) {
-					array_push($rooms_booked, (int)$or['idroom']);
-					$q = "INSERT INTO `#__vikbooking_busy` (`idroom`,`checkin`,`checkout`,`realback`) VALUES(".(int)$or['idroom'].", ".(int)$order[0]['checkin'].", ".(int)$order[0]['checkout'].", ".(int)$realback.");";
-					$dbo->setQuery($q);
-					$dbo->execute();
-					$lid = $dbo->insertid();
-					$q = "INSERT INTO `#__vikbooking_ordersbusy` (`idorder`,`idbusy`) VALUES(".(int)$oid.", ".(int)$lid.");";
-					$dbo->setQuery($q);
-					$dbo->execute();
-				}
-				$q = "UPDATE `#__vikbooking_orders` SET `status`='confirmed' WHERE `id`=".(int)$order[0]['id'].";";
-				$dbo->setQuery($q);
-				$dbo->execute();
-				$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `idorder`=".(int)$order[0]['id'].";";
-				$dbo->setQuery($q);
-				$dbo->execute();
-				//Booking History
-				VikBooking::getBookingHistoryInstance()->setBid($order[0]['id'])->store('TC');
-				//
-				// check if some of the rooms booked have shared calendars
-				VikBooking::updateSharedCalendars($order[0]['id'], $rooms_booked, $order[0]['checkin'], $order[0]['checkout']);
-				//
-				//send mail
-				$ftitle = VikBooking::getFrontTitle();
-				$nowts = time();
-				$viklink = JURI::root()."index.php?option=com_vikbooking&view=booking&sid=".$order[0]['sid']."&ts=".$order[0]['ts'];
-				//Assign room specific unit
-				$set_room_indexes = VikBooking::autoRoomUnit();
-				$room_indexes_usemap = array();
-				//
-				foreach ($ordersrooms as $kor => $or) {
-					$num = $kor + 1;
-					$rooms[$num] = $or;
-					$arrpeople[$num]['adults'] = $or['adults'];
-					$arrpeople[$num]['children'] = $or['children'];
-					//Assign room specific unit
-					if ($set_room_indexes === true) {
-						$room_indexes = VikBooking::getRoomUnitNumsAvailable($order[0], $or['r_reference_id']);
-						$use_ind_key = 0;
-						if (count($room_indexes)) {
-							if (!array_key_exists($or['r_reference_id'], $room_indexes_usemap)) {
-								$room_indexes_usemap[$or['r_reference_id']] = $use_ind_key;
-							} else {
-								$use_ind_key = $room_indexes_usemap[$or['r_reference_id']];
-							}
-							$q = "UPDATE `#__vikbooking_ordersrooms` SET `roomindex`=".(int)$room_indexes[$use_ind_key]." WHERE `id`=".(int)$or['id'].";";
-							$dbo->setQuery($q);
-							$dbo->execute();
-							//update rooms references for the customer email sending function
-							$rooms[$num]['roomindex'] = (int)$room_indexes[$use_ind_key];
-							//
-							$room_indexes_usemap[$or['r_reference_id']]++;
-						}
-					}
-					//
-					if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-						//package or custom cost set from the back-end
-						continue;
-					}
-					$q = "SELECT * FROM `#__vikbooking_dispcost` WHERE `id`=" . (int)$or['idtar'] . ";";
-					$dbo->setQuery($q);
-					$dbo->execute();
-					if ($dbo->getNumRows() > 0) {
-						$tar = $dbo->loadAssocList();
-						$tar = VikBooking::applySeasonsRoom($tar, $order[0]['checkin'], $order[0]['checkout']);
-						//different usage
-						if ($or['fromadult'] <= $or['adults'] && $or['toadult'] >= $or['adults']) {
-							$diffusageprice = VikBooking::loadAdultsDiff($or['idroom'], $or['adults']);
-							//Occupancy Override
-							$occ_ovr = VikBooking::occupancyOverrideExists($tar, $or['adults']);
-							$diffusageprice = $occ_ovr !== false ? $occ_ovr : $diffusageprice;
-							//
-							if (is_array($diffusageprice)) {
-								//set a charge or discount to the price(s) for the different usage of the room
-								foreach ($tar as $kpr => $vpr) {
-									$tar[$kpr]['diffusage'] = $or['adults'];
-									if ($diffusageprice['chdisc'] == 1) {
-										//charge
-										if ($diffusageprice['valpcent'] == 1) {
-											//fixed value
-											$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
-											$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $tar[$kpr]['days'] : $diffusageprice['value'];
-											$tar[$kpr]['diffusagecost'] = "+".$aduseval;
-											$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-											$tar[$kpr]['cost'] = $vpr['cost'] + $aduseval;
-										} else {
-											//percentage value
-											$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
-											$aduseval = $diffusageprice['pernight'] == 1 ? round(($vpr['cost'] * $diffusageprice['value'] / 100) * $tar[$kpr]['days'] + $vpr['cost'], 2) : round(($vpr['cost'] * (100 + $diffusageprice['value']) / 100), 2);
-											$tar[$kpr]['diffusagecost'] = "+".$diffusageprice['value']."%";
-											$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-											$tar[$kpr]['cost'] = $aduseval;
-										}
-									} else {
-										//discount
-										if ($diffusageprice['valpcent'] == 1) {
-											//fixed value
-											$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
-											$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $tar[$kpr]['days'] : $diffusageprice['value'];
-											$tar[$kpr]['diffusagecost'] = "-".$aduseval;
-											$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-											$tar[$kpr]['cost'] = $vpr['cost'] - $aduseval;
-										} else {
-											//percentage value
-											$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
-											$aduseval = $diffusageprice['pernight'] == 1 ? round($vpr['cost'] - ((($vpr['cost'] / $tar[$kpr]['days']) * $diffusageprice['value'] / 100) * $tar[$kpr]['days']), 2) : round(($vpr['cost'] * (100 - $diffusageprice['value']) / 100), 2);
-											$tar[$kpr]['diffusagecost'] = "-".$diffusageprice['value']."%";
-											$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-											$tar[$kpr]['cost'] = $aduseval;
-										}
-									}
-								}
-							}
-						}
-						//
-						$tars[$num] = $tar[0];
-					} else {
-						VikError::raiseWarning('', JText::translate('VBERRNOFAREFOUND'));
-					}
-				}
-				$pcheckin = $order[0]['checkin'];
-				$pcheckout = $order[0]['checkout'];
-				$secdiff = $pcheckout - $pcheckin;
-				$daysdiff = $secdiff / 86400;
-				if (is_int($daysdiff)) {
-					if ($daysdiff < 1) {
-						$daysdiff = 1;
-					}
-				} else {
-					if ($daysdiff < 1) {
-						$daysdiff = 1;
-					} else {
-						$sum = floor($daysdiff) * 86400;
-						$newdiff = $secdiff - $sum;
-						$maxhmore = VikBooking::getHoursMoreRb() * 3600;
-						if ($maxhmore >= $newdiff) {
-							$daysdiff = floor($daysdiff);
-						} else {
-							$daysdiff = ceil($daysdiff);
-						}
-					}
-				}
-				$isdue = 0;
-				$pricestr = array();
-				$optstr = array();
-				foreach ($ordersrooms as $kor => $or) {
-					$num = $kor + 1;
-					if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-						// package cost or cust_cost may not be inclusive of taxes if prices tax included is off
-						$calctar = VikBooking::sayPackagePlusIva($or['cust_cost'], $or['cust_idiva']);
-						$isdue += $calctar;
-						$pricestr[$num] = (!empty($or['pkg_name']) ? $or['pkg_name'] : (!empty($or['otarplan']) ? ucwords($or['otarplan']) : JText::translate('VBOROOMCUSTRATEPLAN'))).": ".$calctar." ".$currencyname;
-					} elseif (array_key_exists($num, $tars) && is_array($tars[$num])) {
-						$display_rate = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
-						$calctar = VikBooking::sayCostPlusIva($display_rate, $tars[$num]['idprice']);
-						$tars[$num]['calctar'] = $calctar;
-						$isdue += $calctar;
-						$pricestr[$num] = VikBooking::getPriceName($tars[$num]['idprice'], $vbo_tn) . ": " . $calctar . " " . $currencyname . (!empty($tars[$num]['attrdata']) ? "\n" . VikBooking::getPriceAttr($tars[$num]['idprice'], $vbo_tn) . ": " . $tars[$num]['attrdata'] : "");
-					}
-					if (!empty($or['optionals'])) {
-						$stepo = explode(";", $or['optionals']);
-						foreach ($stepo as $roptkey => $oo) {
-							if (!empty($oo)) {
-								$stept = explode(":", $oo);
-								$q = "SELECT * FROM `#__vikbooking_optionals` WHERE `id`=" . $dbo->quote($stept[0]) . ";";
-								$dbo->setQuery($q);
-								$dbo->execute();
-								if ($dbo->getNumRows() == 1) {
-									$actopt = $dbo->loadAssocList();
-									$vbo_tn->translateContents($actopt, '#__vikbooking_optionals');
-									$chvar = '';
-									if (!empty($actopt[0]['ageintervals']) && $or['children'] > 0 && strstr($stept[1], '-') != false) {
-										$optagenames = VikBooking::getOptionIntervalsAges($actopt[0]['ageintervals']);
-										$optagepcent = VikBooking::getOptionIntervalsPercentage($actopt[0]['ageintervals']);
-										$optageovrct = VikBooking::getOptionIntervalChildOverrides($actopt[0], $or['adults'], $or['children']);
-										$child_num 	 = VikBooking::getRoomOptionChildNumber($or['optionals'], $actopt[0]['id'], $roptkey, $or['children']);
-										$optagecosts = VikBooking::getOptionIntervalsCosts(isset($optageovrct['ageintervals_child' . ($child_num + 1)]) ? $optageovrct['ageintervals_child' . ($child_num + 1)] : $actopt[0]['ageintervals']);
-										$agestept = explode('-', $stept[1]);
-										$stept[1] = $agestept[0];
-										$chvar = $agestept[1];
-										if (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 1) {
-											//percentage value of the adults tariff
-											if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-												$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
-											} else {
-												$display_rate = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
-												$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
-											}
-										} elseif (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 2) {
-											//VBO 1.10 - percentage value of room base cost
-											if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-												$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
-											} else {
-												$display_rate = isset($tars[$num]['room_base_cost']) ? $tars[$num]['room_base_cost'] : (!empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost']);
-												$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
-											}
-										}
-										$actopt[0]['chageintv'] = $chvar;
-										$actopt[0]['name'] .= ' ('.$optagenames[($chvar - 1)].')';
-										$actopt[0]['quan'] = $stept[1];
-										$realcost = (intval($actopt[0]['perday']) == 1 ? (floatval($optagecosts[($chvar - 1)]) * $order[0]['days'] * $stept[1]) : (floatval($optagecosts[($chvar - 1)]) * $stept[1]));
-									} else {
-										$actopt[0]['quan'] = $stept[1];
-										// VBO 1.11 - options percentage cost of the room total fee
-										if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-											$deftar_basecosts = $or['cust_cost'];
-										} else {
-											$deftar_basecosts = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
-										}
-										$actopt[0]['cost'] = (int)$actopt[0]['pcentroom'] ? ($deftar_basecosts * $actopt[0]['cost'] / 100) : $actopt[0]['cost'];
-										//
-										$realcost = (intval($actopt[0]['perday']) == 1 ? ($actopt[0]['cost'] * $order[0]['days'] * $stept[1]) : ($actopt[0]['cost'] * $stept[1]));
-									}
-									if (!empty($actopt[0]['maxprice']) && $actopt[0]['maxprice'] > 0 && $realcost > $actopt[0]['maxprice']) {
-										$realcost = $actopt[0]['maxprice'];
-										if (intval($actopt[0]['hmany']) == 1 && intval($stept[1]) > 1) {
-											$realcost = $actopt[0]['maxprice'] * $stept[1];
-										}
-									}
-									if ($actopt[0]['perperson'] == 1) {
-										$realcost = $realcost * $or['adults'];
-									}
-									$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $actopt[0]['idiva']);
-									$isdue += $tmpopr;
-									$optstr[$num][] = ($stept[1] > 1 ? $stept[1] . " " : "") . $actopt[0]['name'] . ": " . $tmpopr . " " . $currencyname . "\n";
-								}
-							}
-						}
-					}
-					//custom extra costs
-					if (!empty($or['extracosts'])) {
-						$cur_extra_costs = json_decode($or['extracosts'], true);
-						foreach ($cur_extra_costs as $eck => $ecv) {
-							$ecplustax = !empty($ecv['idtax']) ? VikBooking::sayOptionalsPlusIva($ecv['cost'], $ecv['idtax']) : $ecv['cost'];
-							$isdue += $ecplustax;
-							$optstr[$num][] = $ecv['name'] . ": " . $ecplustax . " " . $currencyname."\n";
-						}
-					}
-					//
-				}
-				//vikbooking 1.1 coupon
-				$usedcoupon = false;
-				$origisdue = $isdue;
-				if (strlen($order[0]['coupon']) > 0) {
-					$usedcoupon = true;
-					$expcoupon = explode(";", $order[0]['coupon']);
-					$isdue = $isdue - $expcoupon[1];
-				}
-				// make sure to apply any previously refunded amount
-				if ($order[0]['refund'] > 0) {
-					$isdue -= $order[0]['refund'];
-				}
-				//
-				//ConfirmationNumber
-				$confirmnumber = VikBooking::generateConfirmNumber($order[0]['id'], true);
-				//end ConfirmationNumber
-				$app = JFactory::getApplication();
-				$app->enqueueMessage(JText::translate('VBORDERSETASCONF'));
-
-				// notify the customer unless it was a re-confirmation
-				$pskip = VikRequest::getInt('skip_notification', 0, 'request');
-				if ($pskip < 1) {
-					// customer email notification
-					// VikBooking::sendCustMailFromBack($order[0]['custmail'], strip_tags($ftitle)." ".JText::translate('VBRENTALORD'), $ftitle, $nowts, $order[0]['custdata'], $rooms, $order[0]['checkin'], $order[0]['checkout'], $pricestr, $optstr, $isdue, $viklink, JText::translate('VBCOMPLETED'), $order[0]['id'], $order[0]['coupon'], $arrpeople, $confirmnumber);
-
-					// send email notification to guest
-					VikBooking::sendBookingEmail($order[0]['id'], array('guest'));
-					//
-					
-					// SMS skipping the administrator
-					VikBooking::sendBookingSMS($order[0]['id'], array('admin'));
-				}
-				
-				//Invoke Channel Manager
-				$vcm_autosync = VikBooking::vcmAutoUpdate();
-				if ($vcm_autosync > 0) {
-					$vcm_obj = VikBooking::getVcmInvoker();
-					$vcm_obj->setOids(array($order[0]['id']))->setSyncType('new')->setOriginalStatuses(array($original_book_status));
-					$sync_result = $vcm_obj->doSync();
-					if ($sync_result === false) {
-						$vcm_err = $vcm_obj->getError();
-						VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO').' <a href="index.php?option=com_vikchannelmanager" target="_blank">'.JText::translate('VBCHANNELMANAGEROPEN').'</a> '.(strlen($vcm_err) > 0 ? '('.$vcm_err.')' : ''));
-					}
-				} elseif (file_exists(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
-					$vcm_sync_url = 'index.php?option=com_vikbooking&task=invoke_vcm&stype=new&cid[]='.$order[0]['id'].'&returl='.urlencode('index.php?option=com_vikbooking&task=editorder&cid[]='.$order[0]['id']);
-					VikError::raiseNotice('', JText::translate('VBCHANNELMANAGERINVOKEASK').' <button type="button" class="btn btn-primary" onclick="document.location.href=\''.$vcm_sync_url.'\';">'.JText::translate('VBCHANNELMANAGERSENDRQ').'</button>');
-				}
-				//
-			}
+			VikBooking::getBookingHistoryInstance()->setBid($order['id'])->store('ER', $esit_mess);
 		}
-		$mainframe = JFactory::getApplication();
-		$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=".$oid);
+
+		$app->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . $oid);
+		$app->close();
 	}
 
-	public function payments() {
+	public function setordconfirmed()
+	{
+		$dbo = JFactory::getDbo();
+		$app = JFactory::getApplication();
+
+		$cid = VikRequest::getVar('cid', array(0));
+		$oid = $cid[0];
+
+		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=" . (int)$oid . " AND `status` != 'confirmed';";
+		$dbo->setQuery($q);
+		$dbo->execute();
+		if (!$dbo->getNumRows()) {
+			$app->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . $oid);
+			exit;
+		}
+		$order = $dbo->loadAssoc();
+
+		/**
+		 * Memorize the original booking status for VCM in case of OTA booking.
+		 * 
+		 * @since 	1.14 (J) - 1.4.0 (WP)
+		 */
+		$original_book_status = null;
+		if (!empty($order['idorderota']) && !empty($order['channel'])) {
+			$original_book_status = $order['status'];
+		}
+
+		// availability helper
+		$av_helper = VikBooking::getAvailabilityInstance();
+
+		// room stay dates in case of split stay
+		$room_stay_dates = [];
+		if ($order['split_stay']) {
+			$room_stay_dates = VBOFactory::getConfig()->getArray('split_stay_' . $order['id'], []);
+		}
+
+		$vbo_tn = VikBooking::getTranslator();
+		// check if the language in use is the same as the one used during the checkout
+		if (!empty($order['lang'])) {
+			$lang = JFactory::getLanguage();
+			if ($lang->getTag() != $order['lang']) {
+				$lang->load('com_vikbooking', (VBOPlatformDetection::isWordPress() ? VIKBOOKING_LANG : JPATH_ADMINISTRATOR), $order['lang'], true);
+				if (defined('_JEXEC') && !defined('ABSPATH')) {
+					$lang->load('joomla', JPATH_ADMINISTRATOR, $order['lang'], true);
+				}
+			}
+			if ($vbo_tn->getDefaultLang() != $order['lang']) {
+				// force the translation to start because contents should be translated
+				$vbo_tn::$force_tolang = $order['lang'];
+			}
+		}
+
+		// load order rooms
+		$q = "SELECT `or`.*,`r`.`id` AS `r_reference_id`,`r`.`name`,`r`.`units`,`r`.`fromadult`,`r`.`toadult`,`r`.`params` FROM `#__vikbooking_ordersrooms` AS `or`,`#__vikbooking_rooms` AS `r` WHERE `or`.`idorder`=" . (int)$order['id'] . " AND `or`.`idroom`=`r`.`id` ORDER BY `or`.`id` ASC;";
+		$dbo->setQuery($q);
+		$dbo->execute();
+		$ordersrooms = $dbo->loadAssocList();
+		$vbo_tn->translateContents($ordersrooms, '#__vikbooking_rooms', array('id' => 'r_reference_id'));
+
+		$currencyname = VikBooking::getCurrencyName();
+		$turnover_secs = VikBooking::getHoursRoomAvail() * 3600;
+		$realback = $turnover_secs + $order['checkout'];
+		$allbook = true;
+		$notavail = [];
+
+		/**
+		 * We need to calculate a minus operator for each room that was booked more than once.
+		 * In case we are confirming a booking for more than one unit of the same room, we need to
+		 * make sure the calculation is made properly, as only one unit of that room could be free.
+		 * 
+		 * @since 	1.13 (J) - 1.3.0 (WP)
+		 */
+		$units_minus_oper = [];
+		foreach ($ordersrooms as $ind => $or) {
+			if (!isset($units_minus_oper[$or['idroom']])) {
+				$units_minus_oper[$or['idroom']] = -1;
+			}
+			// increase counter
+			$units_minus_oper[$or['idroom']]++;
+			if (!empty($room_stay_dates)) {
+				// split stay rooms never have the same stay dates, but they should also be different rooms
+				$units_minus_oper[$or['idroom']] = 0;
+			}
+		}
+
+		foreach ($ordersrooms as $ind => $or) {
+			// determine proper values for this room
+			$room_stay_checkin  = $order['checkin'];
+			$room_stay_checkout = $order['checkout'];
+			$room_stay_nights 	= $order['days'];
+			if ($order['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$ind]) && $room_stay_dates[$ind]['idroom'] == $or['idroom']) {
+				$room_stay_checkin  = !empty($room_stay_dates[$ind]['checkin_ts']) ? $room_stay_dates[$ind]['checkin_ts'] : $room_stay_dates[$ind]['checkin'];
+				$room_stay_checkout = !empty($room_stay_dates[$ind]['checkout_ts']) ? $room_stay_dates[$ind]['checkout_ts'] : $room_stay_dates[$ind]['checkout'];
+				$room_stay_nights 	= $av_helper->countNightsOfStay($room_stay_checkin, $room_stay_checkout);
+				// inject nights calculated for this room
+				$room_stay_dates[$ind]['nights'] = $room_stay_nights;
+			}
+
+			// check if the room is available
+			if (!VikBooking::roomBookable($or['idroom'], ($or['units'] - $units_minus_oper[$or['idroom']]), $room_stay_checkin, $room_stay_checkout)) {
+				$allbook = false;
+				$notavail[] = $or['name'] . " (" . JText::translate('VBMAILADULTS') . ": " . $or['adults'] . ($or['children'] > 0 ? " - " . JText::translate('VBMAILCHILDREN') . ": " . $or['children'] : "") . ")";
+			}
+		}
+
+		if (!$allbook) {
+			VikError::raiseWarning('', JText::translate('VBERRCONFORDERNOTAVROOM') . ' ' . implode(", ", $notavail) . '<br/>' . JText::translate('VBUNABLESETRESCONF'));
+			$app->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . $oid);
+			exit;
+		}
+
+		$rooms = [];
+		$tars = [];
+		$arrpeople = [];
+		$is_package = !empty($order['pkg']) ? true : false;
+		$rooms_booked = [];
+		foreach ($ordersrooms as $ind => $or) {
+			// push room booked
+			array_push($rooms_booked, (int)$or['idroom']);
+
+			// determine proper values for this room
+			$room_stay_checkin  = $order['checkin'];
+			$room_stay_checkout = $order['checkout'];
+			$room_stay_realback = $realback;
+			if ($order['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$ind]) && $room_stay_dates[$ind]['idroom'] == $or['idroom']) {
+				$room_stay_checkin  = !empty($room_stay_dates[$ind]['checkin_ts']) ? $room_stay_dates[$ind]['checkin_ts'] : $room_stay_dates[$ind]['checkin'];
+				$room_stay_checkout = !empty($room_stay_dates[$ind]['checkout_ts']) ? $room_stay_dates[$ind]['checkout_ts'] : $room_stay_dates[$ind]['checkout'];
+				$room_stay_realback = $turnover_secs + $room_stay_checkout;
+			}
+
+			$q = "INSERT INTO `#__vikbooking_busy` (`idroom`,`checkin`,`checkout`,`realback`) VALUES(" . (int)$or['idroom'] . ", " . (int)$room_stay_checkin . ", " . (int)$room_stay_checkout . ", " . (int)$room_stay_realback . ");";
+			$dbo->setQuery($q);
+			$dbo->execute();
+			$lid = $dbo->insertid();
+
+			$q = "INSERT INTO `#__vikbooking_ordersbusy` (`idorder`,`idbusy`) VALUES(" . (int)$oid . ", " . (int)$lid . ");";
+			$dbo->setQuery($q);
+			$dbo->execute();
+		}
+
+		// update status
+		$q = "UPDATE `#__vikbooking_orders` SET `status`='confirmed' WHERE `id`=" . (int)$order['id'] . ";";
+		$dbo->setQuery($q);
+		$dbo->execute();
+
+		// remove any previous temporary locked record
+		$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `idorder`=" . (int)$order['id'] . ";";
+		$dbo->setQuery($q);
+		$dbo->execute();
+
+		// Booking History
+		$now_user = JFactory::getUser();
+		VikBooking::getBookingHistoryInstance()->setBid($order['id'])->store('TC', "({$now_user->name})");
+
+		// check if some of the rooms booked have shared calendars
+		VikBooking::updateSharedCalendars($order['id'], $rooms_booked, $order['checkin'], $order['checkout']);
+
+		// send mail
+		$ftitle = VikBooking::getFrontTitle();
+		$nowts = time();
+		// assign room specific unit
+		$set_room_indexes = VikBooking::autoRoomUnit();
+		$room_indexes_usemap = [];
+
+		foreach ($ordersrooms as $kor => $or) {
+			$num = $kor + 1;
+
+			// determine proper values for this room
+			$room_stay_checkin  = $order['checkin'];
+			$room_stay_checkout = $order['checkout'];
+			$room_stay_nights 	= $order['days'];
+			if ($order['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$kor]) && $room_stay_dates[$kor]['idroom'] == $or['idroom']) {
+				$room_stay_checkin  = !empty($room_stay_dates[$kor]['checkin_ts']) ? $room_stay_dates[$kor]['checkin_ts'] : $room_stay_dates[$kor]['checkin'];
+				$room_stay_checkout = !empty($room_stay_dates[$kor]['checkout_ts']) ? $room_stay_dates[$kor]['checkout_ts'] : $room_stay_dates[$kor]['checkout'];
+				$room_stay_nights 	= $room_stay_dates[$kor]['nights'];
+			}
+
+			$rooms[$num] = $or;
+			$arrpeople[$num]['adults'] = $or['adults'];
+			$arrpeople[$num]['children'] = $or['children'];
+
+			// assign room specific unit
+			if ($set_room_indexes === true) {
+				$room_indexes = VikBooking::getRoomUnitNumsAvailable($order, $or['r_reference_id']);
+				$use_ind_key = 0;
+				if (count($room_indexes)) {
+					if (!array_key_exists($or['r_reference_id'], $room_indexes_usemap)) {
+						$room_indexes_usemap[$or['r_reference_id']] = $use_ind_key;
+					} else {
+						$use_ind_key = $room_indexes_usemap[$or['r_reference_id']];
+					}
+					$q = "UPDATE `#__vikbooking_ordersrooms` SET `roomindex`=" . (int)$room_indexes[$use_ind_key] . " WHERE `id`=" . (int)$or['id'] . ";";
+					$dbo->setQuery($q);
+					$dbo->execute();
+					// update rooms references for the customer email sending function
+					$rooms[$num]['roomindex'] = (int)$room_indexes[$use_ind_key];
+					//
+					$room_indexes_usemap[$or['r_reference_id']]++;
+				}
+			}
+
+			if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+				// package or custom cost set from the back-end
+				continue;
+			}
+
+			$q = "SELECT * FROM `#__vikbooking_dispcost` WHERE `id`=" . (int)$or['idtar'] . ";";
+			$dbo->setQuery($q);
+			$dbo->execute();
+			if ($dbo->getNumRows() > 0) {
+				$tar = $dbo->loadAssocList();
+				$tar = VikBooking::applySeasonsRoom($tar, $room_stay_checkin, $room_stay_checkout);
+
+				// different usage
+				$tar = VBORoomHelper::getInstance()->applyOBPRules($tar, $or, $or['adults']);
+
+				$tars[$num] = $tar[0];
+			} else {
+				VikError::raiseWarning('', JText::translate('VBERRNOFAREFOUND'));
+			}
+		}
+
+		$pcheckin = $order['checkin'];
+		$pcheckout = $order['checkout'];
+		$secdiff = $pcheckout - $pcheckin;
+		$daysdiff = $secdiff / 86400;
+		if (is_int($daysdiff)) {
+			if ($daysdiff < 1) {
+				$daysdiff = 1;
+			}
+		} else {
+			if ($daysdiff < 1) {
+				$daysdiff = 1;
+			} else {
+				$sum = floor($daysdiff) * 86400;
+				$newdiff = $secdiff - $sum;
+				$maxhmore = VikBooking::getHoursMoreRb() * 3600;
+				if ($maxhmore >= $newdiff) {
+					$daysdiff = floor($daysdiff);
+				} else {
+					$daysdiff = ceil($daysdiff);
+				}
+			}
+		}
+
+		$isdue = 0;
+		$pricestr = [];
+		$optstr = [];
+		foreach ($ordersrooms as $kor => $or) {
+			$num = $kor + 1;
+
+			// determine proper values for this room
+			$room_stay_checkin  = $order['checkin'];
+			$room_stay_checkout = $order['checkout'];
+			$room_stay_nights 	= $order['days'];
+			if ($order['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$kor]) && $room_stay_dates[$kor]['idroom'] == $or['idroom']) {
+				$room_stay_checkin  = !empty($room_stay_dates[$kor]['checkin_ts']) ? $room_stay_dates[$kor]['checkin_ts'] : $room_stay_dates[$kor]['checkin'];
+				$room_stay_checkout = !empty($room_stay_dates[$kor]['checkout_ts']) ? $room_stay_dates[$kor]['checkout_ts'] : $room_stay_dates[$kor]['checkout'];
+				$room_stay_nights 	= $room_stay_dates[$kor]['nights'];
+			}
+
+			if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+				// package cost or cust_cost may not be inclusive of taxes if prices tax included is off
+				$calctar = VikBooking::sayPackagePlusIva($or['cust_cost'], $or['cust_idiva']);
+				$isdue += $calctar;
+				$pricestr[$num] = (!empty($or['pkg_name']) ? $or['pkg_name'] : (!empty($or['otarplan']) ? ucwords($or['otarplan']) : JText::translate('VBOROOMCUSTRATEPLAN'))) . ": " . $calctar . " " . $currencyname;
+			} elseif (array_key_exists($num, $tars) && is_array($tars[$num])) {
+				$display_rate = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
+				$calctar = VikBooking::sayCostPlusIva($display_rate, $tars[$num]['idprice']);
+				$tars[$num]['calctar'] = $calctar;
+				$isdue += $calctar;
+				$pricestr[$num] = VikBooking::getPriceName($tars[$num]['idprice'], $vbo_tn) . ": " . $calctar . " " . $currencyname . (!empty($tars[$num]['attrdata']) ? "\n" . VikBooking::getPriceAttr($tars[$num]['idprice'], $vbo_tn) . ": " . $tars[$num]['attrdata'] : "");
+			}
+			if (!empty($or['optionals'])) {
+				$stepo = explode(";", $or['optionals']);
+				foreach ($stepo as $roptkey => $oo) {
+					if (empty($oo)) {
+						continue;
+					}
+					$stept = explode(":", $oo);
+					$q = "SELECT * FROM `#__vikbooking_optionals` WHERE `id`=" . $dbo->quote($stept[0]) . ";";
+					$dbo->setQuery($q);
+					$dbo->execute();
+					if (!$dbo->getNumRows()) {
+						continue;
+					}
+					$actopt = $dbo->loadAssocList();
+					$vbo_tn->translateContents($actopt, '#__vikbooking_optionals');
+					$chvar = '';
+					if (!empty($actopt[0]['ageintervals']) && $or['children'] > 0 && strstr($stept[1], '-') != false) {
+						$optagenames = VikBooking::getOptionIntervalsAges($actopt[0]['ageintervals']);
+						$optagepcent = VikBooking::getOptionIntervalsPercentage($actopt[0]['ageintervals']);
+						$optageovrct = VikBooking::getOptionIntervalChildOverrides($actopt[0], $or['adults'], $or['children']);
+						$child_num 	 = VikBooking::getRoomOptionChildNumber($or['optionals'], $actopt[0]['id'], $roptkey, $or['children']);
+						$optagecosts = VikBooking::getOptionIntervalsCosts(isset($optageovrct['ageintervals_child' . ($child_num + 1)]) ? $optageovrct['ageintervals_child' . ($child_num + 1)] : $actopt[0]['ageintervals']);
+						$agestept = explode('-', $stept[1]);
+						$stept[1] = $agestept[0];
+						$chvar = $agestept[1];
+						if (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 1) {
+							//percentage value of the adults tariff
+							if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+								$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
+							} else {
+								$display_rate = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
+								$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
+							}
+						} elseif (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 2) {
+							//VBO 1.10 - percentage value of room base cost
+							if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+								$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
+							} else {
+								$display_rate = isset($tars[$num]['room_base_cost']) ? $tars[$num]['room_base_cost'] : (!empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost']);
+								$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
+							}
+						}
+						$actopt[0]['chageintv'] = $chvar;
+						$actopt[0]['name'] .= ' (' . $optagenames[($chvar - 1)] . ')';
+						$actopt[0]['quan'] = $stept[1];
+						$realcost = (intval($actopt[0]['perday']) == 1 ? (floatval($optagecosts[($chvar - 1)]) * $room_stay_nights * $stept[1]) : (floatval($optagecosts[($chvar - 1)]) * $stept[1]));
+					} else {
+						$actopt[0]['quan'] = $stept[1];
+						// VBO 1.11 - options percentage cost of the room total fee
+						if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+							$deftar_basecosts = $or['cust_cost'];
+						} else {
+							$deftar_basecosts = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
+						}
+						$actopt[0]['cost'] = (int)$actopt[0]['pcentroom'] ? ($deftar_basecosts * $actopt[0]['cost'] / 100) : $actopt[0]['cost'];
+						//
+						$realcost = (intval($actopt[0]['perday']) == 1 ? ($actopt[0]['cost'] * $room_stay_nights * $stept[1]) : ($actopt[0]['cost'] * $stept[1]));
+					}
+					if (!empty($actopt[0]['maxprice']) && $actopt[0]['maxprice'] > 0 && $realcost > $actopt[0]['maxprice']) {
+						$realcost = $actopt[0]['maxprice'];
+						if (intval($actopt[0]['hmany']) == 1 && intval($stept[1]) > 1) {
+							$realcost = $actopt[0]['maxprice'] * $stept[1];
+						}
+					}
+					if ($actopt[0]['perperson'] == 1) {
+						$realcost = $realcost * $or['adults'];
+					}
+					$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $actopt[0]['idiva']);
+					$isdue += $tmpopr;
+					$optstr[$num][] = ($stept[1] > 1 ? $stept[1] . " " : "") . $actopt[0]['name'] . ": " . $tmpopr . " " . $currencyname . "\n";
+				}
+			}
+
+			// custom extra costs
+			if (!empty($or['extracosts'])) {
+				$cur_extra_costs = json_decode($or['extracosts'], true);
+				foreach ($cur_extra_costs as $eck => $ecv) {
+					$ecplustax = !empty($ecv['idtax']) ? VikBooking::sayOptionalsPlusIva($ecv['cost'], $ecv['idtax']) : $ecv['cost'];
+					$isdue += $ecplustax;
+					$optstr[$num][] = $ecv['name'] . ": " . $ecplustax . " " . $currencyname . "\n";
+				}
+			}
+		}
+
+		// coupon
+		$usedcoupon = false;
+		$origisdue = $isdue;
+		if (strlen($order['coupon']) > 0) {
+			$usedcoupon = true;
+			$expcoupon = explode(";", $order['coupon']);
+			$isdue = $isdue - $expcoupon[1];
+		}
+
+		// make sure to apply any previously refunded amount
+		if ($order['refund'] > 0) {
+			$isdue -= $order['refund'];
+		}
+
+		// ConfirmationNumber
+		$confirmnumber = VikBooking::generateConfirmNumber($order['id'], true);
+
+		$app->enqueueMessage(JText::translate('VBORDERSETASCONF'));
+
+		// notify the customer unless it was a re-confirmation
+		$pskip = VikRequest::getInt('skip_notification', 0, 'request');
+		if ($pskip < 1) {
+			// send email notification to guest
+			VikBooking::sendBookingEmail($order['id'], array('guest'));
+
+			// SMS skipping the administrator
+			VikBooking::sendBookingSMS($order['id'], array('admin'));
+		}
+
+		// Invoke Channel Manager
+		$vcm_autosync = VikBooking::vcmAutoUpdate();
+		if ($vcm_autosync > 0) {
+			$vcm_obj = VikBooking::getVcmInvoker();
+			$vcm_obj->setOids(array($order['id']))->setSyncType('new')->setOriginalStatuses(array($original_book_status));
+			$sync_result = $vcm_obj->doSync();
+			if ($sync_result === false) {
+				$vcm_err = $vcm_obj->getError();
+				VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO') . ' <a href="index.php?option=com_vikchannelmanager" target="_blank">' . JText::translate('VBCHANNELMANAGEROPEN') . '</a> ' . (strlen($vcm_err) > 0 ? '(' . $vcm_err . ')' : ''));
+			}
+		} elseif (file_exists(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
+			$vcm_sync_url = 'index.php?option=com_vikbooking&task=invoke_vcm&stype=new&cid[]=' . $order['id'] . '&returl=' . urlencode('index.php?option=com_vikbooking&task=editorder&cid[]=' . $order['id']);
+			VikError::raiseNotice('', JText::translate('VBCHANNELMANAGERINVOKEASK') . ' <button type="button" class="btn btn-primary" onclick="document.location.href=\'' . $vcm_sync_url . '\';">' . JText::translate('VBCHANNELMANAGERSENDRQ') . '</button>');
+		}
+
+		$app->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . $oid);
+	}
+
+	public function payments()
+	{
 		VikBookingHelper::printHeader("14");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'payments'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -3473,11 +4043,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newpayment() {
+	public function newpayment()
+	{
 		VikBookingHelper::printHeader("14");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managepayment'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -3485,11 +4056,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editpayment() {
+	public function editpayment()
+	{
 		VikBookingHelper::printHeader("14");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managepayment'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -3497,7 +4069,8 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function createpayment() {
+	public function createpayment()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -3517,6 +4090,8 @@ class VikBookingController extends JControllerVikBooking
 		$pch_disc = !in_array($pch_disc, array('1', '2')) ? 1 : $pch_disc;
 		$poutposition = VikRequest::getString('outposition', 'top', 'request');
 		$plogo = VikRequest::getString('logo', '', 'request');
+		$pall_rooms = VikRequest::getInt('all_rooms', 0, 'request');
+		$pidrooms = VikRequest::getVar('idrooms', array());
 		$vikpaymentparams = VikRequest::getVar('vikpaymentparams', array(0));
 		$payparamarr = array();
 		$payparamstr = '';
@@ -3530,16 +4105,31 @@ class VikBookingController extends JControllerVikBooking
 				$payparamstr = json_encode($payparamarr);
 			}
 		}
+
 		$dbo = JFactory::getDbo();
+
+		$set_idrooms = [];
+		if (empty($pall_rooms) && !empty($pidrooms)) {
+			$pidrooms = array_map(function ($idroom) {
+				return (int)$idroom;
+			}, $pidrooms);
+			foreach ($pidrooms as $idroom) {
+				if (empty($idroom) || in_array($idroom, $set_idrooms)) {
+					continue;
+				}
+				$set_idrooms[] = $idroom;
+			}
+		}
+
 		if (!empty($pname) && !empty($ppayment)) {
 			$setpub = $ppublished == "1" ? 1 : 0;
 			$psetconfirmed = $psetconfirmed == "1" ? 1 : 0;
 			$pshownotealw = $pshownotealw == "1" ? 1 : 0;
-			$q = "SELECT `id` FROM `#__vikbooking_gpayments` WHERE `file`=".$dbo->quote($ppayment).";";
+			$q = "SELECT `id` FROM `#__vikbooking_gpayments` WHERE `file`=" . $dbo->quote($ppayment) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() >= 0) {
-				$q = "INSERT INTO `#__vikbooking_gpayments` (`name`,`file`,`published`,`note`,`charge`,`setconfirmed`,`shownotealw`,`val_pcent`,`ch_disc`,`params`,`hidenonrefund`,`onlynonrefund`,`outposition`,`logo`) VALUES(".$dbo->quote($pname).",".$dbo->quote($ppayment).",'".$setpub."',".$dbo->quote($pnote).",".$dbo->quote($pcharge).",'".$psetconfirmed."','".$pshownotealw."','".$pval_pcent."','".$pch_disc."',".$dbo->quote($payparamstr).",".($phidenonrefund > 0 ? '1' : '0').",".($ponlynonrefund > 0 ? '1' : '0').", " . $dbo->quote($poutposition) . ", " . $dbo->quote($plogo) . ");";
+				$q = "INSERT INTO `#__vikbooking_gpayments` (`name`,`file`,`published`,`note`,`charge`,`setconfirmed`,`shownotealw`,`val_pcent`,`ch_disc`,`params`,`hidenonrefund`,`onlynonrefund`,`outposition`,`logo`,`idrooms`) VALUES(" . $dbo->quote($pname) . "," . $dbo->quote($ppayment) . ",'" . $setpub . "'," . $dbo->quote($pnote) . "," . $dbo->quote($pcharge) . ",'" . $psetconfirmed . "','" . $pshownotealw . "','" . $pval_pcent . "','" . $pch_disc . "'," . $dbo->quote($payparamstr) . "," . ($phidenonrefund > 0 ? '1' : '0') . "," . ($ponlynonrefund > 0 ? '1' : '0') . ", " . $dbo->quote($poutposition) . ", " . $dbo->quote($plogo) . ", " . (count($set_idrooms) ? $dbo->quote(json_encode($set_idrooms)) : 'NULL') . ");";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				$mainframe->enqueueMessage(JText::translate('VBPAYMENTSAVED'));
@@ -3553,11 +4143,28 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function updatepayment() {
+	public function updatepayment()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
+
+		$this->do_updatepayment($stay = false);
+	}
+
+	public function updatepaymentstay()
+	{
+		if (!JSession::checkToken()) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
+
+		$this->do_updatepayment($stay = true);
+	}
+
+	protected function do_updatepayment($stay = false)
+	{
 		$mainframe = JFactory::getApplication();
+
 		$pwhere = VikRequest::getString('where', '', 'request');
 		$pname = VikRequest::getString('name', '', 'request');
 		$ppayment = VikRequest::getString('payment', '', 'request');
@@ -3574,6 +4181,8 @@ class VikBookingController extends JControllerVikBooking
 		$pch_disc = !in_array($pch_disc, array('1', '2')) ? 1 : $pch_disc;
 		$poutposition = VikRequest::getString('outposition', 'top', 'request');
 		$plogo = VikRequest::getString('logo', '', 'request');
+		$pall_rooms = VikRequest::getInt('all_rooms', 0, 'request');
+		$pidrooms = VikRequest::getVar('idrooms', array());
 		$vikpaymentparams = VikRequest::getVar('vikpaymentparams', array(0));
 		$payparamarr = array();
 		$payparamstr = '';
@@ -3587,30 +4196,51 @@ class VikBookingController extends JControllerVikBooking
 				$payparamstr = json_encode($payparamarr);
 			}
 		}
+
 		$dbo = JFactory::getDbo();
+
+		$set_idrooms = [];
+		if (empty($pall_rooms) && !empty($pidrooms)) {
+			$pidrooms = array_map(function ($idroom) {
+				return (int)$idroom;
+			}, $pidrooms);
+			foreach ($pidrooms as $idroom) {
+				if (empty($idroom) || in_array($idroom, $set_idrooms)) {
+					continue;
+				}
+				$set_idrooms[] = $idroom;
+			}
+		}
+
 		if (!empty($pname) && !empty($ppayment) && !empty($pwhere)) {
 			$setpub = $ppublished == "1" ? 1 : 0;
 			$psetconfirmed = $psetconfirmed == "1" ? 1 : 0;
 			$pshownotealw = $pshownotealw == "1" ? 1 : 0;
-			$q = "SELECT `id` FROM `#__vikbooking_gpayments` WHERE `file`=".$dbo->quote($ppayment)." AND `id`!='".$pwhere."';";
+			$q = "SELECT `id` FROM `#__vikbooking_gpayments` WHERE `file`=" . $dbo->quote($ppayment) . " AND `id`!='" . $pwhere . "';";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() >= 0) {
-				$q = "UPDATE `#__vikbooking_gpayments` SET `name`=".$dbo->quote($pname).",`file`=".$dbo->quote($ppayment).",`published`='".$setpub."',`note`=".$dbo->quote($pnote).",`charge`=".$dbo->quote($pcharge).",`setconfirmed`='".$psetconfirmed."',`shownotealw`='".$pshownotealw."',`val_pcent`='".$pval_pcent."',`ch_disc`='".$pch_disc."',`params`=".$dbo->quote($payparamstr).",`hidenonrefund`=".($phidenonrefund > 0 ? '1' : '0').",`onlynonrefund`=".($ponlynonrefund > 0 ? '1' : '0').",`outposition`=" . $dbo->quote($poutposition) . ",`logo`=" . $dbo->quote($plogo) . " WHERE `id`=".$dbo->quote($pwhere).";";
+				$q = "UPDATE `#__vikbooking_gpayments` SET `name`=" . $dbo->quote($pname) . ",`file`=" . $dbo->quote($ppayment) . ",`published`='" . $setpub . "',`note`=" . $dbo->quote($pnote) . ",`charge`=" . $dbo->quote($pcharge) . ",`setconfirmed`='" . $psetconfirmed . "',`shownotealw`='" . $pshownotealw . "',`val_pcent`='" . $pval_pcent . "',`ch_disc`='" . $pch_disc . "',`params`=" . $dbo->quote($payparamstr) . ",`hidenonrefund`=" . ($phidenonrefund > 0 ? '1' : '0') . ",`onlynonrefund`=" . ($ponlynonrefund > 0 ? '1' : '0') . ",`outposition`=" . $dbo->quote($poutposition) . ",`logo`=" . $dbo->quote($plogo) . ",`idrooms`=" . (count($set_idrooms) ? $dbo->quote(json_encode($set_idrooms)) : 'NULL') . " WHERE `id`=" . $dbo->quote($pwhere) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
+
 				$mainframe->enqueueMessage(JText::translate('VBPAYMENTUPDATED'));
-				$mainframe->redirect("index.php?option=com_vikbooking&task=payments");
+				if ($stay) {
+					$mainframe->redirect("index.php?option=com_vikbooking&task=editpayment&cid[]=" . $pwhere);
+				} else {
+					$mainframe->redirect("index.php?option=com_vikbooking&task=payments");
+				}
 			} else {
 				VikError::raiseWarning('', JText::translate('ERRINVFILEPAYMENT'));
-				$mainframe->redirect("index.php?option=com_vikbooking&task=editpayment&cid[]=".$pwhere);
+				$mainframe->redirect("index.php?option=com_vikbooking&task=editpayment&cid[]=" . $pwhere);
 			}
 		} else {
-			$mainframe->redirect("index.php?option=com_vikbooking&task=editpayment&cid[]=".$pwhere);
+			$mainframe->redirect("index.php?option=com_vikbooking&task=editpayment&cid[]=" . $pwhere);
 		}
 	}
 
-	public function removepayments() {
+	public function removepayments()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -3618,7 +4248,7 @@ class VikBookingController extends JControllerVikBooking
 		if (@count($ids)) {
 			$dbo = JFactory::getDBO();
 			foreach ($ids as $d) {
-				$q = "DELETE FROM `#__vikbooking_gpayments` WHERE `id`=".$dbo->quote($d).";";
+				$q = "DELETE FROM `#__vikbooking_gpayments` WHERE `id`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -3627,16 +4257,20 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=payments");
 	}
 
-	public function modavailpayment() {
+	public function modavailpayment()
+	{
+		if (!JSession::checkToken('get')) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
 		$cid = VikRequest::getVar('cid', array(0));
 		$idp = $cid[0];
 		if (!empty($idp)) {
 			$dbo = JFactory::getDBO();
-			$q = "SELECT `published` FROM `#__vikbooking_gpayments` WHERE `id`=".intval($idp).";";
+			$q = "SELECT `published` FROM `#__vikbooking_gpayments` WHERE `id`=" . intval($idp) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			$get = $dbo->loadAssocList();
-			$q = "UPDATE `#__vikbooking_gpayments` SET `published`=".(intval($get[0]['published']) == 1 ? '0' : '1')." WHERE `id`=".intval($idp).";";
+			$q = "UPDATE `#__vikbooking_gpayments` SET `published`=" . (intval($get[0]['published']) == 1 ? '0' : '1') . " WHERE `id`=" . intval($idp) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
@@ -3644,11 +4278,12 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=payments");
 	}
 
-	public function seasons() {
+	public function seasons()
+	{
 		VikBookingHelper::printHeader("13");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'seasons'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -3656,11 +4291,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newseason() {
+	public function newseason()
+	{
 		VikBookingHelper::printHeader("13");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageseason'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -3668,11 +4304,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editseason() {
+	public function editseason()
+	{
 		VikBookingHelper::printHeader("13");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageseason'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -3680,35 +4317,42 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function updateseason() {
+	public function updateseason()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updateseason();
 	}
 
-	public function updateseasonstay() {
+	public function updateseasonstay()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updateseason(true);
 	}
 
-	private function do_updateseason($stay = false) {
-		$mainframe = JFactory::getApplication();
-		$pwhere = VikRequest::getString('where', '', 'request');
+	private function do_updateseason($stay = false)
+	{
+		$app = JFactory::getApplication();
+		$dbo = JFactory::getDbo();
+		$session = JFactory::getSession();
+
+		$pwhere = VikRequest::getInt('where', 0, 'request');
+
 		$pfrom = VikRequest::getString('from', '', 'request');
 		$pto = VikRequest::getString('to', '', 'request');
 		$ptype = VikRequest::getString('type', '', 'request');
 		$pdiffcost = VikRequest::getFloat('diffcost', '', 'request');
-		$pidrooms = VikRequest::getVar('idrooms', array(0));
-		$pidprices = VikRequest::getVar('idprices', array(0));
+		$pidrooms = VikRequest::getVar('idrooms', array());
+		$pidprices = VikRequest::getVar('idprices', array());
 		$pwdays = VikRequest::getVar('wdays', array());
 		$pspname = VikRequest::getString('spname', '', 'request');
 		$pcheckinincl = VikRequest::getString('checkinincl', '', 'request');
 		$pcheckinincl = $pcheckinincl == 1 ? 1 : 0;
-		$pyeartied = VikRequest::getString('yeartied', '', 'request');
-		$pyeartied = $pyeartied == "1" ? 1 : 0;
+		$pyeartied = VikRequest::getInt('yeartied', 0, 'request');
+		$pyeartied = $pyeartied == 1 ? 1 : 0;
 		$tieyear = 0;
 		$ppromo = VikRequest::getInt('promo', 0, 'request');
 		$ppromo = $ppromo == 1 ? 1 : 0;
@@ -3733,10 +4377,10 @@ class VikBookingController extends JControllerVikBooking
 		$ppromofinalprice = $ppromo ? $ppromofinalprice : 0;
 		$occupancy_ovr = array();
 		$losverridestr = "";
-		$dbo = JFactory::getDbo();
-		$session = JFactory::getSession();
+
 		$updforvcm = $session->get('vbVcmRatesUpd', '');
 		$updforvcm = empty($updforvcm) || !is_array($updforvcm) ? array() : $updforvcm;
+
 		// check null dates
 		if ($dbo->getNullDate() == $pfrom) {
 			$pfrom = '';
@@ -3744,267 +4388,327 @@ class VikBookingController extends JControllerVikBooking
 		if ($dbo->getNullDate() == $pto) {
 			$pto = '';
 		}
-		//
-		if ((!empty($pfrom) && !empty($pto)) || count($pwdays) > 0) {
-			$skipseason = false;
-			if (empty($pfrom) || empty($pto)) {
-				$skipseason = true;
+
+		if ((empty($pfrom) || empty($pto)) && !$pwdays) {
+			VikError::raiseWarning('', JText::translate('ERRINVDATESEASON'));
+			$app->redirect("index.php?option=com_vikbooking&task=editseason&cid[]=" . $pwhere);
+			exit;
+		}
+
+		$skipseason = false;
+		if (empty($pfrom) || empty($pto)) {
+			$skipseason = true;
+		}
+		$skipdays = false;
+		$wdaystr = null;
+		if (count($pwdays) == 0) {
+			$skipdays = true;
+		} else {
+			$wdaystr = "";
+			foreach ($pwdays as $wd) {
+				$wdaystr .= $wd . ';';
 			}
-			$skipdays = false;
-			$wdaystr = null;
-			if (count($pwdays) == 0) {
-				$skipdays = true;
-			} else {
-				$wdaystr = "";
-				foreach ($pwdays as $wd) {
-					$wdaystr .= $wd.';';
+		}
+		$roomstr = "";
+		$roomids = array();
+		foreach ($pidrooms as $room) {
+			if (empty($room)) {
+				continue;
+			}
+			$roomstr .= "-" . $room . "-,";
+			$roomids[] = (int)$room;
+		}
+		$pricestr = "";
+		$priceids = array();
+		foreach ($pidprices as $price) {
+			if (empty($price)) {
+				continue;
+			}
+			$pricestr .= "-" . $price . "-,";
+			$priceids[] = (int)$price;
+		}
+		$valid = true;
+		$double_records = array();
+		$sfrom = null;
+		$sto = null;
+
+		// value overrides
+		if ($pnightsoverrides && $pvaluesoverrides) {
+			foreach ($pnightsoverrides as $ko => $no) {
+				if (!empty($no) && strlen(trim($pvaluesoverrides[$ko])) > 0) {
+					$infiniteclause = intval($pandmoreoverride[$ko]) == 1 ? '-i' : '';
+					$losverridestr .= intval($no) . $infiniteclause . ':' . trim($pvaluesoverrides[$ko]) . '_';
 				}
 			}
-			$roomstr = "";
-			$roomids = array();
-			if (@count($pidrooms) > 0) {
-				foreach ($pidrooms as $room) {
-					if (empty($room)) {
+		}
+
+		if (!$skipseason) {
+			$first = VikBooking::getDateTimestamp($pfrom, 0, 0);
+			$second = VikBooking::getDateTimestamp($pto, 0, 0);
+
+			if ($second > 0 && $second == $first) {
+				$second += 86399;
+			}
+
+			if (!($second > $first)) {
+				VikError::raiseWarning('', JText::translate('ERRINVDATESEASON'));
+				$app->redirect("index.php?option=com_vikbooking&task=editseason&cid[]=" . $pwhere);
+				exit;
+			}
+
+			$baseone = getdate($first);
+			$basets = mktime(0, 0, 0, 1, 1, $baseone['year']);
+			$sfrom = $baseone[0] - $basets;
+			$basetwo = getdate($second);
+			$basets = mktime(0, 0, 0, 1, 1, $basetwo['year']);
+			$sto = $basetwo[0] - $basets;
+
+			// check leap year
+			if ($baseone['year'] % 4 == 0 && ($baseone['year'] % 100 != 0 || $baseone['year'] % 400 == 0)) {
+				$leapts = mktime(0, 0, 0, 2, 29, $baseone['year']);
+				if ($baseone[0] > $leapts) {
+					$sfrom -= 86400;
+					/**
+					 * To avoid issue with leap years and dates near Feb 29th, we only reduce the seconds if these were reduced
+					 * for the from-date of the seasons. Doing it just for the to-date in 2019 for 2020 (leap) produced invalid results.
+					 * 
+					 * @since 	July 2nd 2019
+					 */
+					if ($basetwo['year'] % 4 == 0 && ($basetwo['year'] % 100 != 0 || $basetwo['year'] % 400 == 0)) {
+						$leapts = mktime(0, 0, 0, 2, 29, $basetwo['year']);
+						if ($basetwo[0] > $leapts) {
+							$sto -= 86400;
+						}
+					}
+				}
+			}
+
+			// tied to the year
+			if ($pyeartied == 1) {
+				$tieyear = $baseone['year'];
+			}
+
+			// Occupancy Override
+			if (count($padultsdiffval) > 0) {
+				foreach ($padultsdiffval as $rid => $valovr_arr) {
+					if (!is_array($valovr_arr) || !is_array($padultsdiffchdisc[$rid]) || !is_array($padultsdiffvalpcent[$rid]) || !is_array($padultsdiffpernight[$rid])) {
 						continue;
 					}
-					$roomstr .= "-".$room."-,";
-					$roomids[] = (int)$room;
-				}
-			}
-			$pricestr = "";
-			$priceids = array();
-			if (@count($pidprices) > 0) {
-				foreach ($pidprices as $price) {
-					if (empty($price)) {
-						continue;
-					}
-					$pricestr .= "-".$price."-,";
-					$priceids[] = (int)$price;
-				}
-			}
-			$valid = true;
-			$double_records = array();
-			$sfrom = null;
-			$sto = null;
-			// value overrides
-			if (count($pnightsoverrides) > 0 && count($pvaluesoverrides) > 0) {
-				foreach ($pnightsoverrides as $ko => $no) {
-					if (!empty($no) && strlen(trim($pvaluesoverrides[$ko])) > 0) {
-						$infiniteclause = intval($pandmoreoverride[$ko]) == 1 ? '-i' : '';
-						$losverridestr .= intval($no).$infiniteclause.':'.trim($pvaluesoverrides[$ko]).'_';
+					foreach ($valovr_arr as $occ => $valovr) {
+						if (!(strlen($valovr) > 0) || !(strlen($padultsdiffchdisc[$rid][$occ]) > 0) || !(strlen($padultsdiffvalpcent[$rid][$occ]) > 0) || !(strlen($padultsdiffpernight[$rid][$occ]) > 0)) {
+							continue;
+						}
+						if (!array_key_exists($rid, $occupancy_ovr)) {
+							$occupancy_ovr[$rid] = array();
+						}
+						$occupancy_ovr[$rid][$occ] = array('chdisc' => (int)$padultsdiffchdisc[$rid][$occ], 'valpcent' => (int)$padultsdiffvalpcent[$rid][$occ], 'pernight' => (int)$padultsdiffpernight[$rid][$occ], 'value' => (float)$valovr);
 					}
 				}
 			}
-			//
-			if (!$skipseason) {
-				$first = VikBooking::getDateTimestamp($pfrom, 0, 0);
-				$second = VikBooking::getDateTimestamp($pto, 0, 0);
-				if ($second > 0 && $second == $first) {
-					$second += 86399;
-				}
-				if ($second > $first) {
-					$baseone = getdate($first);
-					$basets = mktime(0, 0, 0, 1, 1, $baseone['year']);
-					$sfrom = $baseone[0] - $basets;
-					$basetwo = getdate($second);
-					$basets = mktime(0, 0, 0, 1, 1, $basetwo['year']);
-					$sto = $basetwo[0] - $basets;
-					//check leap year
-					if ($baseone['year'] % 4 == 0 && ($baseone['year'] % 100 != 0 || $baseone['year'] % 400 == 0)) {
-						$leapts = mktime(0, 0, 0, 2, 29, $baseone['year']);
-						if ($baseone[0] > $leapts) {
-							$sfrom -= 86400;
-							/**
-							 * To avoid issue with leap years and dates near Feb 29th, we only reduce the seconds if these were reduced
-							 * for the from-date of the seasons. Doing it just for the to-date in 2019 for 2020 (leap) produced invalid results.
-							 * 
-							 * @since 	July 2nd 2019
-							 */
-							if ($basetwo['year'] % 4 == 0 && ($basetwo['year'] % 100 != 0 || $basetwo['year'] % 400 == 0)) {
-								$leapts = mktime(0, 0, 0, 2, 29, $basetwo['year']);
-								if ($basetwo[0] > $leapts) {
-									$sto -= 86400;
-								}
-							}
-						}
-					}
-					//end leap year
-					//tied to the year
-					if ($pyeartied == 1) {
-						$tieyear = $baseone['year'];
-					}
-					//
-					//Occupancy Override
-					if (count($padultsdiffval) > 0) {
-						foreach ($padultsdiffval as $rid => $valovr_arr) {
-							if (!is_array($valovr_arr) || !is_array($padultsdiffchdisc[$rid]) || !is_array($padultsdiffvalpcent[$rid]) || !is_array($padultsdiffpernight[$rid])) {
-								continue;
-							}
-							foreach ($valovr_arr as $occ => $valovr) {
-								if (!(strlen($valovr) > 0) || !(strlen($padultsdiffchdisc[$rid][$occ]) > 0) || !(strlen($padultsdiffvalpcent[$rid][$occ]) > 0) || !(strlen($padultsdiffpernight[$rid][$occ]) > 0)) {
-									continue;
-								}
-								if (!array_key_exists($rid, $occupancy_ovr)) {
-									$occupancy_ovr[$rid] = array();
-								}
-								$occupancy_ovr[$rid][$occ] = array('chdisc' => (int)$padultsdiffchdisc[$rid][$occ], 'valpcent' => (int)$padultsdiffvalpcent[$rid][$occ], 'pernight' => (int)$padultsdiffpernight[$rid][$occ], 'value' => (float)$valovr);
-							}
-						}
-					}
-					//
-					//check if seasons dates are valid
-					$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`<=".$dbo->quote($sfrom)." AND `to`>=".$dbo->quote($sfrom)." AND `id`!=".$dbo->quote($pwhere)." AND `idrooms`=".$dbo->quote($roomstr)."".(!$skipdays ? " AND `wdays`='".$wdaystr."'" : "").($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "").($pyeartied == 1 ? " AND `year`=".$tieyear : " AND `year` IS NULL")." AND `idprices`=".$dbo->quote($pricestr)." AND `promo`=".$ppromo." AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=".$dbo->quote($losverridestr)." AND `occupancy_ovr`".(count($occupancy_ovr) > 0 ? "=".$dbo->quote(json_encode($occupancy_ovr)) : " IS NULL").";";
-					$dbo->setQuery($q);
-					$dbo->execute();
-					$totfirst = $dbo->getNumRows();
-					if ($totfirst > 0) {
-						$valid = false;
-						$similar = $dbo->loadAssocList();
-						foreach ($similar as $sim) {
-							$double_records[] = $sim['spname'];
-						}
-					}
-					$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`<=".$dbo->quote($sto)." AND `to`>=".$dbo->quote($sto)." AND `id`!=".$dbo->quote($pwhere)." AND `idrooms`=".$dbo->quote($roomstr)."".(!$skipdays ? " AND `wdays`='".$wdaystr."'" : "").($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "").($pyeartied == 1 ? " AND `year`=".$tieyear : " AND `year` IS NULL")." AND `idprices`=".$dbo->quote($pricestr)." AND `promo`=".$ppromo." AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=".$dbo->quote($losverridestr)." AND `occupancy_ovr`".(count($occupancy_ovr) > 0 ? "=".$dbo->quote(json_encode($occupancy_ovr)) : " IS NULL").";";
-					$dbo->setQuery($q);
-					$dbo->execute();
-					$totsecond = $dbo->getNumRows();
-					if ($totsecond > 0) {
-						$valid = false;
-						$similar = $dbo->loadAssocList();
-						foreach ($similar as $sim) {
-							$double_records[] = $sim['spname'];
-						}
-					}
-					$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`>=".$dbo->quote($sfrom)." AND `from`<=".$dbo->quote($sto)." AND `to`>=".$dbo->quote($sfrom)." AND `to`<=".$dbo->quote($sto)." AND `id`!=".$dbo->quote($pwhere)." AND `idrooms`=".$dbo->quote($roomstr)."".(!$skipdays ? " AND `wdays`='".$wdaystr."'" : "").($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "").($pyeartied == 1 ? " AND `year`=".$tieyear : " AND `year` IS NULL")." AND `idprices`=".$dbo->quote($pricestr)." AND `promo`=".$ppromo." AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=".$dbo->quote($losverridestr)." AND `occupancy_ovr`".(count($occupancy_ovr) > 0 ? "=".$dbo->quote(json_encode($occupancy_ovr)) : " IS NULL").";";
-					$dbo->setQuery($q);
-					$dbo->execute();
-					$totthird = $dbo->getNumRows();
-					if ($totthird > 0) {
-						$valid = false;
-						$similar = $dbo->loadAssocList();
-						foreach ($similar as $sim) {
-							$double_records[] = $sim['spname'];
-						}
-					}
-					//
-				} else {
-					VikError::raiseWarning('', JText::translate('ERRINVDATESEASON'));
-					$mainframe->redirect("index.php?option=com_vikbooking&task=editseason&cid[]=".$pwhere);
-				}
-			}
-			if ($valid) {
-				$q = "UPDATE `#__vikbooking_seasons` SET `type`='".($ptype == "1" ? "1" : "2")."',`from`=".$dbo->quote($sfrom).",`to`=".$dbo->quote($sto).",`diffcost`=".$dbo->quote($pdiffcost).",`idrooms`=".$dbo->quote($roomstr).",`spname`=".$dbo->quote($pspname).",`wdays`='".$wdaystr."',`checkinincl`='".$pcheckinincl."',`val_pcent`='".$pval_pcent."',`losoverride`=".$dbo->quote($losverridestr).",`roundmode`=".(!empty($proundmode) ? "'".$proundmode."'" : "NULL").",`year`=".($pyeartied == 1 ? $tieyear : "NULL").",`idprices`=".$dbo->quote($pricestr).",`promo`=".$ppromo.",`promodaysadv`=".(!empty($ppromodaysadv) ? $ppromodaysadv : "null").",`promotxt`=".$dbo->quote($ppromotxt).",`promominlos`=".(!empty($ppromominlos) ? $ppromominlos : "0").",`occupancy_ovr`=".(count($occupancy_ovr) > 0 ? $dbo->quote(json_encode($occupancy_ovr)) : "NULL").",`promolastmin`=".(int)$promolastmin.",`promofinalprice`={$ppromofinalprice} WHERE `id`=".$dbo->quote($pwhere).";";
-				$dbo->setQuery($q);
-				$dbo->execute();
-				$mainframe->enqueueMessage(JText::translate('VBSEASONUPDATED'));
-				//update session values
-				$updforvcm['count'] = array_key_exists('count', $updforvcm) && !empty($updforvcm['count']) ? ($updforvcm['count'] + 1) : 1;
-				if (array_key_exists('dfrom', $updforvcm) && !empty($updforvcm['dfrom'])) {
-					$updforvcm['dfrom'] = $updforvcm['dfrom'] > $first ? $first : $updforvcm['dfrom'];
-				} else {
-					$updforvcm['dfrom'] = $first;
-				}
-				if (array_key_exists('dto', $updforvcm) && !empty($updforvcm['dto'])) {
-					$updforvcm['dto'] = $updforvcm['dto'] < $second ? $second : $updforvcm['dto'];
-				} else {
-					$updforvcm['dto'] = $second;
-				}
-				if (array_key_exists('rooms', $updforvcm) && is_array($updforvcm['rooms'])) {
-					foreach ($roomids as $rid) {
-						if (!in_array($rid, $updforvcm['rooms'])) {
-							$updforvcm['rooms'][] = $rid;
-						}
-					}
-				} else {
-					$updforvcm['rooms'] = $roomids;
-				}
-				if (array_key_exists('rplans', $updforvcm) && is_array($updforvcm['rplans'])) {
-					foreach ($roomids as $rid) {
-						if (array_key_exists($rid, $updforvcm['rplans'])) {
-							$updforvcm['rplans'][$rid] = $updforvcm['rplans'][$rid] + $priceids;
-						} else {
-							$updforvcm['rplans'][$rid] = $priceids;
-						}
-					}
-				} else {
-					$updforvcm['rplans'] = array();
-					foreach ($roomids as $rid) {
-						$updforvcm['rplans'][$rid] = $priceids;
-					}
-				}
-				$session->set('vbVcmRatesUpd', $updforvcm);
-				//
 
-				/**
-				 * Query promotion handlers, if any, to trigger the update promotion event.
-				 * 
-				 * @since 	1.15.0 (J) - 1.5.0 (WP)
-				 */
-				try {
-					$promo_handlers = VikBooking::getPromotionHandlers();
-					if ($ppromo && is_array($promo_handlers)) {
-						foreach ($promo_handlers as $promo_handler) {
-							if (!isset($promo_handler->instance) || !is_object($promo_handler->instance) || !method_exists($promo_handler->instance, 'triggerUpdate')) {
-								// outdated handler object
-								continue;
-							}
-							if (!is_callable(array($promo_handler->instance, 'triggerUpdate')) || !$promo_handler->instance->triggerUpdate()) {
-								// promotion handler does not support update promotion event
-								continue;
-							}
-							// invoke the update promotion event for this handler
-							$ch_result = $promo_handler->instance->createPromotion(array('vbo_promo_id' => $pwhere), 'update');
-							if (!$ch_result) {
-								VikError::raiseWarning('', $promo_handler->instance->getName() . ': ' . $promo_handler->instance->getError());
-							}
-						}
-					}
-				} catch (Exception $e) {
-					// do nothing
+			// check if seasons dates are valid
+			$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`<=" . $dbo->quote($sfrom) . " AND `to`>=" . $dbo->quote($sfrom) . " AND `id`!=" . $dbo->quote($pwhere) . " AND `idrooms`=" . $dbo->quote($roomstr) . "" . (!$skipdays ? " AND `wdays`='" . $wdaystr . "'" : "") . ($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "") . ($pyeartied == 1 ? " AND `year`=" . $tieyear : " AND `year` IS NULL") . " AND `idprices`=" . $dbo->quote($pricestr) . " AND `promo`=" . $ppromo . " AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=" . $dbo->quote($losverridestr) . " AND `occupancy_ovr`" . (count($occupancy_ovr) > 0 ? "=" . $dbo->quote(json_encode($occupancy_ovr)) : " IS NULL") . ";";
+			$dbo->setQuery($q);
+			$similar = $dbo->loadAssocList();
+			if ($similar) {
+				$valid = false;
+				foreach ($similar as $sim) {
+					$double_records[] = $sim['spname'];
 				}
+			}
 
-				if ($stay) {
-					$mainframe->redirect("index.php?option=com_vikbooking&task=editseason&cid[]=".$pwhere);
-				} else {
-					$mainframe->redirect("index.php?option=com_vikbooking&task=seasons");
+			$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`<=" . $dbo->quote($sto) . " AND `to`>=" . $dbo->quote($sto) . " AND `id`!=" . $dbo->quote($pwhere) . " AND `idrooms`=" . $dbo->quote($roomstr) . "" . (!$skipdays ? " AND `wdays`='" . $wdaystr . "'" : "") . ($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "") . ($pyeartied == 1 ? " AND `year`=" . $tieyear : " AND `year` IS NULL") . " AND `idprices`=" . $dbo->quote($pricestr) . " AND `promo`=" . $ppromo . " AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=" . $dbo->quote($losverridestr) . " AND `occupancy_ovr`" . (count($occupancy_ovr) > 0 ? "=" . $dbo->quote(json_encode($occupancy_ovr)) : " IS NULL") . ";";
+			$dbo->setQuery($q);
+			$similar = $dbo->loadAssocList();
+			if ($similar) {
+				$valid = false;
+				foreach ($similar as $sim) {
+					$double_records[] = $sim['spname'];
 				}
-			} else {
-				VikError::raiseWarning('', JText::translate('ERRINVDATEROOMSLOCSEASON').(count($double_records) ? ' ('.implode(', ', array_unique($double_records)).')' : ''));
-				$mainframe->redirect("index.php?option=com_vikbooking&task=editseason&cid[]=".$pwhere);
+			}
+
+			$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`>=" . $dbo->quote($sfrom) . " AND `from`<=" . $dbo->quote($sto) . " AND `to`>=" . $dbo->quote($sfrom) . " AND `to`<=" . $dbo->quote($sto) . " AND `id`!=" . $dbo->quote($pwhere) . " AND `idrooms`=" . $dbo->quote($roomstr) . "" . (!$skipdays ? " AND `wdays`='" . $wdaystr . "'" : "") . ($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "") . ($pyeartied == 1 ? " AND `year`=" . $tieyear : " AND `year` IS NULL") . " AND `idprices`=" . $dbo->quote($pricestr) . " AND `promo`=" . $ppromo . " AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=" . $dbo->quote($losverridestr) . " AND `occupancy_ovr`" . (count($occupancy_ovr) > 0 ? "=" . $dbo->quote(json_encode($occupancy_ovr)) : " IS NULL") . ";";
+			$dbo->setQuery($q);
+			$dbo->execute();
+			$similar = $dbo->loadAssocList();
+			if ($similar) {
+				$valid = false;
+				foreach ($similar as $sim) {
+					$double_records[] = $sim['spname'];
+				}
+			}
+		}
+
+		// fetch previous record before the update
+		$q = $dbo->getQuery(true)
+			->select('*')
+			->from($dbo->qn('#__vikbooking_seasons'))
+			->where($dbo->qn('id') . ' = ' . $pwhere);
+		$dbo->setQuery($q, 0, 1);
+		$prev_record = $dbo->loadAssoc();
+
+		if (!$valid || !$prev_record) {
+			VikError::raiseWarning('', JText::translate('ERRINVDATEROOMSLOCSEASON') . ($double_records ? ' (' . implode(', ', array_unique($double_records)) . ')' : ''));
+			$app->redirect("index.php?option=com_vikbooking&task=editseason&cid[]=" . $pwhere);
+			exit;
+		}
+
+		/**
+		 * Attempt to access the promotion handlers in advance to perform additional validations.
+		 * 
+		 * @since 	1.16.4 (J) - 1.6.4 (WP)
+		 */
+		try {
+			$promo_handlers = VikBooking::getPromotionHandlers();
+		} catch (Exception $e) {
+			// reset the value
+			$promo_handlers = [];
+		}
+
+		if (!$prev_record['promo'] && $ppromo && $promo_handlers) {
+			// channels supporting promotions are available, and a regular special price is
+			// being converted into a promotion - this is not allowed so we make it a non-promotion.
+			$ppromo = 0;
+			$app->enqueueMessage(JText::translate('VBO_NOPROMO_UPD_CHANNELS'), 'warning');
+		}
+
+		// update record
+		$upd_record = new stdClass;
+		$upd_record->id 			 = $prev_record['id'];
+		$upd_record->type 			 = $ptype == "1" ? 1 : 2;
+		$upd_record->from 			 = $sfrom;
+		$upd_record->to 			 = $sto;
+		$upd_record->diffcost 		 = $pdiffcost;
+		$upd_record->idrooms 		 = $roomstr;
+		$upd_record->spname 		 = $pspname;
+		$upd_record->wdays 			 = $wdaystr;
+		$upd_record->checkinincl 	 = $pcheckinincl;
+		$upd_record->val_pcent 		 = $pval_pcent;
+		$upd_record->losoverride 	 = $losverridestr;
+		$upd_record->roundmode 		 = !empty($proundmode) ? $proundmode : null;
+		$upd_record->year 			 = $pyeartied == 1 ? $tieyear : null;
+		$upd_record->idprices 		 = $pricestr;
+		$upd_record->promo 			 = $ppromo;
+		$upd_record->promodaysadv 	 = !empty($ppromodaysadv) ? $ppromodaysadv : null;
+		$upd_record->promotxt 		 = $ppromotxt;
+		$upd_record->promominlos 	 = !empty($ppromominlos) ? $ppromominlos : 0;
+		$upd_record->occupancy_ovr 	 = $occupancy_ovr ? json_encode($occupancy_ovr) : null;
+		$upd_record->promolastmin 	 = (int)$promolastmin;
+		$upd_record->promofinalprice = $ppromofinalprice;
+
+		$dbo->updateObject('#__vikbooking_seasons', $upd_record, 'id', $nulls = true);
+
+		$app->enqueueMessage(JText::translate('VBSEASONUPDATED'));
+
+		// update session values
+		$updforvcm['count'] = array_key_exists('count', $updforvcm) && !empty($updforvcm['count']) ? ($updforvcm['count'] + 1) : 1;
+		if (array_key_exists('dfrom', $updforvcm) && !empty($updforvcm['dfrom'])) {
+			$updforvcm['dfrom'] = $updforvcm['dfrom'] > $first ? $first : $updforvcm['dfrom'];
+		} else {
+			$updforvcm['dfrom'] = $first;
+		}
+		if (array_key_exists('dto', $updforvcm) && !empty($updforvcm['dto'])) {
+			$updforvcm['dto'] = $updforvcm['dto'] < $second ? $second : $updforvcm['dto'];
+		} else {
+			$updforvcm['dto'] = $second;
+		}
+		if (array_key_exists('rooms', $updforvcm) && is_array($updforvcm['rooms'])) {
+			foreach ($roomids as $rid) {
+				if (!in_array($rid, $updforvcm['rooms'])) {
+					$updforvcm['rooms'][] = $rid;
+				}
 			}
 		} else {
-			$mainframe->redirect("index.php?option=com_vikbooking&task=editseason&cid[]=".$pwhere);
+			$updforvcm['rooms'] = $roomids;
 		}
+		if (array_key_exists('rplans', $updforvcm) && is_array($updforvcm['rplans'])) {
+			foreach ($roomids as $rid) {
+				if (array_key_exists($rid, $updforvcm['rplans'])) {
+					$updforvcm['rplans'][$rid] = $updforvcm['rplans'][$rid] + $priceids;
+				} else {
+					$updforvcm['rplans'][$rid] = $priceids;
+				}
+			}
+		} else {
+			$updforvcm['rplans'] = array();
+			foreach ($roomids as $rid) {
+				$updforvcm['rplans'][$rid] = $priceids;
+			}
+		}
+		$session->set('vbVcmRatesUpd', $updforvcm);
+
+		/**
+		 * Query promotion handlers, if any, to trigger the update/delete promotion event.
+		 * 
+		 * @since 	1.15.0 (J) - 1.5.0 (WP)
+		 * @since 	1.16.4 (J) - 1.6.4 (WP)  added control to perform a delete operation.
+		 */
+		$promo_update_type = $prev_record['promo'] && !$ppromo ? 'triggerDelete' : 'triggerUpdate';
+		$promo_method_type = $prev_record['promo'] && !$ppromo ? 'delete' : 'update';
+		try {
+			if ($ppromo && is_array($promo_handlers) && $promo_handlers) {
+				foreach ($promo_handlers as $promo_handler) {
+					if (!isset($promo_handler->instance) || !is_object($promo_handler->instance) || !method_exists($promo_handler->instance, $promo_update_type)) {
+						// outdated handler object
+						continue;
+					}
+					if (!is_callable(array($promo_handler->instance, $promo_update_type)) || !$promo_handler->instance->{$promo_update_type}()) {
+						// promotion handler does not support update/delete promotion event
+						continue;
+					}
+					// invoke the update/delete promotion event for this handler
+					$ch_result = $promo_handler->instance->createPromotion(['vbo_promo_id' => $pwhere], $promo_method_type);
+					if (!$ch_result) {
+						VikError::raiseWarning('', $promo_handler->instance->getName() . ': ' . $promo_handler->instance->getError());
+					}
+				}
+			}
+		} catch (Exception $e) {
+			// do nothing
+		}
+
+		if ($stay) {
+			$app->redirect("index.php?option=com_vikbooking&task=editseason&cid[]=" . $pwhere);
+		} else {
+			$app->redirect("index.php?option=com_vikbooking&task=seasons");
+		}
+		$app->close();
 	}
 
-	public function createseason() {
+	public function createseason()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_createseason();
 	}
 
-	public function createseason_new() {
+	public function createseason_new()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_createseason(true);
 	}
 
-	private function do_createseason($andnew = false) {
-		$mainframe = JFactory::getApplication();
+	private function do_createseason($andnew = false)
+	{
+		$app = JFactory::getApplication();
+		$dbo = JFactory::getDbo();
+		$session = JFactory::getSession();
+
 		$pfrom = VikRequest::getString('from', '', 'request');
 		$pto = VikRequest::getString('to', '', 'request');
 		$ptype = VikRequest::getString('type', '', 'request');
 		$pdiffcost = VikRequest::getFloat('diffcost', '', 'request');
-		$pidrooms = VikRequest::getVar('idrooms', array(0));
-		$pidprices = VikRequest::getVar('idprices', array(0));
+		$pidrooms = VikRequest::getVar('idrooms', array());
+		$pidprices = VikRequest::getVar('idprices', array());
 		$pwdays = VikRequest::getVar('wdays', array());
 		$pspname = VikRequest::getString('spname', '', 'request');
 		$pcheckinincl = VikRequest::getString('checkinincl', '', 'request');
 		$pcheckinincl = $pcheckinincl == 1 ? 1 : 0;
-		$pyeartied = VikRequest::getString('yeartied', '', 'request');
-		$pyeartied = $pyeartied == "1" ? 1 : 0;
+		$pyeartied = VikRequest::getInt('yeartied', 0, 'request');
+		$pyeartied = $pyeartied == 1 ? 1 : 0;
 		$tieyear = 0;
 		$pval_pcent = VikRequest::getString('val_pcent', '', 'request');
 		$pval_pcent = $pval_pcent == "1" ? 1 : 2;
@@ -4029,10 +4733,10 @@ class VikBookingController extends JControllerVikBooking
 		$pchannels = VikRequest::getVar('channels', array());
 		$occupancy_ovr = array();
 		$losverridestr = "";
-		$dbo = JFactory::getDbo();
-		$session = JFactory::getSession();
+
 		$updforvcm = $session->get('vbVcmRatesUpd', '');
 		$updforvcm = empty($updforvcm) || !is_array($updforvcm) ? array() : $updforvcm;
+
 		// check null dates
 		if ($dbo->getNullDate() == $pfrom) {
 			$pfrom = '';
@@ -4040,239 +4744,260 @@ class VikBookingController extends JControllerVikBooking
 		if ($dbo->getNullDate() == $pto) {
 			$pto = '';
 		}
-		//
-		if ((!empty($pfrom) && !empty($pto)) || count($pwdays) > 0) {
-			$skipseason = false;
-			if (empty($pfrom) || empty($pto)) {
-				$skipseason = true;
+
+		if ((empty($pfrom) || empty($pto)) && !$pwdays) {
+			VikError::raiseWarning('', JText::translate('ERRINVDATESEASON'));
+			$app->redirect("index.php?option=com_vikbooking&task=newseason");
+			exit;
+		}
+
+		$skipseason = false;
+		if (empty($pfrom) || empty($pto)) {
+			$skipseason = true;
+		}
+		$skipdays = false;
+		$wdaystr = null;
+		if (!$pwdays) {
+			$skipdays = true;
+		} else {
+			$wdaystr = "";
+			foreach ($pwdays as $wd) {
+				$wdaystr .= $wd . ';';
 			}
-			$skipdays = false;
-			$wdaystr = null;
-			if (count($pwdays) == 0) {
-				$skipdays = true;
-			} else {
-				$wdaystr = "";
-				foreach ($pwdays as $wd) {
-					$wdaystr .= $wd.';';
+		}
+		$roomstr = "";
+		$roomids = array();
+		foreach ($pidrooms as $room) {
+			if (empty($room)) {
+				continue;
+			}
+			$roomstr .= "-" . $room . "-,";
+			$roomids[] = (int)$room;
+		}
+		$pricestr = "";
+		$priceids = array();
+		foreach ($pidprices as $price) {
+			if (empty($price)) {
+				continue;
+			}
+			$pricestr .= "-" . $price . "-,";
+			$priceids[] = (int)$price;
+		}
+		$valid = true;
+		$double_records = array();
+		$sfrom = null;
+		$sto = null;
+
+		// value overrides
+		if ($pnightsoverrides && $pvaluesoverrides) {
+			foreach ($pnightsoverrides as $ko => $no) {
+				if (!empty($no) && strlen(trim($pvaluesoverrides[$ko])) > 0) {
+					$infiniteclause = intval($pandmoreoverride[$ko]) == 1 ? '-i' : '';
+					$losverridestr .= intval($no) . $infiniteclause . ':' . trim($pvaluesoverrides[$ko]) . '_';
 				}
 			}
-			$roomstr = "";
-			$roomids = array();
-			if (@count($pidrooms) > 0) {
-				foreach ($pidrooms as $room) {
-					if (empty($room)) {
+		}
+
+		if (!$skipseason) {
+			$first = VikBooking::getDateTimestamp($pfrom, 0, 0);
+			$second = VikBooking::getDateTimestamp($pto, 0, 0);
+
+			if ($second > 0 && $second == $first) {
+				$second += 86399;
+			}
+
+			if (!($second > $first)) {
+				VikError::raiseWarning('', JText::translate('ERRINVDATESEASON'));
+				$app->redirect("index.php?option=com_vikbooking&task=newseason");
+				exit;
+			}
+
+			$baseone = getdate($first);
+			$basets = mktime(0, 0, 0, 1, 1, $baseone['year']);
+			$sfrom = $baseone[0] - $basets;
+			$basetwo = getdate($second);
+			$basets = mktime(0, 0, 0, 1, 1, $basetwo['year']);
+			$sto = $basetwo[0] - $basets;
+
+			// check leap year
+			if ($baseone['year'] % 4 == 0 && ($baseone['year'] % 100 != 0 || $baseone['year'] % 400 == 0)) {
+				$leapts = mktime(0, 0, 0, 2, 29, $baseone['year']);
+				if ($baseone[0] > $leapts) {
+					$sfrom -= 86400;
+					/**
+					 * To avoid issue with leap years and dates near Feb 29th, we only reduce the seconds if these were reduced
+					 * for the from-date of the seasons. Doing it just for the to-date in 2019 for 2020 (leap) produced invalid results.
+					 * 
+					 * @since 	July 2nd 2019
+					 */
+					if ($basetwo['year'] % 4 == 0 && ($basetwo['year'] % 100 != 0 || $basetwo['year'] % 400 == 0)) {
+						$leapts = mktime(0, 0, 0, 2, 29, $basetwo['year']);
+						if ($basetwo[0] > $leapts) {
+							$sto -= 86400;
+						}
+					}
+				}
+			}
+
+			// tied to the year
+			if ($pyeartied == 1) {
+				$tieyear = $baseone['year'];
+			}
+
+			// Occupancy Override
+			if ($padultsdiffval) {
+				foreach ($padultsdiffval as $rid => $valovr_arr) {
+					if (!is_array($valovr_arr) || !is_array($padultsdiffchdisc[$rid]) || !is_array($padultsdiffvalpcent[$rid]) || !is_array($padultsdiffpernight[$rid])) {
 						continue;
 					}
-					$roomstr .= "-".$room."-,";
-					$roomids[] = (int)$room;
-				}
-			}
-			$pricestr = "";
-			$priceids = array();
-			if (@count($pidprices) > 0) {
-				foreach ($pidprices as $price) {
-					if (empty($price)) {
-						continue;
-					}
-					$pricestr .= "-".$price."-,";
-					$priceids[] = (int)$price;
-				}
-			}
-			$valid = true;
-			$double_records = array();
-			$sfrom = null;
-			$sto = null;
-			// value overrides
-			if (count($pnightsoverrides) > 0 && count($pvaluesoverrides) > 0) {
-				foreach ($pnightsoverrides as $ko => $no) {
-					if (!empty($no) && strlen(trim($pvaluesoverrides[$ko])) > 0) {
-						$infiniteclause = intval($pandmoreoverride[$ko]) == 1 ? '-i' : '';
-						$losverridestr .= intval($no).$infiniteclause.':'.trim($pvaluesoverrides[$ko]).'_';
-					}
-				}
-			}
-			//
-			if (!$skipseason) {
-				$first = VikBooking::getDateTimestamp($pfrom, 0, 0);
-				$second = VikBooking::getDateTimestamp($pto, 0, 0);
-				if ($second > 0 && $second == $first) {
-					$second += 86399;
-				}
-				if ($second > $first) {
-					$baseone = getdate($first);
-					$basets = mktime(0, 0, 0, 1, 1, $baseone['year']);
-					$sfrom = $baseone[0] - $basets;
-					$basetwo = getdate($second);
-					$basets = mktime(0, 0, 0, 1, 1, $basetwo['year']);
-					$sto = $basetwo[0] - $basets;
-					//check leap year
-					if ($baseone['year'] % 4 == 0 && ($baseone['year'] % 100 != 0 || $baseone['year'] % 400 == 0)) {
-						$leapts = mktime(0, 0, 0, 2, 29, $baseone['year']);
-						if ($baseone[0] > $leapts) {
-							$sfrom -= 86400;
-							/**
-							 * To avoid issue with leap years and dates near Feb 29th, we only reduce the seconds if these were reduced
-							 * for the from-date of the seasons. Doing it just for the to-date in 2019 for 2020 (leap) produced invalid results.
-							 * 
-							 * @since 	July 2nd 2019
-							 */
-							if ($basetwo['year'] % 4 == 0 && ($basetwo['year'] % 100 != 0 || $basetwo['year'] % 400 == 0)) {
-								$leapts = mktime(0, 0, 0, 2, 29, $basetwo['year']);
-								if ($basetwo[0] > $leapts) {
-									$sto -= 86400;
-								}
-							}
-						}
-					}
-					//end leap year
-					//tied to the year
-					if ($pyeartied == 1) {
-						$tieyear = $baseone['year'];
-					}
-					//
-					//Occupancy Override
-					if (count($padultsdiffval) > 0) {
-						foreach ($padultsdiffval as $rid => $valovr_arr) {
-							if (!is_array($valovr_arr) || !is_array($padultsdiffchdisc[$rid]) || !is_array($padultsdiffvalpcent[$rid]) || !is_array($padultsdiffpernight[$rid])) {
-								continue;
-							}
-							foreach ($valovr_arr as $occ => $valovr) {
-								if (!(strlen($valovr) > 0) || !(strlen($padultsdiffchdisc[$rid][$occ]) > 0) || !(strlen($padultsdiffvalpcent[$rid][$occ]) > 0) || !(strlen($padultsdiffpernight[$rid][$occ]) > 0)) {
-									continue;
-								}
-								if (!array_key_exists($rid, $occupancy_ovr)) {
-									$occupancy_ovr[$rid] = array();
-								}
-								$occupancy_ovr[$rid][$occ] = array('chdisc' => (int)$padultsdiffchdisc[$rid][$occ], 'valpcent' => (int)$padultsdiffvalpcent[$rid][$occ], 'pernight' => (int)$padultsdiffpernight[$rid][$occ], 'value' => (float)$valovr);
-							}
-						}
-					}
-					//
-					//check if seasons dates are valid
-					//VikBooking 1.6, clause `to`>=".$dbo->quote($sfrom)" was changed to `to`>".$dbo->quote($sfrom) to avoid issues with rates for leap years when not tied to the year and entered the year before the leap
-					$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`<=".$dbo->quote($sfrom)." AND `to`>".$dbo->quote($sfrom)." AND `idrooms`=".$dbo->quote($roomstr)."".(!$skipdays ? " AND `wdays`='".$wdaystr."'" : "").($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "").($pyeartied == 1 ? " AND `year`=".$tieyear : " AND `year` IS NULL")." AND `idprices`=".$dbo->quote($pricestr)." AND `promo`=".$ppromo." AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=".$dbo->quote($losverridestr)." AND `occupancy_ovr`".(count($occupancy_ovr) > 0 ? "=".$dbo->quote(json_encode($occupancy_ovr)) : " IS NULL").";";
-					$dbo->setQuery($q);
-					$dbo->execute();
-					$totfirst = $dbo->getNumRows();
-					if ($totfirst > 0) {
-						$valid = false;
-						$similar = $dbo->loadAssocList();
-						foreach ($similar as $sim) {
-							$double_records[] = $sim['spname'];
-						}
-					}
-					$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`<=".$dbo->quote($sto)." AND `to`>=".$dbo->quote($sto)." AND `idrooms`=".$dbo->quote($roomstr)."".(!$skipdays ? " AND `wdays`='".$wdaystr."'" : "").($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "").($pyeartied == 1 ? " AND `year`=".$tieyear : " AND `year` IS NULL")." AND `idprices`=".$dbo->quote($pricestr)." AND `promo`=".$ppromo." AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=".$dbo->quote($losverridestr)." AND `occupancy_ovr`".(count($occupancy_ovr) > 0 ? "=".$dbo->quote(json_encode($occupancy_ovr)) : " IS NULL").";";
-					$dbo->setQuery($q);
-					$dbo->execute();
-					$totsecond = $dbo->getNumRows();
-					if ($totsecond > 0) {
-						$valid = false;
-						$similar = $dbo->loadAssocList();
-						foreach ($similar as $sim) {
-							$double_records[] = $sim['spname'];
-						}
-					}
-					$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`>=".$dbo->quote($sfrom)." AND `from`<=".$dbo->quote($sto)." AND `to`>=".$dbo->quote($sfrom)." AND `to`<=".$dbo->quote($sto)." AND `idrooms`=".$dbo->quote($roomstr)."".(!$skipdays ? " AND `wdays`='".$wdaystr."'" : "").($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "").($pyeartied == 1 ? " AND `year`=".$tieyear : " AND `year` IS NULL")." AND `idprices`=".$dbo->quote($pricestr)." AND `promo`=".$ppromo." AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=".$dbo->quote($losverridestr)." AND `occupancy_ovr`".(count($occupancy_ovr) > 0 ? "=".$dbo->quote(json_encode($occupancy_ovr)) : " IS NULL").";";
-					$dbo->setQuery($q);
-					$dbo->execute();
-					$totthird = $dbo->getNumRows();
-					if ($totthird > 0) {
-						$valid = false;
-						$similar = $dbo->loadAssocList();
-						foreach ($similar as $sim) {
-							$double_records[] = $sim['spname'];
-						}
-					}
-					//
-				} else {
-					VikError::raiseWarning('', JText::translate('ERRINVDATESEASON'));
-					$mainframe->redirect("index.php?option=com_vikbooking&task=newseason");
-					exit;
-				}
-			}
-			if ($valid || $ppromo === 1) {
-				$q = "INSERT INTO `#__vikbooking_seasons` (`type`,`from`,`to`,`diffcost`,`idrooms`,`spname`,`wdays`,`checkinincl`,`val_pcent`,`losoverride`,`roundmode`,`year`,`idprices`,`promo`,`promodaysadv`,`promotxt`,`promominlos`,`occupancy_ovr`,`promolastmin`,`promofinalprice`) VALUES('".($ptype == "1" ? "1" : "2")."', ".$dbo->quote($sfrom).", ".$dbo->quote($sto).", ".$dbo->quote($pdiffcost).", ".$dbo->quote($roomstr).", ".$dbo->quote($pspname).", ".$dbo->quote($wdaystr).", '".$pcheckinincl."', '".$pval_pcent."', ".$dbo->quote($losverridestr).", ".(!empty($proundmode) ? "'".$proundmode."'" : "NULL").", ".($pyeartied == 1 ? $tieyear : "NULL").", ".$dbo->quote($pricestr).", ".($ppromo == 1 ? '1' : '0').", ".(!empty($ppromodaysadv) ? $ppromodaysadv : "NULL").", ".$dbo->quote($ppromotxt).", ".(!empty($ppromominlos) ? $ppromominlos : "0").", ".(count($occupancy_ovr) ? $dbo->quote(json_encode($occupancy_ovr)) : "NULL").", ".(int)$promolastmin.", {$ppromofinalprice});";
-				$dbo->setQuery($q);
-				$dbo->execute();
-				$vbo_promo_id = $dbo->insertid();
-				$mainframe->enqueueMessage(JText::translate('VBSEASONSAVED'));
-				//update session values
-				$updforvcm['count'] = array_key_exists('count', $updforvcm) && !empty($updforvcm['count']) ? ($updforvcm['count'] + 1) : 1;
-				if (array_key_exists('dfrom', $updforvcm) && !empty($updforvcm['dfrom'])) {
-					$updforvcm['dfrom'] = $updforvcm['dfrom'] > $first ? $first : $updforvcm['dfrom'];
-				} else {
-					$updforvcm['dfrom'] = $first;
-				}
-				if (array_key_exists('dto', $updforvcm) && !empty($updforvcm['dto'])) {
-					$updforvcm['dto'] = $updforvcm['dto'] < $second ? $second : $updforvcm['dto'];
-				} else {
-					$updforvcm['dto'] = $second;
-				}
-				if (array_key_exists('rooms', $updforvcm) && is_array($updforvcm['rooms'])) {
-					foreach ($roomids as $rid) {
-						if (!in_array($rid, $updforvcm['rooms'])) {
-							$updforvcm['rooms'][] = $rid;
-						}
-					}
-				} else {
-					$updforvcm['rooms'] = $roomids;
-				}
-				if (array_key_exists('rplans', $updforvcm) && is_array($updforvcm['rplans'])) {
-					foreach ($roomids as $rid) {
-						if (array_key_exists($rid, $updforvcm['rplans'])) {
-							$updforvcm['rplans'][$rid] = $updforvcm['rplans'][$rid] + $priceids;
-						} else {
-							$updforvcm['rplans'][$rid] = $priceids;
-						}
-					}
-				} else {
-					$updforvcm['rplans'] = array();
-					foreach ($roomids as $rid) {
-						$updforvcm['rplans'][$rid] = $priceids;
-					}
-				}
-				if (!$ppromo) {
-					$session->set('vbVcmRatesUpd', $updforvcm);
-				}
-				//
-				
-				/**
-				 * Create the promotion also on the selected channels
-				 * 
-				 * @since 	1.3.0
-				 */
-				if ($ppromo && count($pchannels)) {
-					foreach ($pchannels as $channel_key) {
-						$promo_obj = VikBooking::getPromotionHandlers($channel_key);
-						if (!is_object($promo_obj)) {
+					foreach ($valovr_arr as $occ => $valovr) {
+						if (!(strlen($valovr) > 0) || !(strlen($padultsdiffchdisc[$rid][$occ]) > 0) || !(strlen($padultsdiffvalpcent[$rid][$occ]) > 0) || !(strlen($padultsdiffpernight[$rid][$occ]) > 0)) {
 							continue;
 						}
-						/**
-						 * We inject for VCM the ID of the newly created promotion in VBO.
-						 * 
-						 * @since 	1.15.0 (J) - 1.5.0 (WP)
-						 */
-						$ch_result = $promo_obj->createPromotion(array('vbo_promo_id' => $vbo_promo_id), 'new');
-						if (!$ch_result) {
-							VikError::raiseWarning('', $promo_obj->getName() . ': ' . $promo_obj->getError());
-						} else {
-							$resp = $promo_obj->getResponse();
-							$mainframe->enqueueMessage($promo_obj->getName() . ': ' . JText::translate('VBOCHPROMOSUCCESS') . (!empty($resp) ? ' (' . str_replace('e4j.ok.', '', $resp) . ')' : ''));
-							// in case of success, unset the current session values in VCM
-							$session->set('vcmBPromo', '');
+						if (!array_key_exists($rid, $occupancy_ovr)) {
+							$occupancy_ovr[$rid] = array();
 						}
+						$occupancy_ovr[$rid][$occ] = array('chdisc' => (int)$padultsdiffchdisc[$rid][$occ], 'valpcent' => (int)$padultsdiffvalpcent[$rid][$occ], 'pernight' => (int)$padultsdiffpernight[$rid][$occ], 'value' => (float)$valovr);
 					}
 				}
-				//
+			}
 
-				$mainframe->redirect("index.php?option=com_vikbooking&task=".($andnew ? 'newseason' : 'seasons'));
-			} else {
-				VikError::raiseWarning('', JText::translate('ERRINVDATEROOMSLOCSEASON').(count($double_records) ? ' ('.implode(', ', array_unique($double_records)).')' : ''));
-				$mainframe->redirect("index.php?option=com_vikbooking&task=newseason");
+			// check if seasons dates are valid
+			$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`<=" . $dbo->quote($sfrom) . " AND `to`>" . $dbo->quote($sfrom) . " AND `idrooms`=" . $dbo->quote($roomstr) . "" . (!$skipdays ? " AND `wdays`='" . $wdaystr . "'" : "") . ($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "") . ($pyeartied == 1 ? " AND `year`=" . $tieyear : " AND `year` IS NULL") . " AND `idprices`=" . $dbo->quote($pricestr) . " AND `promo`=" . $ppromo . " AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=" . $dbo->quote($losverridestr) . " AND `occupancy_ovr`" . (count($occupancy_ovr) > 0 ? "=" . $dbo->quote(json_encode($occupancy_ovr)) : " IS NULL") . ";";
+			$dbo->setQuery($q);
+			$similar = $dbo->loadAssocList();
+			if ($similar) {
+				$valid = false;
+				foreach ($similar as $sim) {
+					$double_records[] = $sim['spname'];
+				}
+			}
+
+			$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`<=" . $dbo->quote($sto) . " AND `to`>=" . $dbo->quote($sto) . " AND `idrooms`=" . $dbo->quote($roomstr) . "" . (!$skipdays ? " AND `wdays`='" . $wdaystr . "'" : "") . ($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "") . ($pyeartied == 1 ? " AND `year`=" . $tieyear : " AND `year` IS NULL") . " AND `idprices`=" . $dbo->quote($pricestr) . " AND `promo`=" . $ppromo . " AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=" . $dbo->quote($losverridestr) . " AND `occupancy_ovr`" . (count($occupancy_ovr) > 0 ? "=" . $dbo->quote(json_encode($occupancy_ovr)) : " IS NULL") . ";";
+			$dbo->setQuery($q);
+			$similar = $dbo->loadAssocList();
+			if ($similar) {
+				$valid = false;
+				foreach ($similar as $sim) {
+					$double_records[] = $sim['spname'];
+				}
+			}
+
+			$q = "SELECT `id`,`spname` FROM `#__vikbooking_seasons` WHERE `from`>=" . $dbo->quote($sfrom) . " AND `from`<=" . $dbo->quote($sto) . " AND `to`>=" . $dbo->quote($sfrom) . " AND `to`<=" . $dbo->quote($sto) . " AND `idrooms`=" . $dbo->quote($roomstr) . "" . (!$skipdays ? " AND `wdays`='" . $wdaystr . "'" : "") . ($skipdays ? " AND (`from` > 0 OR `to` > 0) AND `wdays`=''" : "") . ($pyeartied == 1 ? " AND `year`=" . $tieyear : " AND `year` IS NULL") . " AND `idprices`=" . $dbo->quote($pricestr) . " AND `promo`=" . $ppromo . " AND `promodaysadv`=" . $dbo->quote($ppromodaysadv) . " AND `promominlos`=" . $dbo->quote($ppromominlos) . " AND `promolastmin`=" . $dbo->quote($promolastmin) . " AND `losoverride`=" . $dbo->quote($losverridestr) . " AND `occupancy_ovr`" . (count($occupancy_ovr) > 0 ? "=" . $dbo->quote(json_encode($occupancy_ovr)) : " IS NULL") . ";";
+			$dbo->setQuery($q);
+			$similar = $dbo->loadAssocList();
+			if ($similar) {
+				$valid = false;
+				foreach ($similar as $sim) {
+					$double_records[] = $sim['spname'];
+				}
+			}
+		}
+
+		if (!$valid && !$ppromo) {
+			VikError::raiseWarning('', JText::translate('ERRINVDATEROOMSLOCSEASON') . (count($double_records) ? ' (' . implode(', ', array_unique($double_records)) . ')' : ''));
+			$app->redirect("index.php?option=com_vikbooking&task=newseason");
+			exit;
+		}
+
+		// insert new record
+		$sea_record = new stdClass;
+		$sea_record->type 			 = $ptype == "1" ? 1 : 2;
+		$sea_record->from 			 = $sfrom;
+		$sea_record->to 			 = $sto;
+		$sea_record->diffcost 		 = $pdiffcost;
+		$sea_record->idrooms 		 = $roomstr;
+		$sea_record->spname 		 = $pspname;
+		$sea_record->wdays 			 = $wdaystr;
+		$sea_record->checkinincl 	 = $pcheckinincl;
+		$sea_record->val_pcent 		 = $pval_pcent;
+		$sea_record->losoverride 	 = $losverridestr;
+		$sea_record->roundmode 		 = !empty($proundmode) ? $proundmode : null;
+		$sea_record->year 			 = $pyeartied == 1 ? $tieyear : null;
+		$sea_record->idprices 		 = $pricestr;
+		$sea_record->promo 			 = $ppromo == 1 ? 1 : 0;
+		$sea_record->promodaysadv 	 = !empty($ppromodaysadv) ? $ppromodaysadv : null;
+		$sea_record->promotxt 		 = $ppromotxt;
+		$sea_record->promominlos 	 = !empty($ppromominlos) ? $ppromominlos : 0;
+		$sea_record->occupancy_ovr 	 = $occupancy_ovr ? json_encode($occupancy_ovr) : null;
+		$sea_record->promolastmin 	 = (int)$promolastmin;
+		$sea_record->promofinalprice = $ppromofinalprice;
+
+		$dbo->insertObject('#__vikbooking_seasons', $sea_record, 'id');
+
+		$vbo_promo_id = $sea_record->id;
+
+		$app->enqueueMessage(JText::translate('VBSEASONSAVED'));
+
+		// update session values
+		$updforvcm['count'] = array_key_exists('count', $updforvcm) && !empty($updforvcm['count']) ? ($updforvcm['count'] + 1) : 1;
+		if (array_key_exists('dfrom', $updforvcm) && !empty($updforvcm['dfrom'])) {
+			$updforvcm['dfrom'] = $updforvcm['dfrom'] > $first ? $first : $updforvcm['dfrom'];
+		} else {
+			$updforvcm['dfrom'] = $first;
+		}
+		if (array_key_exists('dto', $updforvcm) && !empty($updforvcm['dto'])) {
+			$updforvcm['dto'] = $updforvcm['dto'] < $second ? $second : $updforvcm['dto'];
+		} else {
+			$updforvcm['dto'] = $second;
+		}
+		if (array_key_exists('rooms', $updforvcm) && is_array($updforvcm['rooms'])) {
+			foreach ($roomids as $rid) {
+				if (!in_array($rid, $updforvcm['rooms'])) {
+					$updforvcm['rooms'][] = $rid;
+				}
 			}
 		} else {
-			$mainframe->redirect("index.php?option=com_vikbooking&task=newseason");
+			$updforvcm['rooms'] = $roomids;
 		}
+		if (array_key_exists('rplans', $updforvcm) && is_array($updforvcm['rplans'])) {
+			foreach ($roomids as $rid) {
+				if (array_key_exists($rid, $updforvcm['rplans'])) {
+					$updforvcm['rplans'][$rid] = $updforvcm['rplans'][$rid] + $priceids;
+				} else {
+					$updforvcm['rplans'][$rid] = $priceids;
+				}
+			}
+		} else {
+			$updforvcm['rplans'] = array();
+			foreach ($roomids as $rid) {
+				$updforvcm['rplans'][$rid] = $priceids;
+			}
+		}
+		if (!$ppromo) {
+			$session->set('vbVcmRatesUpd', $updforvcm);
+		}
+
+		/**
+		 * Create the promotion also on the selected channels
+		 * 
+		 * @since 	1.13.0 (J) - 1.3.0 (WP)
+		 */
+		if ($ppromo && $pchannels) {
+			foreach ($pchannels as $channel_key) {
+				$promo_obj = VikBooking::getPromotionHandlers($channel_key);
+				if (!is_object($promo_obj)) {
+					continue;
+				}
+				/**
+				 * We inject for VCM the ID of the newly created promotion in VBO.
+				 * 
+				 * @since 	1.15.0 (J) - 1.5.0 (WP)
+				 */
+				$ch_result = $promo_obj->createPromotion(array('vbo_promo_id' => $vbo_promo_id), 'new');
+				if (!$ch_result) {
+					VikError::raiseWarning('', $promo_obj->getName() . ': ' . $promo_obj->getError());
+				} else {
+					$resp = $promo_obj->getResponse();
+					$app->enqueueMessage($promo_obj->getName() . ': ' . JText::translate('VBOCHPROMOSUCCESS') . (!empty($resp) ? ' (' . str_replace('e4j.ok.', '', $resp) . ')' : ''));
+					// in case of success, unset the current session values in VCM
+					$session->set('vcmBPromo', '');
+				}
+			}
+		}
+
+		$app->redirect("index.php?option=com_vikbooking&task=" . ($andnew ? 'newseason' : 'seasons'));
+		$app->close();
 	}
 
 	public function removeseasons()
@@ -4305,7 +5030,7 @@ class VikBookingController extends JControllerVikBooking
 			}
 
 			// delete the record
-			$q = "DELETE FROM `#__vikbooking_seasons` WHERE `id`=".$dbo->quote($d).";";
+			$q = "DELETE FROM `#__vikbooking_seasons` WHERE `id`=" . $dbo->quote($d) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			$tot_removed[] = $d;
@@ -4342,25 +5067,28 @@ class VikBookingController extends JControllerVikBooking
 		}
 
 		$app->enqueueMessage(JText::sprintf('VBRECORDSREMOVED', count($tot_removed)));
-		$app->redirect("index.php?option=com_vikbooking&task=seasons".(!empty($pidroom) ? '&idroom='.$pidroom : ''));
+		$app->redirect("index.php?option=com_vikbooking&task=seasons" . (!empty($pidroom) ? '&idroom=' . $pidroom : ''));
 		$app->close();
 	}
 
-	public function updatecustomer() {
+	public function updatecustomer()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updatecustomer();
 	}
 
-	public function updatecustomerstay() {
+	public function updatecustomerstay()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updatecustomer(true);
 	}
 
-	private function do_updatecustomer($stay = false) {
+	private function do_updatecustomer($stay = false)
+	{
 		$dbo = JFactory::getDbo();
 		$mainframe = JFactory::getApplication();
 		$pfirst_name = VikRequest::getString('first_name', '', 'request');
@@ -4370,6 +5098,7 @@ class VikBookingController extends JControllerVikBooking
 		$pemail = VikRequest::getString('email', '', 'request');
 		$pphone = VikRequest::getString('phone', '', 'request');
 		$pcountry = VikRequest::getString('country', '', 'request');
+		$pstate = VikRequest::getString('state', '', 'request');
 		$ppin = VikRequest::getString('pin', '', 'request');
 		$pujid = VikRequest::getInt('ujid', '', 'request');
 		$paddress = VikRequest::getString('address', '', 'request');
@@ -4398,7 +5127,7 @@ class VikBookingController extends JControllerVikBooking
 		$pbid = VikRequest::getInt('bid', '', 'request');
 		$pgoto = VikRequest::getString('goto', '', 'request', VIKREQUEST_ALLOWRAW);
 		if (!empty($pwhere) && !empty($pfirst_name) && !empty($plast_name) && !empty($pemail)) {
-			$q = "SELECT * FROM `#__vikbooking_customers` WHERE `id`=".(int)$pwhere." LIMIT 1;";
+			$q = "SELECT * FROM `#__vikbooking_customers` WHERE `id`=" . (int)$pwhere . " LIMIT 1;";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() == 1) {
@@ -4412,7 +5141,7 @@ class VikBookingController extends JControllerVikBooking
 			 * 
 			 * @since 	1.3.0
 			 */
-			$q = "SELECT * FROM `#__vikbooking_customers` WHERE `first_name`=".$dbo->quote($pfirst_name)." AND `last_name`=".$dbo->quote($plast_name)." AND `email`=".$dbo->quote($pemail)." AND `id`!=".(int)$pwhere." LIMIT 1;";
+			$q = "SELECT * FROM `#__vikbooking_customers` WHERE `first_name`=" . $dbo->quote($pfirst_name) . " AND `last_name`=" . $dbo->quote($plast_name) . " AND `email`=" . $dbo->quote($pemail) . " AND `id`!=" . (int)$pwhere . " LIMIT 1;";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() == 0) {
@@ -4427,21 +5156,21 @@ class VikBookingController extends JControllerVikBooking
 				$pimg = VikRequest::getVar('docimg', null, 'files', 'array');
 				$gimg = "";
 				if (isset($pimg) && strlen(trim($pimg['name']))) {
-					$filename = JFile::makeSafe(rand(100, 9999).str_replace(" ", "_", strtolower($pimg['name'])));
+					$filename = JFile::makeSafe(rand(100, 9999) . str_replace(" ", "_", strtolower($pimg['name'])));
 					$src = $pimg['tmp_name'];
-					$dest = VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'idscans'.DIRECTORY_SEPARATOR;
+					$dest = VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'idscans' . DIRECTORY_SEPARATOR;
 					$j = "";
-					if (file_exists($dest.$filename)) {
+					if (file_exists($dest . $filename)) {
 						$j = rand(171, 1717);
-						while (file_exists($dest.$j.$filename)) {
+						while (file_exists($dest . $j . $filename)) {
 							$j++;
 						}
 					}
-					$finaldest = $dest.$j.$filename;
+					$finaldest = $dest . $j . $filename;
 					$check = getimagesize($pimg['tmp_name']);
 					if (($check[2] & imagetypes()) || preg_match("/application\/(zip|pdf)$/", $pimg['type'])) {
 						if (VikBooking::uploadFile($src, $finaldest)) {
-							$gimg = $j.$filename;
+							$gimg = $j . $filename;
 						} else {
 							VikError::raiseWarning('', 'Error while uploading image');
 						}
@@ -4456,7 +5185,7 @@ class VikBookingController extends JControllerVikBooking
 				$pcalccmmon = $pcalccmmon > 0 ? 1 : 0;
 				$papplycmmon = $papplycmmon > 0 ? 1 : 0;
 				$pchname = str_replace(' ', '', trim($pchname));
-				$pchname = strlen($pchname) <= 0 && $pischannel > 0 ? str_replace(' ', '', trim($pfirst_name.' '.$plast_name)) : $pchname;
+				$pchname = strlen($pchname) <= 0 && $pischannel > 0 ? str_replace(' ', '', trim($pfirst_name . ' ' . $plast_name)) : $pchname;
 				$chparams = array(
 					'commission' => ($pcommission > 0.00 ? $pcommission : 0),
 					'calccmmon' => $pcalccmmon,
@@ -4473,13 +5202,13 @@ class VikBookingController extends JControllerVikBooking
 				$customer_pic = VikRequest::getString('pic', '', 'request');
 				$customer_pic_img = VikRequest::getVar('picimg', null, 'files', 'array');
 				if (is_array($customer_pic_img) && !empty($customer_pic_img['name'])) {
-					$filename = JFile::makeSafe(rand(100, 9999).str_replace(" ", "_", strtolower($customer_pic_img['name'])));
+					$filename = JFile::makeSafe(rand(100, 9999) . str_replace(" ", "_", strtolower($customer_pic_img['name'])));
 					$src = $customer_pic_img['tmp_name'];
-					$dest = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
+					$dest = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 					$j = "";
-					if (is_file($dest.$filename)) {
+					if (is_file($dest . $filename)) {
 						$j = rand(1, 99999);
-						while (is_file($dest . $j .$filename)) {
+						while (is_file($dest . $j . $filename)) {
 							$j++;
 						}
 					}
@@ -4509,6 +5238,7 @@ class VikBookingController extends JControllerVikBooking
 				$new_customer->address = $paddress;
 				$new_customer->city = $pcity;
 				$new_customer->zip = $pzip;
+				$new_customer->state = $pstate;
 				$new_customer->doctype = $pdoctype;
 				$new_customer->docnum = $pdocnum;
 				if (!empty($gimg)) {
@@ -4558,17 +5288,17 @@ class VikBookingController extends JControllerVikBooking
 					$new_customer->cfields = json_encode($custf_info);
 				}
 				//
-				
+
 				$dbo->updateObject('#__vikbooking_customers', $new_customer, 'id');
 
 				$cpin->pluginCustomerSync($pwhere, 'update');
 				//Update all the bookings affected by this Customer ID as a sales channel
-				$source_name = 'customer'.$pwhere.'_'.$pchname;
+				$source_name = 'customer' . $pwhere . '_' . $pchname;
 				if ($pischannel > 0) {
 					$oid_clause = '';
 					if ($customer['ischannel'] < 1) {
 						//Was not a sales channel but now it is, so update all his bookings
-						$q = "SELECT `idorder` FROM `#__vikbooking_customers_orders` WHERE `idcustomer`=".$customer['id'].";";
+						$q = "SELECT `idorder` FROM `#__vikbooking_customers_orders` WHERE `idcustomer`=" . $customer['id'] . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
 						if ($dbo->getNumRows() > 0) {
@@ -4579,12 +5309,12 @@ class VikBookingController extends JControllerVikBooking
 									$bids[] = $bid['idorder'];
 								}
 							}
-							$oid_clause = " OR `id` IN (".implode(',', $bids).")";
+							$oid_clause = " OR `id` IN (" . implode(',', $bids) . ")";
 						}
 					}
-					$q = "UPDATE `#__vikbooking_orders` SET `channel`=".$dbo->quote($source_name)." WHERE `channel` LIKE 'customer".$pwhere."%'".$oid_clause.";";
+					$q = "UPDATE `#__vikbooking_orders` SET `channel`=" . $dbo->quote($source_name) . " WHERE `channel` LIKE 'customer" . $pwhere . "%'" . $oid_clause . ";";
 				} else {
-					$q = "UPDATE `#__vikbooking_orders` SET `channel`=NULL,`cmms`=NULL WHERE `channel` LIKE 'customer".$pwhere."%';";
+					$q = "UPDATE `#__vikbooking_orders` SET `channel`=NULL,`cmms`=NULL WHERE `channel` LIKE 'customer" . $pwhere . "%';";
 				}
 				$dbo->setQuery($q);
 				$dbo->execute();
@@ -4595,21 +5325,21 @@ class VikBookingController extends JControllerVikBooking
 				$ex_customer = $dbo->loadAssoc();
 				//check if coming from the Check-in view or not
 				if (!empty($pcheckin) && !empty($pbid)) {
-					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS').' ('.$ex_customer['first_name'].' '.$ex_customer['last_name'].')');
+					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS') . ' (' . $ex_customer['first_name'] . ' ' . $ex_customer['last_name'] . ')');
 					/**
 					 * @wponly - this task is executed via Ajax for the Modal forms listener. We must redirect to the booking details page and let the user restart the procedure
 					 */
-					$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=".$pbid);
+					$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . $pbid);
 					//
 					exit;
 				} elseif (!empty($pgoto)) {
 					// check if coming from a specific task
-					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS').' ('.$ex_customer['first_name'].' '.$ex_customer['last_name'].')');
+					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS') . ' (' . $ex_customer['first_name'] . ' ' . $ex_customer['last_name'] . ')');
 					$mainframe->redirect(base64_decode($pgoto));
 					exit;
 				} else {
-					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS').'<br/><a href="index.php?option=com_vikbooking&task=editcustomer&cid[]='.$ex_customer['id'].'" target="_blank">'.$ex_customer['first_name'].' '.$ex_customer['last_name'].'</a>');
-					$mainframe->redirect("index.php?option=com_vikbooking&task=editcustomer&cid[]=".$pwhere);
+					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS') . '<br/><a href="index.php?option=com_vikbooking&task=editcustomer&cid[]=' . $ex_customer['id'] . '" target="_blank">' . $ex_customer['first_name'] . ' ' . $ex_customer['last_name'] . '</a>');
+					$mainframe->redirect("index.php?option=com_vikbooking&task=editcustomer&cid[]=" . $pwhere);
 					exit;
 				}
 			}
@@ -4638,7 +5368,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=customers");
 	}
 
-	public function savecustomer() {
+	public function savecustomer()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -4651,6 +5382,7 @@ class VikBookingController extends JControllerVikBooking
 		$pemail = VikRequest::getString('email', '', 'request');
 		$pphone = VikRequest::getString('phone', '', 'request');
 		$pcountry = VikRequest::getString('country', '', 'request');
+		$pstate = VikRequest::getString('state', '', 'request');
 		$ppin = VikRequest::getString('pin', '', 'request');
 		$pujid = VikRequest::getInt('ujid', '', 'request');
 		$paddress = VikRequest::getString('address', '', 'request');
@@ -4684,7 +5416,7 @@ class VikBookingController extends JControllerVikBooking
 			 * 
 			 * @since 	1.3.0
 			 */
-			$q = "SELECT * FROM `#__vikbooking_customers` WHERE `first_name`=".$dbo->quote($pfirst_name)." AND `last_name`=".$dbo->quote($plast_name)." AND `email`=".$dbo->quote($pemail)." LIMIT 1;";
+			$q = "SELECT * FROM `#__vikbooking_customers` WHERE `first_name`=" . $dbo->quote($pfirst_name) . " AND `last_name`=" . $dbo->quote($plast_name) . " AND `email`=" . $dbo->quote($pemail) . " LIMIT 1;";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() == 0) {
@@ -4698,21 +5430,21 @@ class VikBookingController extends JControllerVikBooking
 				$pimg = VikRequest::getVar('docimg', null, 'files', 'array');
 				$gimg = "";
 				if (isset($pimg) && strlen(trim($pimg['name']))) {
-					$filename = JFile::makeSafe(rand(100, 9999).str_replace(" ", "_", strtolower($pimg['name'])));
+					$filename = JFile::makeSafe(rand(100, 9999) . str_replace(" ", "_", strtolower($pimg['name'])));
 					$src = $pimg['tmp_name'];
-					$dest = VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'idscans'.DIRECTORY_SEPARATOR;
+					$dest = VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'idscans' . DIRECTORY_SEPARATOR;
 					$j = "";
-					if (file_exists($dest.$filename)) {
+					if (file_exists($dest . $filename)) {
 						$j = rand(171, 1717);
-						while (file_exists($dest.$j.$filename)) {
+						while (file_exists($dest . $j . $filename)) {
 							$j++;
 						}
 					}
-					$finaldest = $dest.$j.$filename;
+					$finaldest = $dest . $j . $filename;
 					$check = getimagesize($pimg['tmp_name']);
 					if (($check[2] & imagetypes()) || preg_match("/application\/(zip|pdf)$/", $pimg['type'])) {
 						if (VikBooking::uploadFile($src, $finaldest)) {
-							$gimg = $j.$filename;
+							$gimg = $j . $filename;
 						} else {
 							VikError::raiseWarning('', 'Error while uploading image');
 						}
@@ -4727,7 +5459,7 @@ class VikBookingController extends JControllerVikBooking
 				$pcalccmmon = $pcalccmmon > 0 ? 1 : 0;
 				$papplycmmon = $papplycmmon > 0 ? 1 : 0;
 				$pchname = str_replace(' ', '', trim($pchname));
-				$pchname = strlen($pchname) <= 0 && $pischannel > 0 ? str_replace(' ', '', trim($pfirst_name.' '.$plast_name)) : $pchname;
+				$pchname = strlen($pchname) <= 0 && $pischannel > 0 ? str_replace(' ', '', trim($pfirst_name . ' ' . $plast_name)) : $pchname;
 				$chparams = array(
 					'commission' => ($pcommission > 0.00 ? $pcommission : 0),
 					'calccmmon' => $pcalccmmon,
@@ -4744,13 +5476,13 @@ class VikBookingController extends JControllerVikBooking
 				$customer_pic = VikRequest::getString('pic', '', 'request');
 				$customer_pic_img = VikRequest::getVar('picimg', null, 'files', 'array');
 				if (is_array($customer_pic_img) && !empty($customer_pic_img['name'])) {
-					$filename = JFile::makeSafe(rand(100, 9999).str_replace(" ", "_", strtolower($customer_pic_img['name'])));
+					$filename = JFile::makeSafe(rand(100, 9999) . str_replace(" ", "_", strtolower($customer_pic_img['name'])));
 					$src = $customer_pic_img['tmp_name'];
-					$dest = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
+					$dest = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 					$j = "";
-					if (is_file($dest.$filename)) {
+					if (is_file($dest . $filename)) {
 						$j = rand(1, 99999);
-						while (is_file($dest . $j .$filename)) {
+						while (is_file($dest . $j . $filename)) {
 							$j++;
 						}
 					}
@@ -4767,7 +5499,7 @@ class VikBookingController extends JControllerVikBooking
 					}
 				}
 
-				$q = "INSERT INTO `#__vikbooking_customers` (`first_name`,`last_name`,`email`,`phone`,`country`,`pin`,`ujid`,`address`,`city`,`zip`,`doctype`,`docnum`,`docimg`,`notes`,`ischannel`,`chdata`,`company`,`vat`,`gender`,`bdate`,`pbirth`,`fisccode`,`pec`,`recipcode`,`pic`) VALUES(".$dbo->quote($pfirst_name).", ".$dbo->quote($plast_name).", ".$dbo->quote($pemail).", ".$dbo->quote($pphone).", ".$dbo->quote($pcountry).", ".$dbo->quote($ppin).", ".$dbo->quote($pujid).", ".$dbo->quote($paddress).", ".$dbo->quote($pcity).", ".$dbo->quote($pzip).", ".$dbo->quote($pdoctype).", ".$dbo->quote($pdocnum).", ".$dbo->quote($gimg).", ".$dbo->quote($pnotes).", ".$pischannel.", ".$dbo->quote(json_encode($chparams)).", ".$dbo->quote($pcompany).", ".$dbo->quote($pvat).", ".$dbo->quote($pgender).", ".$dbo->quote($pbdate).", ".$dbo->quote($ppbirth).", ".$dbo->quote($pfisccode).", ".$dbo->quote($ppec).", ".$dbo->quote($precipcode).", " . (!empty($customer_pic) ? $dbo->quote($customer_pic) : 'NULL') . ");";
+				$q = "INSERT INTO `#__vikbooking_customers` (`first_name`,`last_name`,`email`,`phone`,`country`,`pin`,`ujid`,`address`,`city`,`zip`,`state`,`doctype`,`docnum`,`docimg`,`notes`,`ischannel`,`chdata`,`company`,`vat`,`gender`,`bdate`,`pbirth`,`fisccode`,`pec`,`recipcode`,`pic`) VALUES(" . $dbo->quote($pfirst_name) . ", " . $dbo->quote($plast_name) . ", " . $dbo->quote($pemail) . ", " . $dbo->quote($pphone) . ", " . $dbo->quote($pcountry) . ", " . $dbo->quote($ppin) . ", " . $dbo->quote($pujid) . ", " . $dbo->quote($paddress) . ", " . $dbo->quote($pcity) . ", " . $dbo->quote($pzip) . ", " . $dbo->quote($pstate) . ", " . $dbo->quote($pdoctype) . ", " . $dbo->quote($pdocnum) . ", " . $dbo->quote($gimg) . ", " . $dbo->quote($pnotes) . ", " . $pischannel . ", " . $dbo->quote(json_encode($chparams)) . ", " . $dbo->quote($pcompany) . ", " . $dbo->quote($pvat) . ", " . $dbo->quote($pgender) . ", " . $dbo->quote($pbdate) . ", " . $dbo->quote($ppbirth) . ", " . $dbo->quote($pfisccode) . ", " . $dbo->quote($ppec) . ", " . $dbo->quote($precipcode) . ", " . (!empty($customer_pic) ? $dbo->quote($customer_pic) : 'NULL') . ");";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				$lid = $dbo->insertid();
@@ -4782,7 +5514,7 @@ class VikBookingController extends JControllerVikBooking
 						/**
 						 * @wponly - this task is executed via Ajax for the Modal forms listener. We must redirect to the booking details page and let the user restart the procedure
 						 */
-						$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=".$pbid);
+						$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . $pbid);
 						//
 						exit;
 					}
@@ -4803,11 +5535,11 @@ class VikBookingController extends JControllerVikBooking
 					$cpin->setNewPin($ex_customer['pin']);
 					$cpin->setNewCustomerId($ex_customer['id']);
 					$cpin->saveCustomerBooking($pbid);
-					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS').' ('.$ex_customer['first_name'].' '.$ex_customer['last_name'].')');
+					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS') . ' (' . $ex_customer['first_name'] . ' ' . $ex_customer['last_name'] . ')');
 					/**
 					 * @wponly - this task is executed via Ajax for the Modal forms listener. We must redirect to the booking details page and let the user restart the procedure
 					 */
-					$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=".$pbid);
+					$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . $pbid);
 					//
 					exit;
 				} elseif (!empty($pgoto) && !empty($pbid)) {
@@ -4815,22 +5547,23 @@ class VikBookingController extends JControllerVikBooking
 					$cpin->setNewPin($ex_customer['pin']);
 					$cpin->setNewCustomerId($ex_customer['id']);
 					$cpin->saveCustomerBooking($pbid);
-					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS').' ('.$ex_customer['first_name'].' '.$ex_customer['last_name'].')');
+					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS') . ' (' . $ex_customer['first_name'] . ' ' . $ex_customer['last_name'] . ')');
 					$mainframe->redirect(base64_decode($pgoto));
 					exit;
 				} else {
-					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS').'<br/><a href="index.php?option=com_vikbooking&task=editcustomer&cid[]='.$ex_customer['id'].'" target="_blank">'.$ex_customer['first_name'].' '.$ex_customer['last_name'].'</a>');
+					VikError::raiseWarning('', JText::translate('VBERRCUSTOMEREMAILEXISTS') . '<br/><a href="index.php?option=com_vikbooking&task=editcustomer&cid[]=' . $ex_customer['id'] . '" target="_blank">' . $ex_customer['first_name'] . ' ' . $ex_customer['last_name'] . '</a>');
 				}
 			}
 		}
 		$mainframe->redirect("index.php?option=com_vikbooking&task=customers");
 	}
 
-	public function customers() {
+	public function customers()
+	{
 		VikBookingHelper::printHeader("22");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'customers'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -4838,11 +5571,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newcustomer() {
+	public function newcustomer()
+	{
 		VikBookingHelper::printHeader("22");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecustomer'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -4850,11 +5584,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editcustomer() {
+	public function editcustomer()
+	{
 		VikBookingHelper::printHeader("22");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecustomer'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -4862,7 +5597,8 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function removecustomers() {
+	public function removecustomers()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -4872,7 +5608,7 @@ class VikBookingController extends JControllerVikBooking
 			$cpin = VikBooking::getCPinIstance();
 			foreach ($ids as $d) {
 				$cpin->pluginCustomerSync($d, 'delete');
-				$q = "DELETE FROM `#__vikbooking_customers` WHERE `id`=".(int)$d.";";
+				$q = "DELETE FROM `#__vikbooking_customers` WHERE `id`=" . (int)$d . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -4881,11 +5617,12 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=customers");
 	}
 
-	public function restrictions() {
+	public function restrictions()
+	{
 		VikBookingHelper::printHeader("restrictions");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'restrictions'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -4893,11 +5630,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newrestriction() {
+	public function newrestriction()
+	{
 		VikBookingHelper::printHeader("restrictions");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managerestriction'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -4905,11 +5643,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editrestriction() {
+	public function editrestriction()
+	{
 		VikBookingHelper::printHeader("restrictions");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managerestriction'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -4917,7 +5656,8 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function createrestriction() {
+	public function createrestriction()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -4929,7 +5669,7 @@ class VikBookingController extends JControllerVikBooking
 		$pname = VikRequest::getString('name', '', 'request');
 		$pmonth = VikRequest::getInt('month', '', 'request');
 		$pmonth = empty($pmonth) ? 0 : $pmonth;
-		$pname = empty($pname) ? 'Restriction '.$pmonth : $pname;
+		$pname = empty($pname) ? 'Restriction ' . $pmonth : $pname;
 		$pdfrom = VikRequest::getString('dfrom', '', 'request');
 		$pdto = VikRequest::getString('dto', '', 'request');
 		$pwday = VikRequest::getString('wday', '', 'request');
@@ -4944,9 +5684,9 @@ class VikBookingController extends JControllerVikBooking
 		$pcombod = VikRequest::getString('combod', '', 'request');
 		$pcombod = strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo ? $pcombod : '';
 		$combostr = '';
-		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcomboa) ? $pcomboa.':' : ':';
-		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcombob) ? $pcombob.':' : ':';
-		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcomboc) ? $pcomboc.':' : ':';
+		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcomboa) ? $pcomboa . ':' : ':';
+		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcombob) ? $pcombob . ':' : ':';
+		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcomboc) ? $pcomboc . ':' : ':';
 		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcombod) ? $pcombod : '';
 		$pminlos = VikRequest::getInt('minlos', '', 'request');
 		$pminlos = $pminlos < 1 ? 1 : $pminlos;
@@ -4964,7 +5704,7 @@ class VikBookingController extends JControllerVikBooking
 				if (empty($idr)) {
 					continue;
 				}
-				$ridr .= '-'.$idr.'-;';
+				$ridr .= '-' . $idr . '-;';
 				$roomidsforsess[] = (int)$idr;
 			}
 		} elseif ($pallrooms > 0) {
@@ -4991,7 +5731,7 @@ class VikBookingController extends JControllerVikBooking
 
 		//check if there are restrictions for this month
 		if ($pmonth > 0) {
-			$q = "SELECT `id` FROM `#__vikbooking_restrictions` WHERE `month`='".$pmonth."';";
+			$q = "SELECT `id` FROM `#__vikbooking_restrictions` WHERE `month`='" . $pmonth . "';";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() > 0) {
@@ -5027,14 +5767,14 @@ class VikBookingController extends JControllerVikBooking
 		if ($pcta > 0 && count($pctad) > 0) {
 			foreach ($pctad as $ctwd) {
 				if (strlen($ctwd)) {
-					$setcta[] = '-'.(int)$ctwd.'-';
+					$setcta[] = '-' . (int)$ctwd . '-';
 				}
 			}
 		}
 		if ($pctd > 0 && count($pctdd) > 0) {
 			foreach ($pctdd as $ctwd) {
 				if (strlen($ctwd)) {
-					$setctd[] = '-'.(int)$ctwd.'-';
+					$setctd[] = '-' . (int)$ctwd . '-';
 				}
 			}
 		}
@@ -5077,7 +5817,7 @@ class VikBookingController extends JControllerVikBooking
 		}
 		$session->set('vbVcmRatesUpd', $updforvcm);
 		//
-		$q = "INSERT INTO `#__vikbooking_restrictions` (`name`,`month`,`wday`,`minlos`,`multiplyminlos`,`maxlos`,`dfrom`,`dto`,`wdaytwo`,`wdaycombo`,`allrooms`,`idrooms`,`ctad`,`ctdd`) VALUES(".$dbo->quote($pname).", '".$pmonth."', ".(strlen($pwday) > 0 ? "'".$pwday."'" : "NULL").", '".$pminlos."', '".$pmultiplyminlos."', '".$pmaxlos."', ".$pdfrom.", ".$pdto.", ".(strlen($pwday) > 0 && strlen($pwdaytwo) > 0 ? intval($pwdaytwo) : "NULL").", ".(strlen($combostr) > 0 ? $dbo->quote($combostr) : "NULL").", ".$pallrooms.", ".(strlen($ridr) > 0 ? $dbo->quote($ridr) : "NULL").", ".(count($setcta) > 0 ? $dbo->quote(implode(',', $setcta)) : "NULL").", ".(count($setctd) > 0 ? $dbo->quote(implode(',', $setctd)) : "NULL").");";
+		$q = "INSERT INTO `#__vikbooking_restrictions` (`name`,`month`,`wday`,`minlos`,`multiplyminlos`,`maxlos`,`dfrom`,`dto`,`wdaytwo`,`wdaycombo`,`allrooms`,`idrooms`,`ctad`,`ctdd`) VALUES(" . $dbo->quote($pname) . ", '" . $pmonth . "', " . (strlen($pwday) > 0 ? "'" . $pwday . "'" : "NULL") . ", '" . $pminlos . "', '" . $pmultiplyminlos . "', '" . $pmaxlos . "', " . $pdfrom . ", " . $pdto . ", " . (strlen($pwday) > 0 && strlen($pwdaytwo) > 0 ? intval($pwdaytwo) : "NULL") . ", " . (strlen($combostr) > 0 ? $dbo->quote($combostr) : "NULL") . ", " . $pallrooms . ", " . (strlen($ridr) > 0 ? $dbo->quote($ridr) : "NULL") . ", " . (count($setcta) > 0 ? $dbo->quote(implode(',', $setcta)) : "NULL") . ", " . (count($setctd) > 0 ? $dbo->quote(implode(',', $setctd)) : "NULL") . ");";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		$lid = $dbo->insertid();
@@ -5147,7 +5887,7 @@ class VikBookingController extends JControllerVikBooking
 							// adjust name
 							$restr_rp_name = $pname . " #{$repeat_count}";
 							//
-							$q = "INSERT INTO `#__vikbooking_restrictions` (`name`,`month`,`wday`,`minlos`,`multiplyminlos`,`maxlos`,`dfrom`,`dto`,`wdaytwo`,`wdaycombo`,`allrooms`,`idrooms`,`ctad`,`ctdd`) VALUES(".$dbo->quote($restr_rp_name).", '".$pmonth."', ".(strlen($pwday) > 0 ? "'".$pwday."'" : "NULL").", '".$pminlos."', '".$pmultiplyminlos."', '".$pmaxlos."', ".$rp['from'].", ".$rp['to'].", ".(strlen($pwday) > 0 && strlen($pwdaytwo) > 0 ? intval($pwdaytwo) : "NULL").", ".(strlen($combostr) > 0 ? $dbo->quote($combostr) : "NULL").", ".$pallrooms.", ".(strlen($ridr) > 0 ? $dbo->quote($ridr) : "NULL").", ".(count($setcta) > 0 ? $dbo->quote(implode(',', $setcta)) : "NULL").", ".(count($setctd) > 0 ? $dbo->quote(implode(',', $setctd)) : "NULL").");";
+							$q = "INSERT INTO `#__vikbooking_restrictions` (`name`,`month`,`wday`,`minlos`,`multiplyminlos`,`maxlos`,`dfrom`,`dto`,`wdaytwo`,`wdaycombo`,`allrooms`,`idrooms`,`ctad`,`ctdd`) VALUES(" . $dbo->quote($restr_rp_name) . ", '" . $pmonth . "', " . (strlen($pwday) > 0 ? "'" . $pwday . "'" : "NULL") . ", '" . $pminlos . "', '" . $pmultiplyminlos . "', '" . $pmaxlos . "', " . $rp['from'] . ", " . $rp['to'] . ", " . (strlen($pwday) > 0 && strlen($pwdaytwo) > 0 ? intval($pwdaytwo) : "NULL") . ", " . (strlen($combostr) > 0 ? $dbo->quote($combostr) : "NULL") . ", " . $pallrooms . ", " . (strlen($ridr) > 0 ? $dbo->quote($ridr) : "NULL") . ", " . (count($setcta) > 0 ? $dbo->quote(implode(',', $setcta)) : "NULL") . ", " . (count($setctd) > 0 ? $dbo->quote(implode(',', $setctd)) : "NULL") . ");";
 							$dbo->setQuery($q);
 							$dbo->execute();
 							$lid = $dbo->insertid();
@@ -5167,7 +5907,8 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function updaterestriction() {
+	public function updaterestriction()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -5180,7 +5921,7 @@ class VikBookingController extends JControllerVikBooking
 		$pname = VikRequest::getString('name', '', 'request');
 		$pmonth = VikRequest::getInt('month', '', 'request');
 		$pmonth = empty($pmonth) ? 0 : $pmonth;
-		$pname = empty($pname) ? 'Restriction '.$pmonth : $pname;
+		$pname = empty($pname) ? 'Restriction ' . $pmonth : $pname;
 		$pdfrom = VikRequest::getString('dfrom', '', 'request');
 		$pdto = VikRequest::getString('dto', '', 'request');
 		$pwday = VikRequest::getString('wday', '', 'request');
@@ -5195,9 +5936,9 @@ class VikBookingController extends JControllerVikBooking
 		$pcombod = VikRequest::getString('combod', '', 'request');
 		$pcombod = strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo ? $pcombod : '';
 		$combostr = '';
-		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcomboa) ? $pcomboa.':' : ':';
-		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcombob) ? $pcombob.':' : ':';
-		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcomboc) ? $pcomboc.':' : ':';
+		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcomboa) ? $pcomboa . ':' : ':';
+		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcombob) ? $pcombob . ':' : ':';
+		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcomboc) ? $pcomboc . ':' : ':';
 		$combostr .= strlen($pwday) > 0 && strlen($pwdaytwo) > 0 && $pwday != $pwdaytwo && !empty($pcombod) ? $pcombod : '';
 		$pminlos = VikRequest::getInt('minlos', '', 'request');
 		$pminlos = $pminlos < 1 ? 1 : $pminlos;
@@ -5215,7 +5956,7 @@ class VikBookingController extends JControllerVikBooking
 				if (empty($idr)) {
 					continue;
 				}
-				$ridr .= '-'.$idr.'-;';
+				$ridr .= '-' . $idr . '-;';
 				$roomidsforsess[] = (int)$idr;
 			}
 		} elseif ($pallrooms > 0) {
@@ -5241,12 +5982,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 		//check if there are restrictions for this month
 		if ($pmonth > 0) {
-			$q = "SELECT `id` FROM `#__vikbooking_restrictions` WHERE `month`='".$pmonth."' AND `id`!='".$pwhere."';";
+			$q = "SELECT `id` FROM `#__vikbooking_restrictions` WHERE `month`='" . $pmonth . "' AND `id`!='" . $pwhere . "';";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() > 0) {
 				VikError::raiseWarning('', JText::translate('VBRESTRICTIONMONTHEXISTS'));
-				$mainframe->redirect("index.php?option=com_vikbooking&task=editrestriction&cid[]=".$pwhere);
+				$mainframe->redirect("index.php?option=com_vikbooking&task=editrestriction&cid[]=" . $pwhere);
 				exit;
 			}
 			$pdfrom = 0;
@@ -5255,7 +5996,7 @@ class VikBookingController extends JControllerVikBooking
 			//dates range
 			if (empty($pdfrom) || empty($pdto)) {
 				VikError::raiseWarning('', JText::translate('VBRESTRICTIONERRDRANGE'));
-				$mainframe->redirect("index.php?option=com_vikbooking&task=editrestriction&cid[]=".$pwhere);
+				$mainframe->redirect("index.php?option=com_vikbooking&task=editrestriction&cid[]=" . $pwhere);
 				exit;
 			} else {
 				$housto = $pdfrom == $pdto ? 23 : 0;
@@ -5267,7 +6008,7 @@ class VikBookingController extends JControllerVikBooking
 			if ($pdfrom > $pdto) {
 				// invalid dates in the past
 				VikError::raiseWarning('', JText::translate('VBRESTRICTIONERRDRANGE'));
-				$mainframe->redirect("index.php?option=com_vikbooking&task=editrestriction&cid[]=".$pwhere);
+				$mainframe->redirect("index.php?option=com_vikbooking&task=editrestriction&cid[]=" . $pwhere);
 				exit;
 			}
 		}
@@ -5277,14 +6018,14 @@ class VikBookingController extends JControllerVikBooking
 		if ($pcta > 0 && count($pctad) > 0) {
 			foreach ($pctad as $ctwd) {
 				if (strlen($ctwd)) {
-					$setcta[] = '-'.(int)$ctwd.'-';
+					$setcta[] = '-' . (int)$ctwd . '-';
 				}
 			}
 		}
 		if ($pctd > 0 && count($pctdd) > 0) {
 			foreach ($pctdd as $ctwd) {
 				if (strlen($ctwd)) {
-					$setctd[] = '-'.(int)$ctwd.'-';
+					$setctd[] = '-' . (int)$ctwd . '-';
 				}
 			}
 		}
@@ -5327,14 +6068,15 @@ class VikBookingController extends JControllerVikBooking
 		}
 		$session->set('vbVcmRatesUpd', $updforvcm);
 		//
-		$q = "UPDATE `#__vikbooking_restrictions` SET `name`=".$dbo->quote($pname).",`month`='".$pmonth."',`wday`=".(strlen($pwday) > 0 ? "'".$pwday."'" : "NULL").",`minlos`='".$pminlos."',`multiplyminlos`='".$pmultiplyminlos."',`maxlos`='".$pmaxlos."',`dfrom`=".$pdfrom.",`dto`=".$pdto.",`wdaytwo`=".(strlen($pwday) > 0 && strlen($pwdaytwo) > 0 ? intval($pwdaytwo) : "NULL").",`wdaycombo`=".(strlen($combostr) > 0 ? $dbo->quote($combostr) : "NULL").",`allrooms`=".$pallrooms.",`idrooms`=".(strlen($ridr) > 0 ? $dbo->quote($ridr) : "NULL").", `ctad`=".(count($setcta) > 0 ? $dbo->quote(implode(',', $setcta)) : "NULL").", `ctdd`=".(count($setctd) > 0 ? $dbo->quote(implode(',', $setctd)) : "NULL")." WHERE `id`='".$pwhere."';";
+		$q = "UPDATE `#__vikbooking_restrictions` SET `name`=" . $dbo->quote($pname) . ",`month`='" . $pmonth . "',`wday`=" . (strlen($pwday) > 0 ? "'" . $pwday . "'" : "NULL") . ",`minlos`='" . $pminlos . "',`multiplyminlos`='" . $pmultiplyminlos . "',`maxlos`='" . $pmaxlos . "',`dfrom`=" . $pdfrom . ",`dto`=" . $pdto . ",`wdaytwo`=" . (strlen($pwday) > 0 && strlen($pwdaytwo) > 0 ? intval($pwdaytwo) : "NULL") . ",`wdaycombo`=" . (strlen($combostr) > 0 ? $dbo->quote($combostr) : "NULL") . ",`allrooms`=" . $pallrooms . ",`idrooms`=" . (strlen($ridr) > 0 ? $dbo->quote($ridr) : "NULL") . ", `ctad`=" . (count($setcta) > 0 ? $dbo->quote(implode(',', $setcta)) : "NULL") . ", `ctdd`=" . (count($setctd) > 0 ? $dbo->quote(implode(',', $setctd)) : "NULL") . " WHERE `id`='" . $pwhere . "';";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		$mainframe->enqueueMessage(JText::translate('VBRESTRICTIONSAVED'));
 		$mainframe->redirect("index.php?option=com_vikbooking&task=restrictions");
 	}
 
-	public function removerestrictions() {
+	public function removerestrictions()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -5342,7 +6084,7 @@ class VikBookingController extends JControllerVikBooking
 		if (@count($ids)) {
 			$dbo = JFactory::getDBO();
 			foreach ($ids as $d) {
-				$q = "DELETE FROM `#__vikbooking_restrictions` WHERE `id`=".(int)$d.";";
+				$q = "DELETE FROM `#__vikbooking_restrictions` WHERE `id`=" . (int)$d . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -5351,11 +6093,12 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=restrictions");
 	}
 
-	public function prices() {
+	public function prices()
+	{
 		VikBookingHelper::printHeader("1");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'prices'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5363,11 +6106,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newprice() {
+	public function newprice()
+	{
 		VikBookingHelper::printHeader("1");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageprice'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5375,11 +6119,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editprice() {
+	public function editprice()
+	{
 		VikBookingHelper::printHeader("1");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageprice'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5387,27 +6132,30 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function createprice() {
+	public function createprice()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_createprice();
 	}
 
-	public function createprice_new() {
+	public function createprice_new()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_createprice(true);
 	}
 
-	private function do_createprice($new = false) {
+	private function do_createprice($new = false)
+	{
 		$pprice = VikRequest::getString('price', '', 'request');
 		$pattr = VikRequest::getString('attr', '', 'request');
 		$ppraliq = VikRequest::getInt('praliq', '', 'request');
-		$pbreakfast_included = VikRequest::getInt('breakfast_included', '', 'request');
-		$pbreakfast_included = $pbreakfast_included == 1 ? 1 : 0;
-		$pfree_cancellation = VikRequest::getInt('free_cancellation', '', 'request');
+		$pmeal_plans = (array)VikRequest::getVar('meal_plans', []);
+		$pbreakfast_included = in_array('breakfast', $pmeal_plans) ? 1 : 0;
+		$pfree_cancellation = VikRequest::getInt('free_cancellation', 0, 'request');
 		$pfree_cancellation = $pfree_cancellation == 1 ? 1 : 0;
 		$pcanc_deadline = VikRequest::getInt('canc_deadline', '', 'request');
 		$pminlos = VikRequest::getInt('minlos', 0, 'request');
@@ -5416,35 +6164,40 @@ class VikBookingController extends JControllerVikBooking
 		$pminhadv = $pminhadv < 0 ? 0 : $pminhadv;
 		$pcanc_policy = VikRequest::getString('canc_policy', '', 'request', VIKREQUEST_ALLOWHTML);
 		if (!empty($pprice)) {
-			$dbo = JFactory::getDBO();
-			$q = "INSERT INTO `#__vikbooking_prices` (`name`,`attr`,`idiva`,`breakfast_included`,`free_cancellation`,`canc_deadline`,`canc_policy`,`minlos`,`minhadv`) VALUES(".$dbo->quote($pprice).", ".$dbo->quote($pattr).", ".$dbo->quote($ppraliq).", ".$pbreakfast_included.", ".$pfree_cancellation.", ".$pcanc_deadline.", ".$dbo->quote($pcanc_policy).", ".$pminlos.", ".$pminhadv.");";
+			$dbo = JFactory::getDbo();
+			$q = "INSERT INTO `#__vikbooking_prices` (`name`,`attr`,`idiva`,`breakfast_included`,`free_cancellation`,`canc_deadline`,`canc_policy`,`minlos`,`minhadv`,`meal_plans`) VALUES(" . $dbo->q($pprice) . ", " . $dbo->q($pattr) . ", " . $dbo->q($ppraliq) . ", " . $pbreakfast_included . ", " . $pfree_cancellation . ", " . $pcanc_deadline . ", " . $dbo->q($pcanc_policy) . ", " . $pminlos . ", " . $pminhadv . ", " . $dbo->q(json_encode($pmeal_plans)) . ");";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
-		$mainframe = JFactory::getApplication();
-		$mainframe->redirect("index.php?option=com_vikbooking&task=" . ($new ? 'newprice' : 'prices'));
+
+		$app = JFactory::getApplication();
+		$app->redirect("index.php?option=com_vikbooking&task=" . ($new ? 'newprice' : 'prices'));
+		$app->close();
 	}
 
-	public function updateprice() {
+	public function updateprice()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updateprice();
 	}
 
-	public function updatepricestay() {
+	public function updatepricestay()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updateprice(true);
 	}
 
-	private function do_updateprice($stay = false) {
+	private function do_updateprice($stay = false)
+	{
 		$pprice = VikRequest::getString('price', '', 'request');
 		$pattr = VikRequest::getString('attr', '', 'request');
 		$ppraliq = VikRequest::getInt('praliq', '', 'request');
-		$pbreakfast_included = VikRequest::getInt('breakfast_included', '', 'request');
-		$pbreakfast_included = $pbreakfast_included == 1 ? 1 : 0;
+		$pmeal_plans = (array)VikRequest::getVar('meal_plans', []);
+		$pbreakfast_included = in_array('breakfast', $pmeal_plans) ? 1 : 0;
 		$pfree_cancellation = VikRequest::getInt('free_cancellation', '', 'request');
 		$pfree_cancellation = $pfree_cancellation == 1 ? 1 : 0;
 		$pcanc_deadline = VikRequest::getInt('canc_deadline', '', 'request');
@@ -5453,18 +6206,21 @@ class VikBookingController extends JControllerVikBooking
 		$pminhadv = VikRequest::getInt('minhadv', '', 'request');
 		$pminhadv = $pminhadv < 0 ? 0 : $pminhadv;
 		$pcanc_policy = VikRequest::getString('canc_policy', '', 'request', VIKREQUEST_ALLOWHTML);
-		$pwhereup = VikRequest::getString('whereup', '', 'request');
-		if (!empty($pprice)) {
-			$dbo = JFactory::getDBO();
-			$q = "UPDATE `#__vikbooking_prices` SET `name`=".$dbo->quote($pprice).",`attr`=".$dbo->quote($pattr).",`idiva`=".$dbo->quote($ppraliq).",`breakfast_included`=".$pbreakfast_included.",`free_cancellation`=".$pfree_cancellation.",`canc_deadline`=".$pcanc_deadline.",`canc_policy`=".$dbo->quote($pcanc_policy).",`minlos`=".$pminlos.",`minhadv`=".$pminhadv." WHERE `id`=".$dbo->quote($pwhereup).";";
+		$pwhereup = VikRequest::getInt('whereup', 0, 'request');
+		if (!empty($pprice) && $pwhereup) {
+			$dbo = JFactory::getDbo();
+			$q = "UPDATE `#__vikbooking_prices` SET `name`=" . $dbo->q($pprice) . ",`attr`=" . $dbo->q($pattr) . ",`idiva`=" . $dbo->q($ppraliq) . ",`breakfast_included`=" . $pbreakfast_included . ",`free_cancellation`=" . $pfree_cancellation . ",`canc_deadline`=" . $pcanc_deadline . ",`canc_policy`=" . $dbo->q($pcanc_policy) . ",`minlos`=" . $pminlos . ",`minhadv`=" . $pminhadv . ",`meal_plans`=" . $dbo->q(json_encode($pmeal_plans)) . " WHERE `id`=" . $dbo->q($pwhereup) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
-		$mainframe = JFactory::getApplication();
-		$mainframe->redirect("index.php?option=com_vikbooking&task=" . ($stay ? 'editprice&cid[]=' . $pwhereup : 'prices'));
+
+		$app = JFactory::getApplication();
+		$app->redirect("index.php?option=com_vikbooking&task=" . ($stay ? 'editprice&cid[]=' . $pwhereup : 'prices'));
+		$app->close();
 	}
 
-	public function removeprice() {
+	public function removeprice()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -5472,10 +6228,10 @@ class VikBookingController extends JControllerVikBooking
 		if (@count($ids)) {
 			$dbo = JFactory::getDBO();
 			foreach ($ids as $d) {
-				$q = "DELETE FROM `#__vikbooking_prices` WHERE `id`=".$dbo->quote($d).";";
+				$q = "DELETE FROM `#__vikbooking_prices` WHERE `id`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
-				$q = "DELETE FROM `#__vikbooking_dispcost` WHERE `idprice`=".intval($d).";";
+				$q = "DELETE FROM `#__vikbooking_dispcost` WHERE `idprice`=" . intval($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -5484,11 +6240,12 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=prices");
 	}
 
-	public function iva() {
+	public function iva()
+	{
 		VikBookingHelper::printHeader("2");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'iva'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5496,11 +6253,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newiva() {
+	public function newiva()
+	{
 		VikBookingHelper::printHeader("2");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageiva'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5508,11 +6266,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editiva() {
+	public function editiva()
+	{
 		VikBookingHelper::printHeader("2");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageiva'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5520,7 +6279,8 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function createiva() {
+	public function createiva()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -5551,7 +6311,7 @@ class VikBookingController extends JControllerVikBooking
 					}
 				}
 			}
-			$q = "INSERT INTO `#__vikbooking_iva` (`name`,`aliq`,`breakdown`,`taxcap`) VALUES(".$dbo->quote($paliqname).", ".$dbo->quote($paliqperc).", ".(empty($breakdown_str) ? 'NULL' : $dbo->quote($breakdown_str)).", ".($ptaxcap > 0 ? $dbo->quote($ptaxcap) : 'NULL').");";
+			$q = "INSERT INTO `#__vikbooking_iva` (`name`,`aliq`,`breakdown`,`taxcap`) VALUES(" . $dbo->quote($paliqname) . ", " . $dbo->quote($paliqperc) . ", " . (empty($breakdown_str) ? 'NULL' : $dbo->quote($breakdown_str)) . ", " . ($ptaxcap > 0 ? $dbo->quote($ptaxcap) : 'NULL') . ");";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
@@ -5559,7 +6319,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=iva");
 	}
 
-	public function updateiva() {
+	public function updateiva()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -5591,7 +6352,7 @@ class VikBookingController extends JControllerVikBooking
 					}
 				}
 			}
-			$q = "UPDATE `#__vikbooking_iva` SET `name`=".$dbo->quote($paliqname).",`aliq`=".$dbo->quote($paliqperc).",`breakdown`=".(empty($breakdown_str) ? 'NULL' : $dbo->quote($breakdown_str)).",`taxcap`=".($ptaxcap > 0 ? $dbo->quote($ptaxcap) : 'NULL')." WHERE `id`=".$dbo->quote($pwhereup).";";
+			$q = "UPDATE `#__vikbooking_iva` SET `name`=" . $dbo->quote($paliqname) . ",`aliq`=" . $dbo->quote($paliqperc) . ",`breakdown`=" . (empty($breakdown_str) ? 'NULL' : $dbo->quote($breakdown_str)) . ",`taxcap`=" . ($ptaxcap > 0 ? $dbo->quote($ptaxcap) : 'NULL') . " WHERE `id`=" . $dbo->quote($pwhereup) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
@@ -5599,7 +6360,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=iva");
 	}
 
-	public function removeiva() {
+	public function removeiva()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -5607,7 +6369,7 @@ class VikBookingController extends JControllerVikBooking
 		if (@count($ids)) {
 			$dbo = JFactory::getDBO();
 			foreach ($ids as $d) {
-				$q = "DELETE FROM `#__vikbooking_iva` WHERE `id`=".$dbo->quote($d).";";
+				$q = "DELETE FROM `#__vikbooking_iva` WHERE `id`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -5616,11 +6378,12 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=iva");
 	}
 
-	public function categories() {
+	public function categories()
+	{
 		VikBookingHelper::printHeader("4");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'categories'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5628,11 +6391,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newcat() {
+	public function newcat()
+	{
 		VikBookingHelper::printHeader("4");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecategory'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5640,11 +6404,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editcat() {
+	public function editcat()
+	{
 		VikBookingHelper::printHeader("4");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecategory'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5652,7 +6417,8 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function createcat() {
+	public function createcat()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -5660,7 +6426,7 @@ class VikBookingController extends JControllerVikBooking
 		$pdescr = VikRequest::getString('descr', '', 'request', VIKREQUEST_ALLOWHTML);
 		if (!empty($pcatname)) {
 			$dbo = JFactory::getDBO();
-			$q = "INSERT INTO `#__vikbooking_categories` (`name`,`descr`) VALUES(".$dbo->quote($pcatname).", ".$dbo->quote($pdescr).");";
+			$q = "INSERT INTO `#__vikbooking_categories` (`name`,`descr`) VALUES(" . $dbo->quote($pcatname) . ", " . $dbo->quote($pdescr) . ");";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
@@ -5668,7 +6434,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=categories");
 	}
 
-	public function updatecat() {
+	public function updatecat()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -5677,7 +6444,7 @@ class VikBookingController extends JControllerVikBooking
 		$pwhereup = VikRequest::getString('whereup', '', 'request');
 		if (!empty($pcatname)) {
 			$dbo = JFactory::getDBO();
-			$q = "UPDATE `#__vikbooking_categories` SET `name`=".$dbo->quote($pcatname).", `descr`=".$dbo->quote($pdescr)." WHERE `id`=".$dbo->quote($pwhereup).";";
+			$q = "UPDATE `#__vikbooking_categories` SET `name`=" . $dbo->quote($pcatname) . ", `descr`=" . $dbo->quote($pdescr) . " WHERE `id`=" . $dbo->quote($pwhereup) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
@@ -5685,12 +6452,13 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=categories");
 	}
 
-	public function removecat() {
+	public function removecat()
+	{
 		$ids = VikRequest::getVar('cid', array(0));
 		if (@count($ids)) {
 			$dbo = JFactory::getDBO();
 			foreach ($ids as $d) {
-				$q = "DELETE FROM `#__vikbooking_categories` WHERE `id`=".$dbo->quote($d).";";
+				$q = "DELETE FROM `#__vikbooking_categories` WHERE `id`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -5699,11 +6467,12 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=categories");
 	}
 
-	public function carat() {
+	public function carat()
+	{
 		VikBookingHelper::printHeader("5");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'carat'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5711,11 +6480,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newcarat() {
+	public function newcarat()
+	{
 		VikBookingHelper::printHeader("5");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecarat'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5723,11 +6493,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editcarat() {
+	public function editcarat()
+	{
 		VikBookingHelper::printHeader("5");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecarat'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -5735,7 +6506,8 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function createcarat() {
+	public function createcarat()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -5745,42 +6517,42 @@ class VikBookingController extends JControllerVikBooking
 		$presizeto = VikRequest::getString('resizeto', '', 'request');
 		$pidrooms = VikRequest::getVar('idrooms', array());
 		if (!empty($pcaratname)) {
-			if (intval($_FILES['caraticon']['error']) == 0 && VikBooking::caniWrite(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR) && trim($_FILES['caraticon']['name'])!="") {
+			if (intval($_FILES['caraticon']['error']) == 0 && VikBooking::caniWrite(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR) && trim($_FILES['caraticon']['name']) != "") {
 				jimport('joomla.filesystem.file');
-				$updpath = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
+				$updpath = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 				if (@is_uploaded_file($_FILES['caraticon']['tmp_name'])) {
-					$safename=JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['caraticon']['name'])));
-					if (file_exists($updpath.$safename)) {
-						$j=1;
-						while (file_exists($updpath.$j.$safename)) {
+					$safename = JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['caraticon']['name'])));
+					if (file_exists($updpath . $safename)) {
+						$j = 1;
+						while (file_exists($updpath . $j . $safename)) {
 							$j++;
 						}
-						$pwhere=$updpath.$j.$safename;
+						$pwhere = $updpath . $j . $safename;
 					} else {
-						$j="";
-						$pwhere=$updpath.$safename;
+						$j = "";
+						$pwhere = $updpath . $safename;
 					}
-					if (!getimagesize($_FILES['caraticon']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico)\z/i", $safename)) {
+					if (!getimagesize($_FILES['caraticon']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico|webp)\z/i", $safename)) {
 						@unlink($pwhere);
-						$picon="";
+						$picon = "";
 					} else {
 						VikBooking::uploadFile($_FILES['caraticon']['tmp_name'], $pwhere);
 						@chmod($pwhere, 0644);
-						$picon=$j.$safename;
-						if ($pautoresize=="1" && !empty($presizeto)) {
+						$picon = $j . $safename;
+						if ($pautoresize == "1" && !empty($presizeto)) {
 							$eforj = new vikResizer();
-							$origmod = $eforj->proportionalImage($pwhere, $updpath.'r_'.$j.$safename, $presizeto, $presizeto);
+							$origmod = $eforj->proportionalImage($pwhere, $updpath . 'r_' . $j . $safename, $presizeto, $presizeto);
 							if ($origmod) {
 								@unlink($pwhere);
-								$picon='r_'.$j.$safename;
+								$picon = 'r_' . $j . $safename;
 							}
 						}
 					}
 				} else {
-					$picon="";
+					$picon = "";
 				}
 			} else {
-				$picon="";
+				$picon = "";
 			}
 			$dbo = JFactory::getDbo();
 			// get new ordering
@@ -5795,10 +6567,10 @@ class VikBookingController extends JControllerVikBooking
 			$pordering = VikRequest::getInt('ordering', 0, 'request');
 			$newsortnum = !empty($pordering) ? $pordering : $newsortnum;
 			//
-			$q = "INSERT INTO `#__vikbooking_characteristics` (`name`,`icon`,`textimg`,`ordering`) VALUES(".$dbo->quote($pcaratname).", ".$dbo->quote($picon).", ".$dbo->quote($pcarattextimg).", {$newsortnum});";
+			$q = "INSERT INTO `#__vikbooking_characteristics` (`name`,`icon`,`textimg`,`ordering`) VALUES(" . $dbo->quote($pcaratname) . ", " . $dbo->quote($picon) . ", " . $dbo->quote($pcarattextimg) . ", {$newsortnum});";
 			$dbo->setQuery($q);
 			$dbo->execute();
-			
+
 			$new_carat_id = $dbo->insertid();
 			if (!empty($new_carat_id)) {
 				// assign/unset carat-rooms relations
@@ -5872,7 +6644,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=carat");
 	}
 
-	public function updatecarat() {
+	public function updatecarat()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -5884,45 +6657,45 @@ class VikBookingController extends JControllerVikBooking
 		$pidrooms = VikRequest::getVar('idrooms', array());
 		$pordering = VikRequest::getInt('ordering', 1, 'request');
 		if (!empty($pcaratname)) {
-			if (intval($_FILES['caraticon']['error']) == 0 && VikBooking::caniWrite(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR) && trim($_FILES['caraticon']['name'])!="") {
+			if (intval($_FILES['caraticon']['error']) == 0 && VikBooking::caniWrite(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR) && trim($_FILES['caraticon']['name']) != "") {
 				jimport('joomla.filesystem.file');
-				$updpath = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
+				$updpath = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 				if (@is_uploaded_file($_FILES['caraticon']['tmp_name'])) {
-					$safename=JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['caraticon']['name'])));
-					if (file_exists($updpath.$safename)) {
-						$j=1;
-						while (file_exists($updpath.$j.$safename)) {
+					$safename = JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['caraticon']['name'])));
+					if (file_exists($updpath . $safename)) {
+						$j = 1;
+						while (file_exists($updpath . $j . $safename)) {
 							$j++;
 						}
-						$pwhere=$updpath.$j.$safename;
+						$pwhere = $updpath . $j . $safename;
 					} else {
-						$j="";
-						$pwhere=$updpath.$safename;
+						$j = "";
+						$pwhere = $updpath . $safename;
 					}
-					if (!getimagesize($_FILES['caraticon']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico)\z/i", $safename)) {
+					if (!getimagesize($_FILES['caraticon']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico|webp)\z/i", $safename)) {
 						@unlink($pwhere);
-						$picon="";
+						$picon = "";
 					} else {
 						VikBooking::uploadFile($_FILES['caraticon']['tmp_name'], $pwhere);
 						@chmod($pwhere, 0644);
-						$picon=$j.$safename;
-						if ($pautoresize=="1" && !empty($presizeto)) {
+						$picon = $j . $safename;
+						if ($pautoresize == "1" && !empty($presizeto)) {
 							$eforj = new vikResizer();
-							$origmod = $eforj->proportionalImage($pwhere, $updpath.'r_'.$j.$safename, $presizeto, $presizeto);
+							$origmod = $eforj->proportionalImage($pwhere, $updpath . 'r_' . $j . $safename, $presizeto, $presizeto);
 							if ($origmod) {
 								@unlink($pwhere);
-								$picon='r_'.$j.$safename;
+								$picon = 'r_' . $j . $safename;
 							}
 						}
 					}
 				} else {
-					$picon="";
+					$picon = "";
 				}
 			} else {
-				$picon="";
+				$picon = "";
 			}
 			$dbo = JFactory::getDbo();
-			$q = "UPDATE `#__vikbooking_characteristics` SET `name`=".$dbo->quote($pcaratname).",".(strlen($picon) > 0 ? "`icon`='".$picon."'," : "")."`textimg`=".$dbo->quote($pcarattextimg).",`ordering`={$pordering} WHERE `id`=".$dbo->quote($pwhereup).";";
+			$q = "UPDATE `#__vikbooking_characteristics` SET `name`=" . $dbo->quote($pcaratname) . "," . (strlen($picon) > 0 ? "`icon`='" . $picon . "'," : "") . "`textimg`=" . $dbo->quote($pcarattextimg) . ",`ordering`={$pordering} WHERE `id`=" . $dbo->quote($pwhereup) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 
@@ -5996,7 +6769,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=carat");
 	}
 
-	public function removecarat() {
+	public function removecarat()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -6004,16 +6778,16 @@ class VikBookingController extends JControllerVikBooking
 		if (@count($ids)) {
 			$dbo = JFactory::getDBO();
 			foreach ($ids as $d) {
-				$q = "SELECT `icon` FROM `#__vikbooking_characteristics` WHERE `id`=".$dbo->quote($d).";";
+				$q = "SELECT `icon` FROM `#__vikbooking_characteristics` WHERE `id`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				if ($dbo->getNumRows() == 1) {
 					$rows = $dbo->loadAssocList();
-					if (!empty($rows[0]['icon']) && file_exists(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.$rows[0]['icon'])) {
-						@unlink(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.$rows[0]['icon']);
+					if (!empty($rows[0]['icon']) && file_exists(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $rows[0]['icon'])) {
+						@unlink(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $rows[0]['icon']);
 					}
-				}	
-				$q = "DELETE FROM `#__vikbooking_characteristics` WHERE `id`=".$dbo->quote($d).";";
+				}
+				$q = "DELETE FROM `#__vikbooking_characteristics` WHERE `id`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -6022,11 +6796,12 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=carat");
 	}
 
-	public function coupons() {
+	public function coupons()
+	{
 		VikBookingHelper::printHeader("17");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'coupons'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6034,11 +6809,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newcoupon() {
+	public function newcoupon()
+	{
 		VikBookingHelper::printHeader("17");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecoupon'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6046,11 +6822,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editcoupon() {
+	public function editcoupon()
+	{
 		VikBookingHelper::printHeader("17");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecoupon'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6058,7 +6835,8 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function createcoupon() {
+	public function createcoupon()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -6073,14 +6851,17 @@ class VikBookingController extends JControllerVikBooking
 		$ppercentot = $ppercentot == "1" ? 1 : 2;
 		$pallvehicles = VikRequest::getString('allvehicles', '', 'request');
 		$pallvehicles = $pallvehicles == "1" ? 1 : 0;
-		$pmintotord = VikRequest::getFloat('mintotord', '', 'request');
+		$pmintotord = VikRequest::getFloat('mintotord', 0, 'request');
+		$pmaxtotord = VikRequest::getFloat('maxtotord', 0, 'request');
 		$pexcludetaxes = VikRequest::getInt('excludetaxes', 0, 'request');
 		$pminlos = VikRequest::getInt('minlos', 0, 'request');
+		$pcustomers = VikRequest::getVar('customers', array());
+		$pautomatic = VikRequest::getInt('automatic', 0, 'request');
 		$stridrooms = "";
-		if (@count($pidrooms) > 0 && $pallvehicles != 1) {
+		if (count($pidrooms) > 0 && $pallvehicles != 1) {
 			foreach ($pidrooms as $ch) {
 				if (!empty($ch)) {
-					$stridrooms .= ";".$ch.";";
+					$stridrooms .= ";" . $ch . ";";
 				}
 			}
 		}
@@ -6089,26 +6870,60 @@ class VikBookingController extends JControllerVikBooking
 			$first = VikBooking::getDateTimestamp($pfrom, 0, 0);
 			$second = VikBooking::getDateTimestamp($pto, 0, 0);
 			if ($first < $second) {
-				$strdatevalid .= $first."-".$second;
+				$strdatevalid .= $first . "-" . $second;
 			}
 		}
+
 		$dbo = JFactory::getDbo();
 		$app = JFactory::getApplication();
-		$q = "SELECT * FROM `#__vikbooking_coupons` WHERE `code`=".$dbo->quote($pcode).";";
+
+		$q = "SELECT * FROM `#__vikbooking_coupons` WHERE `code`=" . $dbo->quote($pcode) . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() > 0) {
 			VikError::raiseWarning('', JText::translate('VBCOUPONEXISTS'));
 		} else {
-			$app->enqueueMessage(JText::translate('VBCOUPONSAVEOK'));
-			$q = "INSERT INTO `#__vikbooking_coupons` (`code`,`type`,`percentot`,`value`,`datevalid`,`allvehicles`,`idrooms`,`mintotord`,`excludetaxes`,`minlos`) VALUES(".$dbo->quote($pcode).",'".$ptype."','".$ppercentot."',".$dbo->quote($pvalue).",'".$strdatevalid."','".$pallvehicles."','".$stridrooms."', ".$dbo->quote($pmintotord).", {$pexcludetaxes}, {$pminlos});";
+			$q = "INSERT INTO `#__vikbooking_coupons` (`code`,`type`,`percentot`,`value`,`datevalid`,`allvehicles`,`idrooms`,`mintotord`,`excludetaxes`,`minlos`,`maxtotord`) VALUES(" . $dbo->quote($pcode) . ",'" . $ptype . "','" . $ppercentot . "'," . $dbo->quote($pvalue) . ",'" . $strdatevalid . "','" . $pallvehicles . "','" . $stridrooms . "', " . $dbo->quote($pmintotord) . ", {$pexcludetaxes}, {$pminlos}, " . $dbo->quote($pmaxtotord) . ");";
 			$dbo->setQuery($q);
 			$dbo->execute();
+
+			$id_coupon = $dbo->insertid();
+
+			$app->enqueueMessage(JText::translate('VBCOUPONSAVEOK'));
+
+			// check if this coupon should be assigned to specific customers
+			foreach ($pcustomers as $id_customer) {
+				$customer_coupon = new stdClass;
+				$customer_coupon->idcustomer = (int)$id_customer;
+				$customer_coupon->idcoupon = (int)$id_coupon;
+				$customer_coupon->automatic = $pautomatic ? 1 : 0;
+
+				$dbo->insertObject('#__vikbooking_customers_coupons', $customer_coupon, 'id');
+			}
 		}
 		$app->redirect("index.php?option=com_vikbooking&task=coupons");
 	}
 
-	public function updatecoupon() {
+	public function updatecoupon()
+	{
+		if (!JSession::checkToken()) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
+
+		$this->do_updatecoupon($stay = false);
+	}
+
+	public function updatecoupon_stay()
+	{
+		if (!JSession::checkToken()) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
+
+		$this->do_updatecoupon($stay = true);
+	}
+
+	protected function do_updatecoupon($stay = false)
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -6117,21 +6932,24 @@ class VikBookingController extends JControllerVikBooking
 		$pfrom = VikRequest::getString('from', '', 'request');
 		$pto = VikRequest::getString('to', '', 'request');
 		$pidrooms = VikRequest::getVar('idrooms', array(0));
-		$pwhere = VikRequest::getString('where', '', 'request');
+		$pwhere = VikRequest::getInt('where', 0, 'request');
 		$ptype = VikRequest::getString('type', '', 'request');
 		$ptype = $ptype == "1" ? 1 : 2;
 		$ppercentot = VikRequest::getString('percentot', '', 'request');
 		$ppercentot = $ppercentot == "1" ? 1 : 2;
 		$pallvehicles = VikRequest::getString('allvehicles', '', 'request');
 		$pallvehicles = $pallvehicles == "1" ? 1 : 0;
-		$pmintotord = VikRequest::getFloat('mintotord', '', 'request');
+		$pmintotord = VikRequest::getFloat('mintotord', 0, 'request');
+		$pmaxtotord = VikRequest::getFloat('maxtotord', 0, 'request');
 		$pexcludetaxes = VikRequest::getInt('excludetaxes', 0, 'request');
 		$pminlos = VikRequest::getInt('minlos', 0, 'request');
+		$pcustomers = VikRequest::getVar('customers', array());
+		$pautomatic = VikRequest::getInt('automatic', 0, 'request');
 		$stridrooms = "";
-		if (@count($pidrooms) > 0 && $pallvehicles != 1) {
+		if (count($pidrooms) > 0 && $pallvehicles != 1) {
 			foreach ($pidrooms as $ch) {
 				if (!empty($ch)) {
-					$stridrooms .= ";".$ch.";";
+					$stridrooms .= ";" . $ch . ";";
 				}
 			}
 		}
@@ -6140,43 +6958,77 @@ class VikBookingController extends JControllerVikBooking
 			$first = VikBooking::getDateTimestamp($pfrom, 0, 0);
 			$second = VikBooking::getDateTimestamp($pto, 0, 0);
 			if ($first < $second) {
-				$strdatevalid .= $first."-".$second;
+				$strdatevalid .= $first . "-" . $second;
 			}
 		}
+
 		$dbo = JFactory::getDbo();
 		$app = JFactory::getApplication();
-		$q = "SELECT * FROM `#__vikbooking_coupons` WHERE `code`=".$dbo->quote($pcode)." AND `id`!='".$pwhere."';";
+
+		$q = "SELECT * FROM `#__vikbooking_coupons` WHERE `code`=" . $dbo->quote($pcode) . " AND `id`!='" . $pwhere . "';";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() > 0) {
 			VikError::raiseWarning('', JText::translate('VBCOUPONEXISTS'));
 		} else {
-			$app->enqueueMessage(JText::translate('VBCOUPONSAVEOK'));
-			$q = "UPDATE `#__vikbooking_coupons` SET `code`=".$dbo->quote($pcode).",`type`='".$ptype."',`percentot`='".$ppercentot."',`value`=".$dbo->quote($pvalue).",`datevalid`='".$strdatevalid."',`allvehicles`='".$pallvehicles."',`idrooms`='".$stridrooms."',`mintotord`=".$dbo->quote($pmintotord).",`excludetaxes`={$pexcludetaxes},`minlos`={$pminlos} WHERE `id`='".$pwhere."';";
+			$q = "UPDATE `#__vikbooking_coupons` SET `code`=" . $dbo->quote($pcode) . ",`type`='" . $ptype . "',`percentot`='" . $ppercentot . "',`value`=" . $dbo->quote($pvalue) . ",`datevalid`='" . $strdatevalid . "',`allvehicles`='" . $pallvehicles . "',`idrooms`='" . $stridrooms . "',`mintotord`=" . $dbo->quote($pmintotord) . ",`excludetaxes`={$pexcludetaxes},`minlos`={$pminlos},`maxtotord`= " . $dbo->quote($pmaxtotord) . " WHERE `id`=" . $pwhere . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
+
+			$app->enqueueMessage(JText::translate('VBCOUPONSAVEOK'));
+
+			// clean up any previously created record with customers
+			$q = "DELETE FROM `#__vikbooking_customers_coupons` WHERE `idcoupon`=" . $pwhere;
+			$dbo->setQuery($q);
+			$dbo->execute();
+
+			// check if this coupon should be assigned to specific customers
+			foreach ($pcustomers as $id_customer) {
+				$customer_coupon = new stdClass;
+				$customer_coupon->idcustomer = (int)$id_customer;
+				$customer_coupon->idcoupon = (int)$pwhere;
+				$customer_coupon->automatic = $pautomatic ? 1 : 0;
+
+				$dbo->insertObject('#__vikbooking_customers_coupons', $customer_coupon, 'id');
+			}
 		}
-		$app->redirect("index.php?option=com_vikbooking&task=coupons");
+
+		if ($stay) {
+			$app->redirect("index.php?option=com_vikbooking&task=editcoupon&cid[]=$pwhere");
+		} else {
+			$app->redirect("index.php?option=com_vikbooking&task=coupons");
+		}
 	}
 
-	public function removecoupons() {
+	public function removecoupons()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
+
+		$dbo = JFactory::getDbo();
+
 		$ids = VikRequest::getVar('cid', array(0));
-		if (@count($ids)) {
-			$dbo = JFactory::getDBO();
+
+		if (count($ids)) {
 			foreach ($ids as $d) {
-				$q = "DELETE FROM `#__vikbooking_coupons` WHERE `id`=".$dbo->quote($d).";";
+				// delete coupon record
+				$q = "DELETE FROM `#__vikbooking_coupons` WHERE `id`=" . $dbo->quote($d) . ";";
+				$dbo->setQuery($q);
+				$dbo->execute();
+
+				// clean up any previously created record with customers
+				$q = "DELETE FROM `#__vikbooking_customers_coupons` WHERE `idcoupon`=" . (int)$d;
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
 		}
-		$mainframe = JFactory::getApplication();
-		$mainframe->redirect("index.php?option=com_vikbooking&task=coupons");
+
+		JFactory::getApplication()->redirect("index.php?option=com_vikbooking&task=coupons");
 	}
 
-	public function removemoreimgs() {
+	public function removemoreimgs()
+	{
 		$mainframe = JFactory::getApplication();
 		$proomid = VikRequest::getInt('roomid', '', 'request');
 		$pimgind = VikRequest::getInt('imgind', '', 'request');
@@ -6185,7 +7037,7 @@ class VikBookingController extends JControllerVikBooking
 			exit;
 		}
 		$dbo = JFactory::getDBO();
-		$q = "SELECT `moreimgs`,`imgcaptions` FROM `#__vikbooking_rooms` WHERE `id`='".$proomid."';";
+		$q = "SELECT `moreimgs`,`imgcaptions` FROM `#__vikbooking_rooms` WHERE `id`='" . $proomid . "';";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		$row = $dbo->loadAssoc();
@@ -6196,16 +7048,16 @@ class VikBookingController extends JControllerVikBooking
 			$captions = !is_array($captions) ? array() : $captions;
 			if ($pimgind < 0) {
 				foreach ($actsplit as $img) {
-					@unlink(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.'big_'.$img);
-					@unlink(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.'thumb_'.$img);
+					@unlink(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'big_' . $img);
+					@unlink(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'thumb_' . $img);
 				}
 				// reset images and captions
 				$actsplit = array();
 				$captions = array();
 			} else {
 				if (array_key_exists($pimgind, $actsplit)) {
-					@unlink(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.'big_'.$actsplit[$pimgind]);
-					@unlink(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.'thumb_'.$actsplit[$pimgind]);
+					@unlink(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'big_' . $actsplit[$pimgind]);
+					@unlink(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'thumb_' . $actsplit[$pimgind]);
 					// unset current image
 					unset($actsplit[$pimgind]);
 					// unset caption if exists
@@ -6218,17 +7070,21 @@ class VikBookingController extends JControllerVikBooking
 			$newstr = "";
 			foreach ($actsplit as $oi) {
 				if (!empty($oi)) {
-					$newstr .= $oi.';;';
+					$newstr .= $oi . ';;';
 				}
 			}
-			$q = "UPDATE `#__vikbooking_rooms` SET `moreimgs`=".$dbo->quote($newstr).", `imgcaptions`=".$dbo->quote(json_encode($captions))." WHERE `id`='".$proomid."';";
+			$q = "UPDATE `#__vikbooking_rooms` SET `moreimgs`=" . $dbo->quote($newstr) . ", `imgcaptions`=" . $dbo->quote(json_encode($captions)) . " WHERE `id`='" . $proomid . "';";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
-		$mainframe->redirect("index.php?option=com_vikbooking&task=editroom&cid[]=".$proomid);
+		$mainframe->redirect("index.php?option=com_vikbooking&task=editroom&cid[]=" . $proomid);
 	}
 
-	public function sortfield() {
+	public function sortfield()
+	{
+		if (!JSession::checkToken('get')) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
 		$mainframe = JFactory::getApplication();
 		$sortid = VikRequest::getVar('cid', array(0));
 		$pmode = VikRequest::getString('mode', '', 'request');
@@ -6237,7 +7093,7 @@ class VikBookingController extends JControllerVikBooking
 			$q = "SELECT `id`,`ordering` FROM `#__vikbooking_custfields` ORDER BY `#__vikbooking_custfields`.`ordering` ASC;";
 			$dbo->setQuery($q);
 			$dbo->execute();
-			$totr=$dbo->getNumRows();
+			$totr = $dbo->getNumRows();
 			if ($totr > 1) {
 				$data = $dbo->loadAssocList();
 				if ($pmode == "up") {
@@ -6251,18 +7107,18 @@ class VikBookingController extends JControllerVikBooking
 						$found = false;
 						foreach ($data as $v) {
 							if (intval($v['ordering']) == intval($vik)) {
-								$found=true;
-								$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='".$y."' WHERE `id`='".$v['id']."' LIMIT 1;";
+								$found = true;
+								$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='" . $y . "' WHERE `id`='" . $v['id'] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
-								$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
 								break;
 							}
 						}
 						if (!$found) {
-							$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+							$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 							$dbo->setQuery($q);
 							$dbo->execute();
 						}
@@ -6278,18 +7134,18 @@ class VikBookingController extends JControllerVikBooking
 						$found = false;
 						foreach ($data as $v) {
 							if (intval($v['ordering']) == intval($vik)) {
-								$found=true;
-								$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='".$y."' WHERE `id`='".$v['id']."' LIMIT 1;";
+								$found = true;
+								$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='" . $y . "' WHERE `id`='" . $v['id'] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
-								$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
 								break;
 							}
 						}
 						if (!$found) {
-							$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='".$vik."' WHERE `id`='".$sortid[0]."' LIMIT 1;";
+							$q = "UPDATE `#__vikbooking_custfields` SET `ordering`='" . $vik . "' WHERE `id`='" . $sortid[0] . "' LIMIT 1;";
 							$dbo->setQuery($q);
 							$dbo->execute();
 						}
@@ -6302,11 +7158,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function customf() {
+	public function customf()
+	{
 		VikBookingHelper::printHeader("16");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'customf'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6314,11 +7171,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newcustomf() {
+	public function newcustomf()
+	{
 		VikBookingHelper::printHeader("16");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecustomf'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6326,11 +7184,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editcustomf() {
+	public function editcustomf()
+	{
 		VikBookingHelper::printHeader("16");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecustomf'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6338,7 +7197,8 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function createcustomf() {
+	public function createcustomf()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -6382,7 +7242,7 @@ class VikBookingController extends JControllerVikBooking
 		if (is_array($pchoose)) {
 			foreach ($pchoose as $ch) {
 				if (!empty($ch)) {
-					$choosestr .= $ch.";;__;;";
+					$choosestr .= $ch . ";;__;;";
 				}
 			}
 		}
@@ -6399,14 +7259,15 @@ class VikBookingController extends JControllerVikBooking
 		} else {
 			$newsortnum = 1;
 		}
-		$q = "INSERT INTO `#__vikbooking_custfields` (`name`,`type`,`choose`,`required`,`ordering`,`isemail`,`poplink`,`isnominative`,`isphone`,`flag`,`defvalue`) VALUES(".$dbo->quote($pname).", ".$dbo->quote($ptype).", ".$dbo->quote($choosestr).", ".$dbo->quote($prequired).", ".$dbo->quote($newsortnum).", ".$dbo->quote($pisemail).", ".$dbo->quote($ppoplink).", ".$pisnominative.", ".$pisphone.", ".$dbo->quote($fieldflag).", ".$dbo->quote($defvalue).");";
+		$q = "INSERT INTO `#__vikbooking_custfields` (`name`,`type`,`choose`,`required`,`ordering`,`isemail`,`poplink`,`isnominative`,`isphone`,`flag`,`defvalue`) VALUES(" . $dbo->quote($pname) . ", " . $dbo->quote($ptype) . ", " . $dbo->quote($choosestr) . ", " . $dbo->quote($prequired) . ", " . $dbo->quote($newsortnum) . ", " . $dbo->quote($pisemail) . ", " . $dbo->quote($ppoplink) . ", " . $pisnominative . ", " . $pisphone . ", " . $dbo->quote($fieldflag) . ", " . $dbo->quote($defvalue) . ");";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=customf");
 	}
 
-	public function updatecustomf() {
+	public function updatecustomf()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -6451,7 +7312,7 @@ class VikBookingController extends JControllerVikBooking
 		if (is_array($pchoose)) {
 			foreach ($pchoose as $ch) {
 				if (!empty($ch)) {
-					$choosestr .= $ch.";;__;;";
+					$choosestr .= $ch . ";;__;;";
 				}
 			}
 		}
@@ -6459,14 +7320,15 @@ class VikBookingController extends JControllerVikBooking
 
 		$dbo = JFactory::getDbo();
 
-		$q = "UPDATE `#__vikbooking_custfields` SET `name`=".$dbo->quote($pname).",`type`=".$dbo->quote($ptype).",`choose`=".$dbo->quote($choosestr).",`required`=".$dbo->quote($prequired).",`isemail`=".$dbo->quote($pisemail).",`poplink`=".$dbo->quote($ppoplink).",`isnominative`=".$pisnominative.",`isphone`=".$pisphone.",`flag`=".$dbo->quote($fieldflag).",`defvalue`=".$dbo->quote($defvalue)." WHERE `id`=".$dbo->quote($pwhere).";";
+		$q = "UPDATE `#__vikbooking_custfields` SET `name`=" . $dbo->quote($pname) . ",`type`=" . $dbo->quote($ptype) . ",`choose`=" . $dbo->quote($choosestr) . ",`required`=" . $dbo->quote($prequired) . ",`isemail`=" . $dbo->quote($pisemail) . ",`poplink`=" . $dbo->quote($ppoplink) . ",`isnominative`=" . $pisnominative . ",`isphone`=" . $pisphone . ",`flag`=" . $dbo->quote($fieldflag) . ",`defvalue`=" . $dbo->quote($defvalue) . " WHERE `id`=" . $dbo->quote($pwhere) . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=customf");
 	}
 
-	public function removecustomf() {
+	public function removecustomf()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -6474,7 +7336,7 @@ class VikBookingController extends JControllerVikBooking
 		if (@count($ids)) {
 			$dbo = JFactory::getDBO();
 			foreach ($ids as $d) {
-				$q = "DELETE FROM `#__vikbooking_custfields` WHERE `id`=".$dbo->quote($d).";";
+				$q = "DELETE FROM `#__vikbooking_custfields` WHERE `id`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -6483,11 +7345,12 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=customf");
 	}
 
-	public function overv() {
+	public function overv()
+	{
 		VikBookingHelper::printHeader("15");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'overv'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6495,11 +7358,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function translations() {
+	public function translations()
+	{
 		VikBookingHelper::printHeader("21");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'translations'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6507,15 +7371,24 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function savetranslation() {
+	public function savetranslation()
+	{
+		if (!JSession::checkToken()) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
 		$this->do_savetranslation();
 	}
 
-	public function savetranslationstay() {
+	public function savetranslationstay()
+	{
+		if (!JSession::checkToken()) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
 		$this->do_savetranslation(true);
 	}
 
-	private function do_savetranslation($stay = false) {
+	private function do_savetranslation($stay = false)
+	{
 		$dbo = JFactory::getDBO();
 		$mainframe = JFactory::getApplication();
 		$vbo_tn = VikBooking::getTranslator();
@@ -6527,7 +7400,6 @@ class VikBookingController extends JControllerVikBooking
 			$tn = VikRequest::getVar('tn', array(), 'request', 'array', VIKREQUEST_ALLOWRAW);
 			$tn_saved = 0;
 			$table_cols = $vbo_tn->getTableColumns($table);
-			$table = $vbo_tn->replacePrefix($table);
 			foreach ($langs as $ltag => $lang) {
 				if ($ltag == $vbo_tn->default_lang) {
 					continue;
@@ -6550,13 +7422,13 @@ class VikBookingController extends JControllerVikBooking
 										continue;
 									}
 									// replace any possible placeholder for special tags
-									$translation[$field][$tn_field_k] = preg_replace_callback("/(<strong class=\"vbo-editor-hl-specialtag\">)([^<]+)(<\/strong>)/", function($match) {
+									$translation[$field][$tn_field_k] = preg_replace_callback("/(<strong class=\"vbo-editor-hl-specialtag\">)([^<]+)(<\/strong>)/", function ($match) {
 										return $match[2];
 									}, $translation[$field][$tn_field_k]);
 								}
 							} elseif (!empty($translation[$field])) {
 								// replace any possible placeholder for special tags
-								$translation[$field] = preg_replace_callback("/(<strong class=\"vbo-editor-hl-specialtag\">)([^<]+)(<\/strong>)/", function($match) {
+								$translation[$field] = preg_replace_callback("/(<strong class=\"vbo-editor-hl-specialtag\">)([^<]+)(<\/strong>)/", function ($match) {
 									return $match[2];
 								}, $translation[$field]);
 							}
@@ -6567,14 +7439,14 @@ class VikBookingController extends JControllerVikBooking
 							$lang_translation[$field] = $translation[$field];
 						}
 						if (count($lang_translation) > 0) {
-							$q = "SELECT `id` FROM `#__vikbooking_translations` WHERE `table`=".$dbo->quote($table)." AND `lang`=".$dbo->quote($ltag)." AND `reference_id`=".$dbo->quote((int)$reference_id).";";
+							$q = "SELECT `id` FROM `#__vikbooking_translations` WHERE `table`=" . $dbo->quote($table) . " AND `lang`=" . $dbo->quote($ltag) . " AND `reference_id`=" . $dbo->quote((int)$reference_id) . ";";
 							$dbo->setQuery($q);
 							$dbo->execute();
 							if ($dbo->getNumRows() > 0) {
 								$last_id = $dbo->loadResult();
-								$q = "UPDATE `#__vikbooking_translations` SET `content`=".$dbo->quote(json_encode($lang_translation))." WHERE `id`=".(int)$last_id.";";
+								$q = "UPDATE `#__vikbooking_translations` SET `content`=" . $dbo->quote(json_encode($lang_translation)) . " WHERE `id`=" . (int)$last_id . ";";
 							} else {
-								$q = "INSERT INTO `#__vikbooking_translations` (`table`,`lang`,`reference_id`,`content`) VALUES (".$dbo->quote($table).", ".$dbo->quote($ltag).", ".$dbo->quote((int)$reference_id).", ".$dbo->quote(json_encode($lang_translation)).");";
+								$q = "INSERT INTO `#__vikbooking_translations` (`table`,`lang`,`reference_id`,`content`) VALUES (" . $dbo->quote($table) . ", " . $dbo->quote($ltag) . ", " . $dbo->quote((int)$reference_id) . ", " . $dbo->quote(json_encode($lang_translation)) . ");";
 							}
 							$dbo->setQuery($q);
 							$dbo->execute();
@@ -6589,14 +7461,15 @@ class VikBookingController extends JControllerVikBooking
 		} else {
 			VikError::raiseWarning('', JText::translate('VBTRANSLATIONERRINVTABLE'));
 		}
-		$mainframe->redirect("index.php?option=com_vikbooking".($stay ? '&task=translations&vbo_table='.$vbo_tn->replacePrefix($table).'&vbo_lang='.$cur_langtab : '').'&limitstart='.$vbo_tn->lim0.'&limit='.$vbo_tn->lim);
+		$mainframe->redirect("index.php?option=com_vikbooking" . ($stay ? '&task=translations&vbo_table=' . $vbo_tn->replacePrefix($table) . '&vbo_lang=' . $cur_langtab : '') . '&limitstart=' . $vbo_tn->lim0 . '&limit=' . $vbo_tn->lim);
 	}
 
-	public function choosebusy() {
+	public function choosebusy()
+	{
 		VikBookingHelper::printHeader("8");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'choosebusy'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6604,11 +7477,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function orders() {
+	public function orders()
+	{
 		VikBookingHelper::printHeader("8");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'orders'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6616,16 +7490,18 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function vieworders() {
+	public function vieworders()
+	{
 		//alias method of orders() for backward compatibility with VCM
 		$this->orders();
 	}
 
-	public function editorder() {
+	public function editorder()
+	{
 		VikBookingHelper::printHeader("8");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'editorder'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6633,69 +7509,111 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function removeorders() {
+	public function removeorders()
+	{
 		$dbo = JFactory::getDbo();
-		$mainframe = JFactory::getApplication();
+		$app = JFactory::getApplication();
+
 		$ids = VikRequest::getVar('cid', array(0));
 		$pgoto = VikRequest::getString('goto', '', 'request', VIKREQUEST_ALLOWRAW);
-		$prev_conf_ids = array();
+
+		$user 	= JFactory::getUser();
+		$config = VBOFactory::getConfig();
+
+		$prev_conf_ids = [];
+		$purged = false;
+
+		$tot_cancs = 0;
+
 		if (is_array($ids) && count($ids)) {
 			foreach ($ids as $d) {
-				$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=".$dbo->quote($d).";";
-				$dbo->setQuery($q);
-				$dbo->execute();
-				if ($dbo->getNumRows() == 1) {
-					$rows = $dbo->loadAssocList();
-					if ($rows[0]['status'] != 'cancelled') {
-						$q = "UPDATE `#__vikbooking_orders` SET `status`='cancelled' WHERE `id`=".(int)$rows[0]['id'].";";
-						$dbo->setQuery($q);
-						$dbo->execute();
-						$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `idorder`=" . intval($rows[0]['id']) . ";";
-						$dbo->setQuery($q);
-						$dbo->execute();
-						if ($rows[0]['status'] == 'confirmed') {
-							$prev_conf_ids[] = $rows[0]['id'];
+				$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=" . $dbo->quote($d);
+				$dbo->setQuery($q, 0, 1);
+				$row = $dbo->loadAssoc();
+
+				// check for any cancellation constraints
+				$canc_denied = false;
+				if ($row && class_exists('VCMFeesCancellation')) {
+					// let VCM detect if there are any constraints for the cancellation
+					$canc_denied = VCMFeesCancellation::getInstance($row, $anew = true)->isBookingConstrained();
+					if ($canc_denied) {
+						// set error message
+						$canc_deny_error = VCMFeesCancellation::getInstance()->getError();
+						if ($canc_deny_error) {
+							$app->enqueueMessage($canc_deny_error, 'error');
 						}
-						//Booking History
-						VikBooking::getBookingHistoryInstance()->setBid($rows[0]['id'])->store('CB');
-						//
 					}
-					$q = "SELECT * FROM `#__vikbooking_ordersbusy` WHERE `idorder`=".(int)$rows[0]['id'].";";
+				}
+
+				if ($row && !$canc_denied) {
+					// increase counter
+					$tot_cancs++;
+
+					// set status to cancelled
+					if ($row['status'] != 'cancelled') {
+						$q = "UPDATE `#__vikbooking_orders` SET `status`='cancelled' WHERE `id`=" . (int)$row['id'] . ";";
+						$dbo->setQuery($q);
+						$dbo->execute();
+						$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `idorder`=" . intval($row['id']) . ";";
+						$dbo->setQuery($q);
+						$dbo->execute();
+						if ($row['status'] == 'confirmed') {
+							$prev_conf_ids[] = $row['id'];
+						}
+						// Booking History
+						VikBooking::getBookingHistoryInstance()->setBid($row['id'])->store('CB', "({$user->name})");
+					}
+
+					// free records up
+					$q = "SELECT * FROM `#__vikbooking_ordersbusy` WHERE `idorder`=" . (int)$row['id'] . ";";
 					$dbo->setQuery($q);
-					$dbo->execute();
-					if ($dbo->getNumRows() > 0) {
-						$ordbusy = $dbo->loadAssocList();
+					$ordbusy = $dbo->loadAssocList();
+					if ($ordbusy) {
 						foreach ($ordbusy as $ob) {
-							$q = "DELETE FROM `#__vikbooking_busy` WHERE `id`='".$ob['idbusy']."';";
+							$q = "DELETE FROM `#__vikbooking_busy` WHERE `id`='" . $ob['idbusy'] . "';";
 							$dbo->setQuery($q);
 							$dbo->execute();
 						}
 					}
-					$q = "DELETE FROM `#__vikbooking_ordersbusy` WHERE `idorder`=".(int)$rows[0]['id'].";";
+
+					$q = "DELETE FROM `#__vikbooking_ordersbusy` WHERE `idorder`=" . (int)$row['id'] . ";";
 					$dbo->setQuery($q);
 					$dbo->execute();
-					if ($rows[0]['status'] == 'cancelled') {
-						$q = "DELETE FROM `#__vikbooking_customers_orders` WHERE `idorder`=" . intval($rows[0]['id']) . ";";
+
+					// check for purge removal
+					if ($row['status'] == 'cancelled') {
+						$q = "DELETE FROM `#__vikbooking_customers_orders` WHERE `idorder`=" . intval($row['id']) . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
-						$q = "DELETE FROM `#__vikbooking_ordersrooms` WHERE `idorder`=".(int)$rows[0]['id'].";";
+						$q = "DELETE FROM `#__vikbooking_ordersrooms` WHERE `idorder`=" . (int)$row['id'] . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
-						$q = "DELETE FROM `#__vikbooking_orderhistory` WHERE `idorder`=".(int)$rows[0]['id'].";";
+						$q = "DELETE FROM `#__vikbooking_orderhistory` WHERE `idorder`=" . (int)$row['id'] . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
-						$q = "DELETE FROM `#__vikbooking_orders` WHERE `id`=".(int)$rows[0]['id'].";";
+						$q = "DELETE FROM `#__vikbooking_orders` WHERE `id`=" . (int)$row['id'] . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
+						// in case of split stay booking, remove the transient
+						if ($row['split_stay']) {
+							$config->remove('split_stay_' . $row['id']);
+						}
+						// turn flag on
+						$purged = true;
 					}
 				}
 			}
-			$mainframe->enqueueMessage(JText::translate('VBMESSDELBUSY'));
+
+			if ($tot_cancs) {
+				// enqueue system message
+				$app->enqueueMessage(JText::translate('VBMESSDELBUSY'));
+			}
 		}
-		if (count($prev_conf_ids) > 0) {
+
+		if ($prev_conf_ids) {
 			$prev_conf_ids_str = '';
 			foreach ($prev_conf_ids as $prev_id) {
-				$prev_conf_ids_str .= '&cid[]='.$prev_id;
+				$prev_conf_ids_str .= '&cid[]=' . $prev_id;
 			}
 			//Invoke Channel Manager
 			$vcm_autosync = VikBooking::vcmAutoUpdate();
@@ -6705,33 +7623,41 @@ class VikBookingController extends JControllerVikBooking
 				$sync_result = $vcm_obj->doSync();
 				if ($sync_result === false) {
 					$vcm_err = $vcm_obj->getError();
-					VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO').' <a href="index.php?option=com_vikchannelmanager" target="_blank">'.JText::translate('VBCHANNELMANAGEROPEN').'</a> '.(strlen($vcm_err) > 0 ? '('.$vcm_err.')' : ''));
+					VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO') . ' <a href="index.php?option=com_vikchannelmanager" target="_blank">' . JText::translate('VBCHANNELMANAGEROPEN') . '</a> ' . (strlen($vcm_err) > 0 ? '(' . $vcm_err . ')' : ''));
 				}
 			} elseif (file_exists(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
-				$vcm_sync_url = 'index.php?option=com_vikbooking&task=invoke_vcm&stype=cancel'.$prev_conf_ids_str.'&returl='.urlencode('index.php?option=com_vikbooking&task=orders');
-				VikError::raiseNotice('', JText::translate('VBCHANNELMANAGERINVOKEASK').' <button type="button" class="btn btn-primary" onclick="document.location.href=\''.$vcm_sync_url.'\';">'.JText::translate('VBCHANNELMANAGERSENDRQ').'</button>');
+				$vcm_sync_url = 'index.php?option=com_vikbooking&task=invoke_vcm&stype=cancel' . $prev_conf_ids_str . '&returl=' . urlencode('index.php?option=com_vikbooking&task=orders');
+				VikError::raiseNotice('', JText::translate('VBCHANNELMANAGERINVOKEASK') . ' <button type="button" class="btn btn-primary" onclick="document.location.href=\'' . $vcm_sync_url . '\';">' . JText::translate('VBCHANNELMANAGERSENDRQ') . '</button>');
 			}
 			//
 		}
 
 		if (!empty($pgoto)) {
 			if (is_numeric($pgoto) && is_array($ids) && count($ids) === 1) {
-				$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . (int)$ids[0]);
+				if ($purged) {
+					// go back to the bookings list page
+					$app->redirect("index.php?option=com_vikbooking&task=orders");
+				} else {
+					// go back to the booking details page
+					$app->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . (int)$ids[0]);
+				}
 				exit;
 			}
 			// we expect the goto URL to be base64 encoded
-			$mainframe->redirect(base64_decode($pgoto));
+			$app->redirect(base64_decode($pgoto));
 			exit;
 		}
+
 		// go back to the bookings list page
-		$mainframe->redirect("index.php?option=com_vikbooking&task=orders");
+		$app->redirect("index.php?option=com_vikbooking&task=orders");
 	}
 
-	public function config() {
+	public function config()
+	{
 		VikBookingHelper::printHeader("11");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'config'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -6739,9 +7665,16 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function saveconfig() {
+	public function saveconfig()
+	{
+		if (!JSession::checkToken()) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
+
 		$dbo = JFactory::getDbo();
 		$app = JFactory::getApplication();
+
+		$config = VBOFactory::getConfig();
 
 		$pallowbooking = VikRequest::getString('allowbooking', '', 'request');
 		$pdisabledbookingmsg = VikRequest::getString('disabledbookingmsg', '', 'request', VIKREQUEST_ALLOWHTML);
@@ -6750,7 +7683,6 @@ class VikBookingController extends JControllerVikBooking
 		$ptimeopenstoreth = VikRequest::getString('timeopenstoreth', '', 'request');
 		$ptimeopenstoretm = VikRequest::getString('timeopenstoretm', '', 'request');
 		$phoursmorebookingback = VikRequest::getString('hoursmorebookingback', '', 'request');
-		$phoursmoreroomavail = VikRequest::getString('hoursmoreroomavail', '', 'request');
 		$pdateformat = VikRequest::getString('dateformat', '', 'request');
 		$pdatesep = VikRequest::getString('datesep', '', 'request');
 		$pdatesep = empty($pdatesep) ? "/" : $pdatesep;
@@ -6804,13 +7736,13 @@ class VikBookingController extends JControllerVikBooking
 			$pnumadultsfrom = '1';
 			$pnumadultsto = '4';
 		}
-		$confnumadults = $pnumadultsfrom.'-'.$pnumadultsto;
-		$confnumchildren = $pnumchildrenfrom.'-'.$pnumchildrento;
+		$confnumadults = $pnumadultsfrom . '-' . $pnumadultsto;
+		$confnumchildren = $pnumchildrenfrom . '-' . $pnumchildrento;
 		$pmaxdate = VikRequest::getString('maxdate', '', 'request');
 		$pmaxdate = intval($pmaxdate) < 1 ? 2 : $pmaxdate;
 		$pmaxdateinterval = VikRequest::getString('maxdateinterval', '', 'request');
 		$pmaxdateinterval = !in_array($pmaxdateinterval, array('d', 'w', 'm', 'y')) ? 'y' : $pmaxdateinterval;
-		$maxdate_str = '+'.$pmaxdate.$pmaxdateinterval;
+		$maxdate_str = '+' . $pmaxdate . $pmaxdateinterval;
 		$pcronkey = VikRequest::getString('cronkey', '', 'request');
 		$pcdsfrom = VikRequest::getVar('cdsfrom', array());
 		$pcdsto = VikRequest::getVar('cdsto', array());
@@ -6832,14 +7764,14 @@ class VikBookingController extends JControllerVikBooking
 		$psmartsearch = VikRequest::getString('smartsearch', '', 'request');
 		$psmartsearch = $psmartsearch == "dynamic" ? "dynamic" : "automatic";
 		$pvbosef = VikRequest::getInt('vbosef', '', 'request');
-		$vbosef = file_exists(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'router.php');
+		$vbosef = file_exists(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'router.php');
 		if ($pvbosef === 1) {
 			if (!$vbosef) {
-				rename(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'_router.php', VBO_SITE_PATH.DIRECTORY_SEPARATOR.'router.php');
+				rename(VBO_SITE_PATH . DIRECTORY_SEPARATOR . '_router.php', VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'router.php');
 			}
 		} else {
 			if ($vbosef) {
-				rename(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'router.php', VBO_SITE_PATH.DIRECTORY_SEPARATOR.'_router.php');
+				rename(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'router.php', VBO_SITE_PATH . DIRECTORY_SEPARATOR . '_router.php');
 			}
 		}
 		$pmultilang = VikRequest::getString('multilang', '', 'request');
@@ -6852,11 +7784,9 @@ class VikBookingController extends JControllerVikBooking
 		 * @since 	1.12
 		 */
 		$pchatenabled = VikRequest::getInt('chatenabled', 0, 'request');
-		if (is_file(VCM_SITE_PATH.DIRECTORY_SEPARATOR.'helpers'.DIRECTORY_SEPARATOR.'lib.vikchannelmanager.php')) {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pchatenabled)." WHERE `param`='chatenabled';";
-			$dbo->setQuery($q);
-			$dbo->execute();
-			
+		if (is_file(VCM_SITE_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'lib.vikchannelmanager.php')) {
+			$config->set('chatenabled', $pchatenabled);
+
 			// chat params
 			$pchat_res_status = explode(';', VikRequest::getString('chat_res_status', '', 'request'));
 			$chat_res_status = array();
@@ -6870,11 +7800,9 @@ class VikBookingController extends JControllerVikBooking
 			$chatparams->av_type = VikRequest::getString('chat_av_type', '', 'request');
 			$chatparams->av_days = VikRequest::getInt('chat_av_days', 0, 'request');
 
-			$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote(json_encode($chatparams))." WHERE `param`='chatparams';";
-			$dbo->setQuery($q);
-			$dbo->execute();
+			$config->set('chatparams', $chatparams);
 		}
-		
+
 		/**
 		 * Pre check-in configuration settings
 		 * 
@@ -6882,29 +7810,20 @@ class VikBookingController extends JControllerVikBooking
 		 */
 		$pprecheckinenabled = VikRequest::getInt('precheckinenabled', 0, 'request');
 		$pprecheckinenabled = $pprecheckinenabled > 0 ? 1 : 0;
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pprecheckinenabled)." WHERE `param`='precheckinenabled';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote(VikRequest::getInt('precheckinminoffset', 0, 'request'))." WHERE `param`='precheckinminoffset';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+
+		$config->set('precheckinenabled', $pprecheckinenabled);
+		$config->set('precheckinminoffset', VikRequest::getInt('precheckinminoffset', 0, 'request'));
 
 		$pupsellingenabled = VikRequest::getInt('upsellingenabled', 0, 'request');
 		$pupsellingenabled = $pupsellingenabled > 0 ? 1 : 0;
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pupsellingenabled)." WHERE `param`='upselling';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('upselling', $pupsellingenabled);
 
 		$porphanscal = VikRequest::getString('orphanscal', 'next', 'request');
 		$porphanscal = $porphanscal == 'prevnext' ? 'prevnext' : 'next';
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($porphanscal)." WHERE `param`='orphanscalculation';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('orphanscalculation', $porphanscal);
 
 		$psrcrtpl = VikRequest::getString('srcrtpl', 'compact', 'request');
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($psrcrtpl)." WHERE `param`='searchrestmpl';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('searchrestmpl', $psrcrtpl);
 
 		/**
 		 * Guest Reviews settings
@@ -6918,18 +7837,10 @@ class VikBookingController extends JControllerVikBooking
 		$pgrtype = VikRequest::getString('grtype', 'service', 'request');
 		$pgrtype = $pgrtype == 'service' ? 'service' : 'global';
 		$pgrsrv = VikRequest::getVar('grsrv', array(), 'request', 'array');
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pgrenabled)." WHERE `param`='grenabled';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pgrminchars)." WHERE `param`='grminchars';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pgrappr)." WHERE `param`='grappr';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pgrtype)." WHERE `param`='grtype';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('grenabled', $pgrenabled);
+		$config->set('grminchars', $pgrminchars);
+		$config->set('grappr', $pgrappr);
+		$config->set('grtype', $pgrtype);
 		try {
 			// always truncate service names (this query may require special permissions)
 			$q = "TRUNCATE TABLE `#__vikbooking_greview_service`;";
@@ -6947,8 +7858,8 @@ class VikBookingController extends JControllerVikBooking
 		/**
 		 * Preferred countries ordering, or custom countries.
 		 * 
-		 * @since 	1.3.11
-		 * @since 	1.4.1 we also support "cust_pref_countries"
+		 * @since 	1.14 (J) - 1.3.11 (WP)
+		 * @since 	1.14.1 (J) - 1.4.1 (WP) we also support "cust_pref_countries"
 		 */
 		$pref_countries = VikRequest::getVar('pref_countries', array());
 		$cust_pref_countries = VikRequest::getString('cust_pref_countries', '', 'request');
@@ -6967,15 +7878,11 @@ class VikBookingController extends JControllerVikBooking
 				$pref_countries = $all_custom_prefcountries;
 			}
 		}
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=" . $dbo->quote(json_encode($pref_countries)) . " WHERE `param`='preferred_countries';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('preferred_countries', $pref_countries);
 		//
 
 		$gmapskey = VikRequest::getString('gmapskey', '', 'request');
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($gmapskey)." WHERE `param`='gmapskey';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('gmapskey', $gmapskey);
 
 		$pref_textcolor = VikRequest::getString('pref_textcolor', '', 'request');
 		$pref_bgcolor = VikRequest::getString('pref_bgcolor', '', 'request');
@@ -6989,19 +7896,13 @@ class VikBookingController extends JControllerVikBooking
 			'bgcolorhov' => $pref_bgcolorhov,
 			'fontcolorhov' => $pref_fontcolorhov,
 		);
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote(json_encode($pref_colors))." WHERE `param`='pref_colors';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('pref_colors', $pref_colors);
 
 		$interactive_map = VikRequest::getInt('interactive_map', 0, 'request');
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($interactive_map)." WHERE `param`='interactive_map';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('interactive_map', $interactive_map);
 
 		$noemptydecimals = VikRequest::getInt('noemptydecimals', 0, 'request');
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($noemptydecimals)." WHERE `param`='noemptydecimals';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('noemptydecimals', $noemptydecimals);
 
 		/**
 		 * Appearance preferences (light, auto, dark mode).
@@ -7009,174 +7910,121 @@ class VikBookingController extends JControllerVikBooking
 		 * @since 	1.15.0 (J) - 1.5.0 (WP)
 		 */
 		$appearance_pref = VikRequest::getString('appearance_pref', '');
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($appearance_pref)." WHERE `param`='appearance_pref';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('appearance_pref', $appearance_pref);
 
-		$res_backend_path = VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR;
-		$picon="";
-		if (intval($_FILES['sitelogo']['error']) == 0 && trim($_FILES['sitelogo']['name'])!="") {
+		$res_backend_path = VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR;
+		$picon = "";
+		if (intval($_FILES['sitelogo']['error']) == 0 && trim($_FILES['sitelogo']['name']) != "") {
 			jimport('joomla.filesystem.file');
 			if (@is_uploaded_file($_FILES['sitelogo']['tmp_name'])) {
-				$safename=JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['sitelogo']['name'])));
-				if (file_exists($res_backend_path.$safename)) {
-					$j=1;
-					while (file_exists($res_backend_path.$j.$safename)) {
+				$safename = JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['sitelogo']['name'])));
+				if (file_exists($res_backend_path . $safename)) {
+					$j = 1;
+					while (file_exists($res_backend_path . $j . $safename)) {
 						$j++;
 					}
-					$pwhere=$res_backend_path.$j.$safename;
+					$pwhere = $res_backend_path . $j . $safename;
 				} else {
-					$j="";
-					$pwhere=$res_backend_path.$safename;
+					$j = "";
+					$pwhere = $res_backend_path . $safename;
 				}
-				if (!getimagesize($_FILES['sitelogo']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico)\z/i", $safename)) {
+				if (!getimagesize($_FILES['sitelogo']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico|webp)\z/i", $safename)) {
 					@unlink($pwhere);
-					$picon="";
+					$picon = "";
 				} else {
 					VikBooking::uploadFile($_FILES['sitelogo']['tmp_name'], $pwhere);
 					@chmod($pwhere, 0644);
-					$picon=$j.$safename;
+					$picon = $j . $safename;
 				}
 			}
 			if (!empty($picon)) {
-				$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($picon)." WHERE `param`='sitelogo';";
-				$dbo->setQuery($q);
-				$dbo->execute();
+				$config->set('sitelogo', $picon);
 			}
 		}
 		$pbackicon = "";
-		if (intval($_FILES['backlogo']['error']) == 0 && trim($_FILES['backlogo']['name'])!="") {
+		if (intval($_FILES['backlogo']['error']) == 0 && trim($_FILES['backlogo']['name']) != "") {
 			jimport('joomla.filesystem.file');
 			if (@is_uploaded_file($_FILES['backlogo']['tmp_name'])) {
-				$safename=JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['backlogo']['name'])));
-				if (file_exists($res_backend_path.$safename)) {
-					$j=1;
-					while (file_exists($res_backend_path.$j.$safename)) {
+				$safename = JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['backlogo']['name'])));
+				if (file_exists($res_backend_path . $safename)) {
+					$j = 1;
+					while (file_exists($res_backend_path . $j . $safename)) {
 						$j++;
 					}
-					$pwhere=$res_backend_path.$j.$safename;
+					$pwhere = $res_backend_path . $j . $safename;
 				} else {
-					$j="";
-					$pwhere=$res_backend_path.$safename;
+					$j = "";
+					$pwhere = $res_backend_path . $safename;
 				}
-				if (!getimagesize($_FILES['backlogo']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico)\z/i", $safename)) {
+				if (!getimagesize($_FILES['backlogo']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico|webp)\z/i", $safename)) {
 					@unlink($pwhere);
-					$pbackicon="";
+					$pbackicon = "";
 				} else {
 					VikBooking::uploadFile($_FILES['backlogo']['tmp_name'], $pwhere);
 					@chmod($pwhere, 0644);
-					$pbackicon=$j.$safename;
+					$pbackicon = $j . $safename;
 				}
 			}
 			if (!empty($pbackicon)) {
-				$q = "SELECT `setting` FROM `#__vikbooking_config` WHERE `param`='backlogo';";
-				$dbo->setQuery($q);
-				$dbo->execute();
-				if ($dbo->getNumRows() > 0) {
-					$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pbackicon)." WHERE `param`='backlogo';";
-					$dbo->setQuery($q);
-					$dbo->execute();
-				} else {
-					$q = "INSERT INTO `#__vikbooking_config` (`param`,`setting`) VALUES ('backlogo',".$dbo->quote($pbackicon).");";
-					$dbo->setQuery($q);
-					$dbo->execute();
-				}
+				$config->set('backlogo', $pbackicon);
 			}
 		}
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pvcmautoupd)." WHERE `param`='vcmautoupd';";
+		$config->set('vcmautoupd', $pvcmautoupd);
+		$config->set('allowbooking', empty($pallowbooking) || $pallowbooking != "1" ? 0 : 1);
+		$config->set('showcategories', empty($pshowcategories) || $pshowcategories != "yes" ? 0 : 1);
+		$config->set('showchildren', empty($pshowchildren) || $pshowchildren != "yes" ? 0 : 1);
+		$config->set('searchsuggestions', $psearchsuggestions);
+		$config->set('tokenform', empty($ptokenform) || $ptokenform != "yes" ? 0 : 1);
+		$config->set('guests_label', $app->input->getString('guests_label', 'adults'));
+
+		// translatable text
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($pfooterordmail) . " WHERE `param`='footerordmail';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		if (empty($pallowbooking) || $pallowbooking!="1") {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='0' WHERE `param`='allowbooking';";
-		} else {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='1' WHERE `param`='allowbooking';";
-		}
+
+		// translatable text
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($pdisabledbookingmsg) . " WHERE `param`='disabledbookingmsg';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		if (empty($pshowcategories) || $pshowcategories!="yes") {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='0' WHERE `param`='showcategories';";
-		} else {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='1' WHERE `param`='showcategories';";
-		}
+
+		// translatable text
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->q($app->input->getString('guests_allowed_policy', '', 'raw')) . " WHERE `param`='guests_allowed_policy';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		if (empty($pshowchildren) || $pshowchildren!="yes") {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='0' WHERE `param`='showchildren';";
-		} else {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='1' WHERE `param`='showchildren';";
-		}
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$psearchsuggestions."' WHERE `param`='searchsuggestions';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		if (empty($ptokenform) || $ptokenform!="yes") {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='0' WHERE `param`='tokenform';";
-		} else {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='1' WHERE `param`='tokenform';";
-		}
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($pfooterordmail)." WHERE `param`='footerordmail';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($pdisabledbookingmsg)." WHERE `param`='disabledbookingmsg';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		//terms and conditions
+
+		// terms and conditions
 		$q = "SELECT `id`,`setting` FROM `#__vikbooking_texts` WHERE `param`='termsconds';";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() > 0) {
-			$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($ptermsconds)." WHERE `param`='termsconds';";
+			$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($ptermsconds) . " WHERE `param`='termsconds';";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		} else {
-			$q = "INSERT INTO `#__vikbooking_texts` (`param`,`exp`,`setting`) VALUES ('termsconds','Terms and Conditions',".$dbo->quote($ptermsconds).");";
+			$q = "INSERT INTO `#__vikbooking_texts` (`param`,`exp`,`setting`) VALUES ('termsconds','Terms and Conditions'," . $dbo->quote($ptermsconds) . ");";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
-		//
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($padminemail)." WHERE `param`='adminemail';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($psenderemail)." WHERE `param`='senderemail';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		if (empty($pdateformat)) {
-			$pdateformat="%d/%m/%Y";
-		}
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pdateformat)." WHERE `param`='dateformat';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pdatesep)." WHERE `param`='datesep';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($presmodcanc)." WHERE `param`='resmodcanc';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($presmodcancmin)." WHERE `param`='resmodcancmin';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pminuteslock)." WHERE `param`='minuteslock';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pminautoremove)." WHERE `param`='minautoremove';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$openingh=$ptimeopenstorefh * 3600;
-		$openingm=$ptimeopenstorefm * 60;
-		$openingts=$openingh + $openingm;
-		$closingh=$ptimeopenstoreth * 3600;
-		$closingm=$ptimeopenstoretm * 60;
-		$closingts=$closingh + $closingm;
-		//check if the check-in/out times have changed and if there are future bookings with the old time to prevent availability errors
-		$q = "SELECT `setting` FROM `#__vikbooking_config` WHERE `param`='timeopenstore';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$prevtimes = $dbo->loadResult();
-		if ($prevtimes != $openingts."-".$closingts) {
-			$q = "SELECT `id` FROM `#__vikbooking_orders` WHERE `checkout`>".time().";";
+
+		$config->set('adminemail', $padminemail);
+		$config->set('senderemail', $psenderemail);
+		$config->set('dateformat', empty($pdateformat) ? "%d/%m/%Y" : $pdateformat);
+		$config->set('datesep', $pdatesep);
+		$config->set('resmodcanc', $presmodcanc);
+		$config->set('resmodcancmin', $presmodcancmin);
+		$config->set('minuteslock', $pminuteslock);
+		$config->set('minautoremove', $pminautoremove);
+
+		$openingh  = $ptimeopenstorefh * 3600;
+		$openingm  = $ptimeopenstorefm * 60;
+		$openingts = $openingh + $openingm;
+		$closingh  = $ptimeopenstoreth * 3600;
+		$closingm  = $ptimeopenstoretm * 60;
+		$closingts = $closingh + $closingm;
+		// check if the check-in/out times have changed and if there are future bookings with the old time to prevent availability errors
+		$prevtimes = $config->get('timeopenstore', '');
+		if ($prevtimes != $openingts . "-" . $closingts) {
+			$q = "SELECT `id` FROM `#__vikbooking_orders` WHERE `checkout`>" . time() . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() > 0) {
@@ -7187,85 +8035,40 @@ class VikBookingController extends JControllerVikBooking
 				 * 
 				 * @since 	August 29th 2018
 				 */
-				VikError::raiseWarning('', '<br/><a href="index.php?option=com_vikbooking&task=unifycheckinout&fh='.$ptimeopenstorefh.'&fm='.$ptimeopenstorefm.'&th='.$ptimeopenstoreth.'&tm='.$ptimeopenstoretm.'" class="btn btn-large btn-warning">'.JText::translate('VBAPPLY').'</a>');
+				VikError::raiseWarning('', '<br/><a href="index.php?option=com_vikbooking&task=unifycheckinout&fh=' . $ptimeopenstorefh . '&fm=' . $ptimeopenstorefm . '&th=' . $ptimeopenstoreth . '&tm=' . $ptimeopenstoretm . '" class="btn btn-large btn-warning">' . JText::translate('VBAPPLY') . '</a>');
 				//
 			}
 		}
-		//
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$openingts."-".$closingts."' WHERE `param`='timeopenstore';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		//set the hours of extended gratuity period to the difference between checkin and checkout if checkout is later
+		$config->set('timeopenstore', $openingts . "-" . $closingts);
+
+		// set the hours of extended gratuity period to the difference between checkin and checkout if checkout is later
 		$phoursmorebookingback = "0";
 		if ($closingts > $openingts) {
 			$diffcheck = ($closingts - $openingts) / 3600;
 			$phoursmorebookingback = ceil($diffcheck);
 		}
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$phoursmorebookingback."' WHERE `param`='hoursmorebookingback';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$phoursmoreroomavail = "0";
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$phoursmoreroomavail."' WHERE `param`='hoursmoreroomavail';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$pmultilang."' WHERE `param`='multilang';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".($prequirelogin == "1" ? "1" : "0")."' WHERE `param`='requirelogin';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".($pautoroomunit == 1 ? "1" : "0")."' WHERE `param`='autoroomunit';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".(string)$ptodaybookings."' WHERE `param`='todaybookings';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".(string)$ploadbootstrap."' WHERE `param`='bootstrap';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".(string)$pusefa."' WHERE `param`='usefa';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$ploadjquery."' WHERE `param`='loadjquery';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$pcalendar."' WHERE `param`='calendar';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$penablecoupons."' WHERE `param`='enablecoupons';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$penablepin."' WHERE `param`='enablepin';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$pmindaysadvance."' WHERE `param`='mindaysadvance';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$pautodefcalnights."' WHERE `param`='autodefcalnights';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$pnumrooms."' WHERE `param`='numrooms';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$confnumadults."' WHERE `param`='numadults';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$confnumchildren."' WHERE `param`='numchildren';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".json_encode($closing_dates)."' WHERE `param`='closingdates';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$psmartsearch."' WHERE `param`='smartsearch';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$maxdate_str."' WHERE `param`='maxdate';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pcronkey)." WHERE `param`='cronkey';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		
+		$config->set('hoursmorebookingback', $phoursmorebookingback);
+		$config->set('hoursmoreroomavail', '0');
+		$config->set('multilang', $pmultilang);
+		$config->set('requirelogin', $prequirelogin == "1" ? 1 : 0);
+		$config->set('autoroomunit', $pautoroomunit ? 1 : 0);
+		$config->set('todaybookings', $ptodaybookings);
+		$config->set('bootstrap', $ploadbootstrap);
+		$config->set('usefa', $pusefa);
+		$config->set('loadjquery', $ploadjquery);
+		$config->set('calendar', $pcalendar);
+		$config->set('enablecoupons', $penablecoupons);
+		$config->set('enablepin', $penablepin);
+		$config->set('mindaysadvance', $pmindaysadvance);
+		$config->set('autodefcalnights', $pautodefcalnights);
+		$config->set('numrooms', $pnumrooms);
+		$config->set('numadults', $confnumadults);
+		$config->set('numchildren', $confnumchildren);
+		$config->set('closingdates', $closing_dates);
+		$config->set('smartsearch', $psmartsearch);
+		$config->set('maxdate', $maxdate_str);
+		$config->set('cronkey', $pcronkey);
+
 		$pfronttitle = VikRequest::getString('fronttitle', '', 'request');
 		$pfronttitletag = VikRequest::getString('fronttitletag', '', 'request');
 		$pfronttitletagclass = VikRequest::getString('fronttitletagclass', '', 'request');
@@ -7280,14 +8083,14 @@ class VikBookingController extends JControllerVikBooking
 		$pdecseparator = VikRequest::getString('decseparator', '', 'request');
 		$pdecseparator = empty($pdecseparator) ? '.' : $pdecseparator;
 		$pthoseparator = VikRequest::getString('thoseparator', '', 'request');
-		$numberformatstr = $pnumdecimals.':'.$pdecseparator.':'.$pthoseparator;
+		$numberformatstr = $pnumdecimals . ':' . $pdecseparator . ':' . $pthoseparator;
 		$pshowpartlyreserved = VikRequest::getString('showpartlyreserved', '', 'request');
 		$pshowpartlyreserved = $pshowpartlyreserved == "yes" ? 1 : 0;
 		$pshowcheckinoutonly = VikRequest::getInt('showcheckinoutonly', '', 'request');
 		$pshowcheckinoutonly = $pshowcheckinoutonly > 0 ? 1 : 0;
 		$pnumcalendars = VikRequest::getInt('numcalendars', '', 'request');
 		$pnumcalendars = $pnumcalendars > -1 ? $pnumcalendars : 3;
-		$pthumbsize = VikRequest::getInt('thumbsize', '', 'request');
+		$pthumbsize = VikRequest::getInt('thumbsize', 0, 'request');
 		$pfirstwday = VikRequest::getString('firstwday', '', 'request');
 		$pfirstwday = intval($pfirstwday) >= 0 && intval($pfirstwday) <= 6 ? $pfirstwday : '0';
 		$pbctagname = VikRequest::getVar('bctagname', array());
@@ -7311,9 +8114,9 @@ class VikBookingController extends JControllerVikBooking
 			$ptheme = 'default';
 		} else {
 			$validtheme = false;
-			$themes = glob(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'themes'.DIRECTORY_SEPARATOR.'*');
+			$themes = glob(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'themes' . DIRECTORY_SEPARATOR . '*');
 			if (count($themes) > 0) {
-				$strip = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'themes'.DIRECTORY_SEPARATOR;
+				$strip = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'themes' . DIRECTORY_SEPARATOR;
 				foreach ($themes as $th) {
 					if (is_dir($th)) {
 						$tname = str_replace($strip, '', $th);
@@ -7328,74 +8131,41 @@ class VikBookingController extends JControllerVikBooking
 				$ptheme = 'default';
 			}
 		}
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($ptheme)." WHERE `param`='theme';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('theme', $ptheme);
 		//
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pshowpartlyreserved)." WHERE `param`='showpartlyreserved';";
+		$config->set('showpartlyreserved', $pshowpartlyreserved);
+		$config->set('showcheckinoutonly', $pshowcheckinoutonly);
+		$config->set('numcalendars', $pnumcalendars);
+
+		// record may not be set
+		$config->set('thumbsize', $pthumbsize);
+
+		$config->set('firstwday', $pfirstwday);
+
+		// translatable text
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($pfronttitle) . " WHERE `param`='fronttitle';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pshowcheckinoutonly)." WHERE `param`='showcheckinoutonly';";
+
+		$config->set('fronttitletag', $pfronttitletag);
+		$config->set('fronttitletagclass', $pfronttitletagclass);
+		$config->set('showfooter', empty($pshowfooter) || $pshowfooter != "yes" ? 0 : 1);
+
+		// translatable texts
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($pintromain) . " WHERE `param`='intromain';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pnumcalendars)." WHERE `param`='numcalendars';";
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($pclosingmain) . " WHERE `param`='closingmain';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pthumbsize)." WHERE `param`='thumbsize';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pfirstwday)." WHERE `param`='firstwday';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($pfronttitle)." WHERE `param`='fronttitle';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pfronttitletag)." WHERE `param`='fronttitletag';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pfronttitletagclass)." WHERE `param`='fronttitletagclass';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		if (empty($pshowfooter) || $pshowfooter!="yes") {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='0' WHERE `param`='showfooter';";
-		} else {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='1' WHERE `param`='showfooter';";
-		}
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($pintromain)." WHERE `param`='intromain';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($pclosingmain)." WHERE `param`='closingmain';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pcurrencyname)." WHERE `param`='currencyname';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pcurrencysymb)." WHERE `param`='currencysymb';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pcurrencycodepp)." WHERE `param`='currencycodepp';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($numberformatstr)." WHERE `param`='numberformat';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		//Bookings color tags
-		$q = "SELECT `setting` FROM `#__vikbooking_config` WHERE `param`='bookingsctags';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote(json_encode($bctags_arr))." WHERE `param`='bookingsctags';";
-			$dbo->setQuery($q);
-			$dbo->execute();
-		} else {
-			$q = "INSERT INTO `#__vikbooking_config` (`param`,`setting`) VALUES ('bookingsctags',".$dbo->quote(json_encode($bctags_arr)).");";
-			$dbo->setQuery($q);
-			$dbo->execute();
-		}
-		//
-		
+
+		$config->set('currencyname', $pcurrencyname);
+		$config->set('currencysymb', $pcurrencysymb);
+		$config->set('currencycodepp', $pcurrencycodepp);
+		$config->set('numberformat', $numberformatstr);
+		// bookings color tags
+		$config->set('bookingsctags', $bctags_arr);
+
 		$pivainclusa = VikRequest::getString('ivainclusa', '', 'request');
 		$ptaxsummary = VikRequest::getString('taxsummary', '', 'request');
 		$ptaxsummary = empty($ptaxsummary) || $ptaxsummary != "yes" ? "0" : "1";
@@ -7406,73 +8176,43 @@ class VikBookingController extends JControllerVikBooking
 		$ptypedeposit = $ptypedeposit == 'fixed' ? 'fixed' : 'pcent';
 		$pdepoverrides = VikRequest::getString('depoverrides', '', 'request');
 		$ppaymentname = VikRequest::getString('paymentname', '', 'request');
+		$pdisclaimer = VikRequest::getString('disclaimer', '', 'request', VIKREQUEST_ALLOWHTML);
 		$pmultipay = VikRequest::getString('multipay', '', 'request');
 		$pmultipay = $pmultipay == "yes" ? 1 : 0;
 		$pdepifdaysadv = VikRequest::getInt('depifdaysadv', '', 'request');
 		$pnodepnonrefund = VikRequest::getInt('nodepnonrefund', '', 'request');
 		$pdepcustchoice = VikRequest::getString('depcustchoice', '', 'request');
 		$pdepcustchoice = $pdepcustchoice == "yes" ? 1 : 0;
-		if (empty($pivainclusa) || $pivainclusa!="yes") {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='0' WHERE `param`='ivainclusa';";
-		} else {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='1' WHERE `param`='ivainclusa';";
-		}
+
+		// translatable text
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->q($ppaymentname) . " WHERE `param`='paymentname';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$ptaxsummary."' WHERE `param`='taxsummary';";
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->q($pdisclaimer) . " WHERE `param`='disclaimer';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		if (empty($ppaytotal) || $ppaytotal!="yes") {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='0' WHERE `param`='paytotal';";
-		} else {
-			$q = "UPDATE `#__vikbooking_config` SET `setting`='1' WHERE `param`='paytotal';";
-		}
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pccpaypal)." WHERE `param`='ccpaypal';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($ppaymentname)." WHERE `param`='paymentname';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($ppayaccpercent)." WHERE `param`='payaccpercent';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($ptypedeposit)." WHERE `param`='typedeposit';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pdepoverrides)." WHERE `param`='depoverrides';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$pmultipay."' WHERE `param`='multipay';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$pdepifdaysadv."' WHERE `param`='depifdaysadv';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$pnodepnonrefund."' WHERE `param`='nodepnonrefund';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$pdepcustchoice."' WHERE `param`='depcustchoice';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		
-		$pdisclaimer = VikRequest::getString('disclaimer', '', 'request', VIKREQUEST_ALLOWHTML);
+
+		$config->set('ivainclusa', empty($pivainclusa) || $pivainclusa != "yes" ? 0 : 1);
+		$config->set('taxsummary', $ptaxsummary);
+		$config->set('paytotal', empty($ppaytotal) || $ppaytotal != "yes" ? 0 : 1);
+
+		$config->set('ccpaypal', $pccpaypal);
+		$config->set('payaccpercent', $ppayaccpercent);
+		$config->set('typedeposit', $ptypedeposit);
+		$config->set('depoverrides', $pdepoverrides);
+		$config->set('multipay', $pmultipay);
+		$config->set('depifdaysadv', $pdepifdaysadv);
+		$config->set('nodepnonrefund', $pnodepnonrefund);
+		$config->set('depcustchoice', $pdepcustchoice);
+
 		$psendemailwhen = VikRequest::getInt('sendemailwhen', '', 'request');
 		$psendemailwhen = $psendemailwhen > 1 ? 2 : 1;
 		$pattachical = VikRequest::getInt('attachical', 0, 'request');
 		$pattachical = $pattachical >= 0 && $pattachical <= 3 ? $pattachical : 1;
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($psendemailwhen)." WHERE `param`='emailsendwhen';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pattachical)." WHERE `param`='attachical';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($pdisclaimer)." WHERE `param`='disclaimer';";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$config->set('emailsendwhen', $psendemailwhen);
+		$config->set('attachical', $pattachical);
 
-		//SMS APIs
+		// SMS APIs
 		$psmsapi = VikRequest::getString('smsapi', '', 'request');
 		$psmsautosend = VikRequest::getString('smsautosend', '', 'request');
 		$psmsautosend = intval($psmsautosend) > 0 ? 1 : 0;
@@ -7501,40 +8241,30 @@ class VikBookingController extends JControllerVikBooking
 				}
 			}
 		}
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$psmsapi."' WHERE `param`='smsapi';";
+		$config->set('smsapi', $psmsapi);
+		$config->set('smsautosend', $psmsautosend);
+		$config->set('smssendto', $sms_sendto);
+		$config->set('smssendwhen', $psmssendwhen);
+		$config->set('smsadminphone', $psmsadminphone);
+		$config->set('smsparams', $smsparamarr);
+
+		// translatable texts
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($psmsadmintpl) . " WHERE `param`='smsadmintpl';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$psmsautosend."' WHERE `param`='smsautosend';";
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($psmscustomertpl) . " WHERE `param`='smscustomertpl';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote(json_encode($sms_sendto))." WHERE `param`='smssendto';";
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($psmsadmintplpend) . " WHERE `param`='smsadmintplpend';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$psmssendwhen."' WHERE `param`='smssendwhen';";
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($psmscustomertplpend) . " WHERE `param`='smscustomertplpend';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`='".$psmsadminphone."' WHERE `param`='smsadminphone';";
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($psmsadmintplcanc) . " WHERE `param`='smsadmintplcanc';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote(json_encode($smsparamarr))." WHERE `param`='smsparams';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($psmsadmintpl)." WHERE `param`='smsadmintpl';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($psmscustomertpl)." WHERE `param`='smscustomertpl';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($psmsadmintplpend)." WHERE `param`='smsadmintplpend';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($psmscustomertplpend)." WHERE `param`='smscustomertplpend';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($psmsadmintplcanc)." WHERE `param`='smsadmintplcanc';";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_texts` SET `setting`=".$dbo->quote($psmscustomertplcanc)." WHERE `param`='smscustomertplcanc';";
+		$q = "UPDATE `#__vikbooking_texts` SET `setting`=" . $dbo->quote($psmscustomertplcanc) . " WHERE `param`='smscustomertplcanc';";
 		$dbo->setQuery($q);
 		$dbo->execute();
 
@@ -7543,38 +8273,31 @@ class VikBookingController extends JControllerVikBooking
 		 * 
 		 * @since 	1.15.0 (J) - 1.5.0 (WP)
 		 */
-		$config = VBOFactory::getConfig();
-
 		$backup_type   = $app->input->getString('backuptype', 'full');
 		$backup_folder = $app->input->getString('backupfolder', '');
 
 		$tmp = $app->get('tmp_path');
 
-		if (!$backup_folder)
-		{
+		if (!$backup_folder) {
 			// path not specified, use temporary folder
 			$backup_folder = $tmp;
 		}
 
 		$current = $config->get('backupfolder');
 
-		if (!$current)
-		{
+		if (!$current) {
 			// path was missing, use temporary folder
 			$current = $tmp;
 		}
 
 		// check whether the backup folder has been moved
-		if ($current && $backup_folder && rtrim($current, DIRECTORY_SEPARATOR) !== rtrim($backup_folder, DIRECTORY_SEPARATOR))
-		{
+		if ($current && $backup_folder && rtrim($current, DIRECTORY_SEPARATOR) !== rtrim($backup_folder, DIRECTORY_SEPARATOR)) {
 			$backupModel = new VBOModelBackup();
 
 			// backup folder moved, try to copy all the existing overrides
-			if (!$backupModel->moveArchives($backup_folder))
-			{
+			if (!$backupModel->moveArchives($backup_folder)) {
 				// iterate all errors and display them
-				foreach ($backupModel->getErrors() as $error)
-				{
+				foreach ($backupModel->getErrors() as $error) {
 					$app->enqueueMessage($error, 'warning');
 				}
 			}
@@ -7598,59 +8321,132 @@ class VikBookingController extends JControllerVikBooking
 		 */
 		$config->set('appearance_front', VikRequest::getInt('appearance_front', 0, 'request'));
 
+		/**
+		 * Split stays.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$glob_split_stay  = VikRequest::getInt('split_stay', 0, 'request');
+		$split_stay_ratio = VikRequest::getFloat('split_stay_ratio', 0, 'request');
+		$split_stay_ratio = $split_stay_ratio > 100 ? 100 : $split_stay_ratio;
+		$config->set('split_stay_ratio', ($glob_split_stay && $split_stay_ratio > 0 ? $split_stay_ratio : 0));
+
+		/**
+		 * Re-build Web App manifest file to let the event trigger.
+		 * 
+		 * @since 	1.16.5 (J) - 1.6.5 (WP)
+		 */
+		try {
+			VBOWebappManifest::build();
+		} catch (Exception $e) {
+			// do nothing
+		}
+
 		// redirect
 		$app->enqueueMessage(JText::translate('VBSETTINGSAVED'));
-		$app->redirect("index.php?option=com_vikbooking&task=config");
+		$app->redirect('index.php?option=com_vikbooking&task=config');
+		$app->close();
 	}
 
 	/**
-	 * Unify the check-in and check-out times for all reservations.
-	 * 
-	 * @since 	1.10 - Patch August 29th 2018
+	 * Task to unify the check-in and check-out times for all reservations.
 	 */
-	public function unifycheckinout() {
-		$dbo = JFactory::getDBO();
-		$mainframe = JFactory::getApplication();
+	public function unifycheckinout()
+	{
+		$dbo  = JFactory::getDbo();
+		$app  = JFactory::getApplication();
+		$user = JFactory::getUser();
+
 		$fh = VikRequest::getInt('fh', 12, 'request');
 		$fm = VikRequest::getInt('fm', 0, 'request');
 		$th = VikRequest::getInt('th', 10, 'request');
 		$tm = VikRequest::getInt('tm', 0, 'request');
-		$totmod = 0;
+
+		$now 		= time();
+		$totmod 	= 0;
 		$totbookmod = 0;
-		$q = "SELECT * FROM `#__vikbooking_busy`;";
+
+		// query all busy records
+		$q = $dbo->getQuery(true)
+			->select('*')
+			->from($dbo->qn('#__vikbooking_busy'));
+
 		$dbo->setQuery($q);
-		$dbo->execute();
 		$records = $dbo->loadAssocList();
+
 		foreach ($records as $v) {
 			$info_start = getdate($v['checkin']);
-			$info_end = getdate($v['checkout']);
-			$new_start = mktime($fh, $fm, 0, $info_start['mon'], $info_start['mday'], $info_start['year']);
-			$new_end = mktime($th, $tm, 0, $info_end['mon'], $info_end['mday'], $info_end['year']);
-			$q = "UPDATE `#__vikbooking_busy` SET `checkin`=".$new_start.",`checkout`=".$new_end.",`realback`=".$new_end." WHERE `id`=".$v['id']." LIMIT 1;";
-			$dbo->setQuery($q);
+			$info_end 	= getdate($v['checkout']);
+			$new_start  = mktime($fh, $fm, 0, $info_start['mon'], $info_start['mday'], $info_start['year']);
+			$new_end 	= mktime($th, $tm, 0, $info_end['mon'], $info_end['mday'], $info_end['year']);
+
+			$q = $dbo->getQuery(true)
+				->update($dbo->qn('#__vikbooking_busy'))
+				->set($dbo->qn('checkin') . ' = ' . $new_start)
+				->set($dbo->qn('checkout') . ' = ' . $new_end)
+				->set($dbo->qn('realback') . ' = ' . $new_end)
+				->where($dbo->qn('id') . ' = ' . (int)$v['id']);
+
+			$dbo->setQuery($q, 0, 1);
 			$dbo->execute();
+
 			$totmod++;
 		}
 
-		$q = "SELECT * FROM `#__vikbooking_orders`;";
+		// query all bookings
+		$q = $dbo->getQuery(true)
+			->select($dbo->qn([
+				'id',
+				'days',
+				'checkin',
+				'checkout',
+				'total',
+			]))
+			->from($dbo->qn('#__vikbooking_orders'))
+			->order($dbo->qn('checkin') . ' DESC');
+
 		$dbo->setQuery($q);
-		$dbo->execute();
 		$records = $dbo->loadAssocList();
+
 		foreach ($records as $v) {
 			$info_start = getdate($v['checkin']);
-			$info_end = getdate($v['checkout']);
-			$new_start = mktime($fh, $fm, 0, $info_start['mon'], $info_start['mday'], $info_start['year']);
-			$new_end = mktime($th, $tm, 0, $info_end['mon'], $info_end['mday'], $info_end['year']);
-			$q = "UPDATE `#__vikbooking_orders` SET `checkin`=".$new_start.",`checkout`=".$new_end." WHERE `id`=".$v['id']." LIMIT 1;";
-			$dbo->setQuery($q);
+			$info_end   = getdate($v['checkout']);
+			$new_start  = mktime($fh, $fm, 0, $info_start['mon'], $info_start['mday'], $info_start['year']);
+			$new_end    = mktime($th, $tm, 0, $info_end['mon'], $info_end['mday'], $info_end['year']);
+
+			$q = $dbo->getQuery(true)
+				->update($dbo->qn('#__vikbooking_orders'))
+				->set($dbo->qn('checkin') . ' = ' . $new_start)
+				->set($dbo->qn('checkout') . ' = ' . $new_end)
+				->where($dbo->qn('id') . ' = ' . (int)$v['id']);
+
+			$dbo->setQuery($q, 0, 1);
 			$dbo->execute();
+
+			/**
+			 * In case the operation changed the check-in/check-out time for this booking,
+			 * store a new history record for a booking modification.
+			 * 
+			 * @since 	1.16.6 (J) - 1.6.6 (WP)
+			 */
+			if ($v['checkout'] > $now && ($info_start['hours'] != $fh || $info_end['hours'] != $th)) {
+				// Booking History
+				VikBooking::getBookingHistoryInstance($v['id'])->store('MB', "({$user->name}) " . VikBooking::getLogBookingModification($v));
+			}
+
 			$totbookmod++;
 		}
-		$mainframe->enqueueMessage('OK: '.$totbookmod);
-		$mainframe->redirect("index.php?option=com_vikbooking&task=config");
+
+		$app->enqueueMessage('OK: ' . $totbookmod);
+		$app->redirect("index.php?option=com_vikbooking&task=config");
+		$app->close();
 	}
 
-	public function savetmplfile() {
+	public function savetmplfile()
+	{
+		if (!JSession::checkToken()) {
+			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
+		}
 		$fpath = VikRequest::getString('path', '', 'request', VIKREQUEST_ALLOWRAW);
 		$pcont = VikRequest::getString('cont', '', 'request', VIKREQUEST_ALLOWRAW);
 		$mainframe = JFactory::getApplication();
@@ -7665,43 +8461,48 @@ class VikBookingController extends JControllerVikBooking
 			fclose($fp);
 			if ($byt > 0) {
 				$mainframe->enqueueMessage(JText::translate('VBOUPDTMPLFILEOK'));
-				/**
-				 * @wponly  call the UpdateManager Class to temporarily store modifications made to template files
-				 */
-				VikBookingUpdateManager::storeTemplateContent($fpath, $pcont);
-				//
+
+				if (VBOPlatformDetection::isWordPress()) {
+					/**
+					 * @wponly  call the UpdateManager Class to temporarily store modifications made to template files
+					 */
+					VikBookingUpdateManager::storeTemplateContent($fpath, $pcont);
+				}
 			} else {
 				VikError::raiseWarning('', JText::translate('VBOUPDTMPLFILENOBYTES'));
 			}
 		} else {
 			VikError::raiseWarning('', JText::translate('VBOUPDTMPLFILEERR'));
 		}
-		$mainframe->redirect("index.php?option=com_vikbooking&task=edittmplfile&path=".$fpath."&tmpl=component");
+		$mainframe->redirect("index.php?option=com_vikbooking&task=edittmplfile&path=" . $fpath . "&tmpl=component");
 
 		exit;
 	}
 
-	public function edittmplfile() {
+	public function edittmplfile()
+	{
 		//modal box, so we do not set menu or footer
-	
+
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'edittmplfile'));
-	
+
 		parent::display();
 	}
 
-	public function tmplfileprew() {
+	public function tmplfileprew()
+	{
 		//modal box, so we do not set menu or footer
-	
+
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'tmplfileprew'));
-	
+
 		parent::display();
 	}
 
-	public function invoices() {
+	public function invoices()
+	{
 		VikBookingHelper::printHeader("invoices");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'invoices'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -7709,11 +8510,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newmaninvoice() {
+	public function newmaninvoice()
+	{
 		VikBookingHelper::printHeader("invoices");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managemaninvoice'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -7721,11 +8523,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editmaninvoice() {
+	public function editmaninvoice()
+	{
 		VikBookingHelper::printHeader("invoices");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managemaninvoice'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -7733,7 +8536,8 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function savemaninvoice() {
+	public function savemaninvoice()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -7748,7 +8552,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=invoices");
 	}
 
-	public function updatemaninvoice() {
+	public function updatemaninvoice()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -7764,7 +8569,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=invoices");
 	}
 
-	public function updatemaninvoicestay() {
+	public function updatemaninvoicestay()
+	{
 		$invid = VikRequest::getInt('whereup', 0, 'request');
 		$this->do_storemaninvoice('updatestay', $invid);
 		$mainframe = JFactory::getApplication();
@@ -7774,10 +8580,11 @@ class VikBookingController extends JControllerVikBooking
 			$mainframe->redirect(base64_decode($pgoto));
 			exit;
 		}
-		$mainframe->redirect("index.php?option=com_vikbooking&task=editmaninvoice&cid[]=".$invid);
+		$mainframe->redirect("index.php?option=com_vikbooking&task=editmaninvoice&cid[]=" . $invid);
 	}
 
-	private function do_storemaninvoice($action, $invid = 0) {
+	private function do_storemaninvoice($action, $invid = 0)
+	{
 		$dbo = JFactory::getDBO();
 		$mainframe = JFactory::getApplication();
 		$pinvoice_num = VikRequest::getInt('invoice_num', '', 'request');
@@ -7788,7 +8595,7 @@ class VikBookingController extends JControllerVikBooking
 		$pinvoice_notes = VikRequest::getString('invoice_notes', '', 'request', VIKREQUEST_ALLOWHTML);
 		$pinvoice_notes = strpos($pinvoice_notes, '<') !== false ? $pinvoice_notes : nl2br($pinvoice_notes);
 		$pidcustomer = VikRequest::getInt('idcustomer', '', 'request');
-		$error_uri = strpos($action, 'update') !== false && !empty($invid) ? 'index.php?option=com_vikbooking&task=editmaninvoice&cid[]='.$invid : 'index.php?option=com_vikbooking&task=newmaninvoice';
+		$error_uri = strpos($action, 'update') !== false && !empty($invid) ? 'index.php?option=com_vikbooking&task=editmaninvoice&cid[]=' . $invid : 'index.php?option=com_vikbooking&task=newmaninvoice';
 		if (empty($pidcustomer)) {
 			VikError::raiseWarning('', JText::translate('VBNOCUSTOMERS'));
 			$mainframe->redirect($error_uri);
@@ -7831,13 +8638,13 @@ class VikBookingController extends JControllerVikBooking
 		$retval = 0;
 		if (strpos($action, 'save') !== false) {
 			$pdffname = $nowts . '_' . rand() . '.pdf';
-			$q = "INSERT INTO `#__vikbooking_invoices` (`number`,`file_name`,`idorder`,`idcustomer`,`created_on`,`for_date`,`rawcont`) VALUES (".$dbo->quote($pinvoice_num.$pinvoice_suff).", ".$dbo->quote($pdffname).", ".($pinvoice_num - ($pinvoice_num * 2)).", ".$dbo->quote($pidcustomer).", ".$nowts.", ".$nowts.", ".$dbo->quote(json_encode($rawcont)).");";
+			$q = "INSERT INTO `#__vikbooking_invoices` (`number`,`file_name`,`idorder`,`idcustomer`,`created_on`,`for_date`,`rawcont`) VALUES (" . $dbo->quote($pinvoice_num . $pinvoice_suff) . ", " . $dbo->quote($pdffname) . ", " . ($pinvoice_num - ($pinvoice_num * 2)) . ", " . $dbo->quote($pidcustomer) . ", " . $nowts . ", " . $nowts . ", " . $dbo->quote(json_encode($rawcont)) . ");";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			$retval = $dbo->insertid();
 		} else {
 			// fetch old record
-			$q = "SELECT * FROM `#__vikbooking_invoices` WHERE `id`=".(int)$invid.";";
+			$q = "SELECT * FROM `#__vikbooking_invoices` WHERE `id`=" . (int)$invid . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if (!$dbo->getNumRows()) {
@@ -7847,13 +8654,13 @@ class VikBookingController extends JControllerVikBooking
 			}
 			$previnvoice = $dbo->loadAssoc();
 			//
-			$q = "UPDATE `#__vikbooking_invoices` SET `number`=".$dbo->quote($pinvoice_num.$pinvoice_suff).",`file_name`=".$dbo->quote($previnvoice['file_name']).",`idorder`=".($pinvoice_num - ($pinvoice_num * 2)).",`idcustomer`=".$dbo->quote($pidcustomer).",`created_on`=".$nowts.",`rawcont`=".$dbo->quote(json_encode($rawcont))." WHERE `id`=".(int)$previnvoice['id'].";";
+			$q = "UPDATE `#__vikbooking_invoices` SET `number`=" . $dbo->quote($pinvoice_num . $pinvoice_suff) . ",`file_name`=" . $dbo->quote($previnvoice['file_name']) . ",`idorder`=" . ($pinvoice_num - ($pinvoice_num * 2)) . ",`idcustomer`=" . $dbo->quote($pidcustomer) . ",`created_on`=" . $nowts . ",`rawcont`=" . $dbo->quote(json_encode($rawcont)) . " WHERE `id`=" . (int)$previnvoice['id'] . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			$retval = $previnvoice['id'];
 		}
 		// update config values for the invoice
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pcompany_info)." WHERE `param`='invcompanyinfo';";
+		$q = "UPDATE `#__vikbooking_config` SET `setting`=" . $dbo->quote($pcompany_info) . " WHERE `param`='invcompanyinfo';";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		// generate the custom invoice
@@ -7866,7 +8673,7 @@ class VikBookingController extends JControllerVikBooking
 			 * IMPORTANT: update the next invoice number after calling the e-Invocing drivers
 			 * to avoid conflicts with the drivers for the e-invoices generation.
 			 */
-			$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote(($pinvoice_num - 1))." WHERE `param`='invoiceinum';";
+			$q = "UPDATE `#__vikbooking_config` SET `setting`=" . $dbo->quote(($pinvoice_num - 1)) . " WHERE `param`='invoiceinum';";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
@@ -7874,21 +8681,22 @@ class VikBookingController extends JControllerVikBooking
 		return $retval;
 	}
 
-	public function downloadinvoices() {
+	public function downloadinvoices()
+	{
 		$ids = VikRequest::getVar('cid', array(0));
 		if (@count($ids) > 0) {
 			$dbo = JFactory::getDBO();
-			$q = "SELECT * FROM `#__vikbooking_invoices` WHERE `id` IN (".implode(', ', $ids).");";
+			$q = "SELECT * FROM `#__vikbooking_invoices` WHERE `id` IN (" . implode(', ', $ids) . ");";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() > 0) {
 				$invoices = $dbo->loadAssocList();
 				if (!(count($invoices) > 1)) {
 					//Single Invoice Download
-					if (file_exists(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'helpers'.DIRECTORY_SEPARATOR.'invoices'.DIRECTORY_SEPARATOR.'generated'.DIRECTORY_SEPARATOR.$invoices[0]['file_name'])) {
+					if (file_exists(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'invoices' . DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR . $invoices[0]['file_name'])) {
 						header("Content-type:application/pdf");
-						header("Content-Disposition:attachment;filename=".$invoices[0]['file_name']);
-						readfile(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'helpers'.DIRECTORY_SEPARATOR.'invoices'.DIRECTORY_SEPARATOR.'generated'.DIRECTORY_SEPARATOR.$invoices[0]['file_name']);
+						header("Content-Disposition:attachment;filename=" . $invoices[0]['file_name']);
+						readfile(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'invoices' . DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR . $invoices[0]['file_name']);
 						exit;
 					}
 				} else {
@@ -7896,10 +8704,10 @@ class VikBookingController extends JControllerVikBooking
 					$to_zip = array();
 					foreach ($invoices as $k => $invoice) {
 						$to_zip[$k]['name'] = $invoice['file_name'];
-						$to_zip[$k]['path'] = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'helpers'.DIRECTORY_SEPARATOR.'invoices'.DIRECTORY_SEPARATOR.'generated'.DIRECTORY_SEPARATOR.$invoice['file_name'];
+						$to_zip[$k]['path'] = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'invoices' . DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR . $invoice['file_name'];
 					}
 					if (class_exists('ZipArchive')) {
-						$zip_path = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'helpers'.DIRECTORY_SEPARATOR.'invoices'.DIRECTORY_SEPARATOR.'generated'.DIRECTORY_SEPARATOR.date('Y-m-d').'-invoices.zip';
+						$zip_path = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'invoices' . DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR . date('Y-m-d') . '-invoices.zip';
 						$zip = new ZipArchive;
 						$zip->open($zip_path, ZipArchive::CREATE);
 						foreach ($to_zip as $k => $zipv) {
@@ -7907,8 +8715,8 @@ class VikBookingController extends JControllerVikBooking
 						}
 						$zip->close();
 						header("Content-type:application/zip");
-						header("Content-Disposition:attachment;filename=".date('Y-m-d').'-invoices.zip');
-						header("Content-Length:".filesize($zip_path));
+						header("Content-Disposition:attachment;filename=" . date('Y-m-d') . '-invoices.zip');
+						header("Content-Length:" . filesize($zip_path));
 						readfile($zip_path);
 						unlink($zip_path);
 						exit;
@@ -7923,7 +8731,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=invoices");
 	}
 
-	public function resendinvoices() {
+	public function resendinvoices()
+	{
 		$ids = VikRequest::getVar('cid', array(0));
 		$mainframe = JFactory::getApplication();
 		if (!(count($ids) > 0)) {
@@ -7932,12 +8741,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 		$dbo = JFactory::getDBO();
 		$invoices = array();
-		$q = "SELECT `i`.*,`o`.`custmail`,`c`.`email` AS `customer_email`, CONCAT_WS(' ',`c`.`first_name`,`c`.`last_name`) AS `customer_name`,`c`.`country` AS `customer_country`,`nat`.`country_name` ".
+		$q = "SELECT `i`.*,`o`.`custmail`,`c`.`email` AS `customer_email`, CONCAT_WS(' ',`c`.`first_name`,`c`.`last_name`) AS `customer_name`,`c`.`country` AS `customer_country`,`nat`.`country_name` " .
 			"FROM `#__vikbooking_invoices` AS `i` " .
 			"LEFT JOIN `#__vikbooking_orders` `o` ON `o`.`id`=`i`.`idorder` " .
 			"LEFT JOIN `#__vikbooking_customers` `c` ON `c`.`id`=`i`.`idcustomer` " .
 			"LEFT JOIN `#__vikbooking_countries` `nat` ON `nat`.`country_3_code`=`c`.`country` " .
-			"WHERE `i`.`id` IN (".implode(', ', $ids).") AND (`i`.`idorder` < 0 OR (`o`.`status`='confirmed' AND `o`.`total` > 0)) ORDER BY `o`.`id` ASC;";
+			"WHERE `i`.`id` IN (" . implode(', ', $ids) . ") AND (`i`.`idorder` < 0 OR (`o`.`status`='confirmed' AND `o`.`total` > 0)) ORDER BY `o`.`id` ASC;";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() > 0) {
@@ -7962,21 +8771,22 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=invoices");
 	}
 
-	public function removeinvoices() {
+	public function removeinvoices()
+	{
 		$ids = VikRequest::getVar('cid', array());
 		$tot_removed = 0;
 		$dbo = JFactory::getDbo();
 
 		foreach ($ids as $d) {
-			$q = "SELECT * FROM `#__vikbooking_invoices` WHERE `id`=".(int)$d.";";
+			$q = "SELECT * FROM `#__vikbooking_invoices` WHERE `id`=" . (int)$d . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() == 1) {
 				$cur_invoice = $dbo->loadAssoc();
-				if (file_exists(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'helpers'.DIRECTORY_SEPARATOR.'invoices'.DIRECTORY_SEPARATOR.'generated'.DIRECTORY_SEPARATOR.$cur_invoice['file_name'])) {
-					unlink(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'helpers'.DIRECTORY_SEPARATOR.'invoices'.DIRECTORY_SEPARATOR.'generated'.DIRECTORY_SEPARATOR.$cur_invoice['file_name']);
+				if (file_exists(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'invoices' . DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR . $cur_invoice['file_name'])) {
+					unlink(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'invoices' . DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR . $cur_invoice['file_name']);
 				}
-				$q = "DELETE FROM `#__vikbooking_invoices` WHERE `id`=".(int)$d.";";
+				$q = "DELETE FROM `#__vikbooking_invoices` WHERE `id`=" . (int)$d . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				$tot_removed++;
@@ -7988,7 +8798,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=invoices");
 	}
 
-	public function geninvoices() {
+	public function geninvoices()
+	{
 		$ids = VikRequest::getVar('cid', array(0));
 		$mainframe = JFactory::getApplication();
 		if (!count($ids)) {
@@ -8008,7 +8819,7 @@ class VikBookingController extends JControllerVikBooking
 		$pconfirmgen = VikRequest::getInt('confirmgen', '', 'request');
 		//if editing an invoice (re-creating an existing invoice for a booking), do not increment the invoice number
 		if (count($ids) == 1) {
-			$q = "SELECT `number` FROM `#__vikbooking_invoices` WHERE `idorder`=".(int)$ids[0].";";
+			$q = "SELECT `number` FROM `#__vikbooking_invoices` WHERE `idorder`=" . (int)$ids[0] . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() == 1) {
@@ -8017,7 +8828,7 @@ class VikBookingController extends JControllerVikBooking
 		}
 		//
 		$bookings = array();
-		$q = "SELECT `o`.*,`co`.`idcustomer`,CONCAT_WS(' ',`c`.`first_name`,`c`.`last_name`) AS `customer_name`,`c`.`pin` AS `customer_pin`,`nat`.`country_name` FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_customers_orders` `co` ON `co`.`idorder`=`o`.`id` LEFT JOIN `#__vikbooking_customers` `c` ON `c`.`id`=`co`.`idcustomer` LEFT JOIN `#__vikbooking_countries` `nat` ON `nat`.`country_3_code`=`o`.`country` WHERE `o`.`id` IN (".implode(', ', $ids).") AND `o`.`status`='confirmed' AND `o`.`total` > 0 ORDER BY `o`.`id` ASC;";
+		$q = "SELECT `o`.*,`co`.`idcustomer`,CONCAT_WS(' ',`c`.`first_name`,`c`.`last_name`) AS `customer_name`,`c`.`pin` AS `customer_pin`,`nat`.`country_name` FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_customers_orders` `co` ON `co`.`idorder`=`o`.`id` LEFT JOIN `#__vikbooking_customers` `c` ON `c`.`id`=`co`.`idcustomer` LEFT JOIN `#__vikbooking_countries` `nat` ON `nat`.`country_3_code`=`o`.`country` WHERE `o`.`id` IN (" . implode(', ', $ids) . ") AND `o`.`status`='confirmed' AND `o`.`total` > 0 ORDER BY `o`.`id` ASC;";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() > 0) {
@@ -8050,19 +8861,19 @@ class VikBookingController extends JControllerVikBooking
 			 * IMPORTANT: update the next invoice number after calling generateBookingInvoice()
 			 * to avoid conflicts with the drivers for the e-invoices generation.
 			 */
-			$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote(($pinvoice_num - 1))." WHERE `param`='invoiceinum';";
+			$q = "UPDATE `#__vikbooking_config` SET `setting`=" . $dbo->quote(($pinvoice_num - 1)) . " WHERE `param`='invoiceinum';";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pinvoice_suff)." WHERE `param`='invoicesuffix';";
+		$q = "UPDATE `#__vikbooking_config` SET `setting`=" . $dbo->quote($pinvoice_suff) . " WHERE `param`='invoicesuffix';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($pcompany_info)." WHERE `param`='invcompanyinfo';";
+		$q = "UPDATE `#__vikbooking_config` SET `setting`=" . $dbo->quote($pcompany_info) . " WHERE `param`='invcompanyinfo';";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		$mainframe->enqueueMessage(JText::sprintf('VBOTOTINVOICESGEND', $tot_generated, $tot_sent));
 		if ($pconfirmgen > 0) {
-			$mainframe->redirect("index.php?option=com_vikbooking&task=invoices&show=".$pconfirmgen);
+			$mainframe->redirect("index.php?option=com_vikbooking&task=invoices&show=" . $pconfirmgen);
 		} elseif (count($bookings) === 1) {
 			// go to the back-end booking details page
 			$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . $bookings[0]['id']);
@@ -8071,11 +8882,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function optionals() {
+	public function optionals()
+	{
 		VikBookingHelper::printHeader("6");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'optionals'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -8083,11 +8895,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function newoptionals() {
+	public function newoptionals()
+	{
 		VikBookingHelper::printHeader("6");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageoptional'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -8095,11 +8908,12 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function editoptional() {
+	public function editoptional()
+	{
 		VikBookingHelper::printHeader("6");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageoptional'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -8107,21 +8921,24 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function updateoptional() {
+	public function updateoptional()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updateoptional();
 	}
 
-	public function updateoptionalstay() {
+	public function updateoptionalstay()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updateoptional(true);
 	}
 
-	private function do_updateoptional($stay = false) {
+	private function do_updateoptional($stay = false)
+	{
 		$dbo = JFactory::getDbo();
 		$app = JFactory::getApplication();
 		$poptname = VikRequest::getString('optname', '', 'request');
@@ -8158,9 +8975,9 @@ class VikBookingController extends JControllerVikBooking
 		$pavto = VikRequest::getString('avto', '', 'request');
 		$ppcentroom = VikRequest::getInt('pcentroom', 0, 'request');
 		$pidrooms = VikRequest::getVar('idrooms', array());
-		$optavstr = empty($palwaysav) && !empty($pavfrom) && !empty($pavto) ? VikBooking::getDateTimestamp($pavfrom, 0, 0, 0).';'.VikBooking::getDateTimestamp($pavto, 23, 59, 59) : '';
+		$optavstr = empty($palwaysav) && !empty($pavfrom) && !empty($pavto) ? VikBooking::getDateTimestamp($pavfrom, 0, 0, 0) . ';' . VikBooking::getDateTimestamp($pavto, 23, 59, 59) : '';
 		if ($pforcesel == 1) {
-			$strforceval = intval($pforceval)."-".($pforcevalperday == "1" ? "1" : "0")."-".($pforcevalperchild == "1" ? "1" : "0")."-".($pforcesummary == "1" ? "1" : "0");
+			$strforceval = intval($pforceval) . "-" . ($pforcevalperday == "1" ? "1" : "0") . "-" . ($pforcevalperchild == "1" ? "1" : "0") . "-" . ($pforcesummary == "1" ? "1" : "0");
 		} else {
 			$strforceval = "";
 		}
@@ -8190,12 +9007,14 @@ class VikBookingController extends JControllerVikBooking
 			}
 		}
 		$damagedep = VikRequest::getInt('damagedep', 0, 'request');
+		$pet_fee = VikRequest::getInt('pet_fee', 0, 'request');
 		$oparams = array(
 			'minguestsnum' 	=> $minguestsnum,
 			'mingueststype' => $mingueststype,
 			'maxguestsnum' 	=> $maxguestsnum,
 			'maxgueststype' => $maxgueststype,
 			'damagedep' 	=> $damagedep,
+			'pet_fee' 		=> $pet_fee,
 		);
 		/**
 		 * We fetch the previous params to merge them with the new ones 
@@ -8215,46 +9034,46 @@ class VikBookingController extends JControllerVikBooking
 		}
 		//
 		if (!empty($poptname)) {
-			if (intval($_FILES['optimg']['error']) == 0 && VikBooking::caniWrite(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR) && trim($_FILES['optimg']['name'])!="") {
+			if (intval($_FILES['optimg']['error']) == 0 && VikBooking::caniWrite(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR) && trim($_FILES['optimg']['name']) != "") {
 				jimport('joomla.filesystem.file');
-				$updpath = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
+				$updpath = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 				if (@is_uploaded_file($_FILES['optimg']['tmp_name'])) {
-					$safename=JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['optimg']['name'])));
-					if (file_exists($updpath.$safename)) {
-						$j=1;
-						while (file_exists($updpath.$j.$safename)) {
+					$safename = JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['optimg']['name'])));
+					if (file_exists($updpath . $safename)) {
+						$j = 1;
+						while (file_exists($updpath . $j . $safename)) {
 							$j++;
 						}
-						$pwhere=$updpath.$j.$safename;
+						$pwhere = $updpath . $j . $safename;
 					} else {
-						$j="";
-						$pwhere=$updpath.$safename;
+						$j = "";
+						$pwhere = $updpath . $safename;
 					}
-					if (!getimagesize($_FILES['optimg']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico)\z/i", $safename)) {
+					if (!getimagesize($_FILES['optimg']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico|webp)\z/i", $safename)) {
 						@unlink($pwhere);
-						$picon="";
+						$picon = "";
 					} else {
 						VikBooking::uploadFile($_FILES['optimg']['tmp_name'], $pwhere);
 						@chmod($pwhere, 0644);
-						$picon=$j.$safename;
-						if ($pautoresize=="1" && !empty($presizeto)) {
+						$picon = $j . $safename;
+						if ($pautoresize == "1" && !empty($presizeto)) {
 							$eforj = new vikResizer();
-							$origmod = $eforj->proportionalImage($pwhere, $updpath.'r_'.$j.$safename, $presizeto, $presizeto);
+							$origmod = $eforj->proportionalImage($pwhere, $updpath . 'r_' . $j . $safename, $presizeto, $presizeto);
 							if ($origmod) {
 								@unlink($pwhere);
-								$picon='r_'.$j.$safename;
+								$picon = 'r_' . $j . $safename;
 							}
 						}
 					}
 				} else {
-					$picon="";
+					$picon = "";
 				}
 			} else {
-				$picon="";
+				$picon = "";
 			}
-			($poptperday=="each" ? $poptperday="1" : $poptperday="0");
-			$poptperperson=($poptperperson=="each" ? "1" : "0");
-			($popthmany=="yes" ? $popthmany="1" : $popthmany="0");
+			($poptperday == "each" ? $poptperday = "1" : $poptperday = "0");
+			$poptperperson = ($poptperperson == "each" ? "1" : "0");
+			($popthmany == "yes" ? $popthmany = "1" : $popthmany = "0");
 			$ageintervalstr = '';
 			if ($pifchildren == 1 && count($pagefrom) > 0 && count($pagecost) > 0 && count($pagefrom) == count($pagecost)) {
 				foreach ($pagefrom as $kage => $vage) {
@@ -8263,7 +9082,7 @@ class VikBookingController extends JControllerVikBooking
 					$acost = floatval($pagecost[$kage]);
 					if (strlen($vage) > 0 && strlen($pagecost[$kage]) > 0) {
 						if ($ato < $afrom) $ato = $afrom;
-						$ageintervalstr .= $afrom.'_'.$ato.'_'.$acost.(array_key_exists($kage, $pagectype) && strpos($pagectype[$kage], '%') !== false ? '_%'.(strpos($pagectype[$kage], '%b') !== false ? 'b' : '') : '').';;';
+						$ageintervalstr .= $afrom . '_' . $ato . '_' . $acost . (array_key_exists($kage, $pagectype) && strpos($pagectype[$kage], '%') !== false ? '_%' . (strpos($pagectype[$kage], '%b') !== false ? 'b' : '') : '') . ';;';
 					}
 				}
 				$ageintervalstr = rtrim($ageintervalstr, ';;');
@@ -8271,7 +9090,7 @@ class VikBookingController extends JControllerVikBooking
 					$pforcesel = 1;
 				}
 			}
-			$q = "UPDATE `#__vikbooking_optionals` SET `name`=".$dbo->quote($poptname).",`descr`=".$dbo->quote($poptdescr).",`cost`=".$dbo->quote($poptcost).",`perday`=".$dbo->quote($poptperday).",`hmany`=".$dbo->quote($popthmany).",".(strlen($picon)>0 ? "`img`='".$picon."'," : "")."`idiva`=".$dbo->quote($poptaliq).", `maxprice`=".$dbo->quote($pmaxprice).", `forcesel`='".$pforcesel."', `forceval`='".$strforceval."', `perperson`='".$poptperperson."', `ifchildren`='".$pifchildren."', `maxquant`='".$pmaxquant."', `ageintervals`='".$ageintervalstr."',`is_citytax`=".$pis_citytax.",`is_fee`=".$pis_fee.",`alwaysav`=".$dbo->quote($optavstr).",`pcentroom`=".$dbo->quote($ppcentroom).",`oparams`=" . $dbo->quote(json_encode($oparams)) . " WHERE `id`=".$dbo->quote($pwhereup).";";
+			$q = "UPDATE `#__vikbooking_optionals` SET `name`=" . $dbo->quote($poptname) . ",`descr`=" . $dbo->quote($poptdescr) . ",`cost`=" . $dbo->quote($poptcost) . ",`perday`=" . $dbo->quote($poptperday) . ",`hmany`=" . $dbo->quote($popthmany) . "," . (strlen($picon) > 0 ? "`img`='" . $picon . "'," : "") . "`idiva`=" . $dbo->quote($poptaliq) . ", `maxprice`=" . $dbo->quote($pmaxprice) . ", `forcesel`='" . $pforcesel . "', `forceval`='" . $strforceval . "', `perperson`='" . $poptperperson . "', `ifchildren`='" . $pifchildren . "', `maxquant`='" . $pmaxquant . "', `ageintervals`='" . $ageintervalstr . "',`is_citytax`=" . $pis_citytax . ",`is_fee`=" . $pis_fee . ",`alwaysav`=" . $dbo->quote($optavstr) . ",`pcentroom`=" . $dbo->quote($ppcentroom) . ",`oparams`=" . $dbo->quote(json_encode($oparams)) . " WHERE `id`=" . $dbo->quote($pwhereup) . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			$app->enqueueMessage(JText::translate('VBOSUCCUPDOPTION'));
@@ -8346,21 +9165,24 @@ class VikBookingController extends JControllerVikBooking
 		$app->redirect("index.php?option=com_vikbooking&task=" . ($stay ? 'editoptional&cid[]=' . $pwhereup : 'optionals'));
 	}
 
-	public function createoptionals() {
+	public function createoptionals()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_createoptionals();
 	}
 
-	public function createoptionalsstay() {
+	public function createoptionalsstay()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_createoptionals(true);
 	}
 
-	private function do_createoptionals($stay = false) {
+	private function do_createoptionals($stay = false)
+	{
 		$dbo = JFactory::getDbo();
 		$poptname = VikRequest::getString('optname', '', 'request');
 		$poptdescr = VikRequest::getString('optdescr', '', 'request', VIKREQUEST_ALLOWHTML);
@@ -8395,9 +9217,9 @@ class VikBookingController extends JControllerVikBooking
 		$pavto = VikRequest::getString('avto', '', 'request');
 		$ppcentroom = VikRequest::getInt('pcentroom', 0, 'request');
 		$pidrooms = VikRequest::getVar('idrooms', array());
-		$optavstr = empty($palwaysav) && !empty($pavfrom) && !empty($pavto) ? VikBooking::getDateTimestamp($pavfrom, 0, 0, 0).';'.VikBooking::getDateTimestamp($pavto, 23, 59, 59) : '';
+		$optavstr = empty($palwaysav) && !empty($pavfrom) && !empty($pavto) ? VikBooking::getDateTimestamp($pavfrom, 0, 0, 0) . ';' . VikBooking::getDateTimestamp($pavto, 23, 59, 59) : '';
 		if ($pforcesel == 1) {
-			$strforceval = intval($pforceval)."-".($pforcevalperday == "1" ? "1" : "0")."-".($pforcevalperchild == "1" ? "1" : "0")."-".($pforcesummary == "1" ? "1" : "0");
+			$strforceval = intval($pforceval) . "-" . ($pforcevalperday == "1" ? "1" : "0") . "-" . ($pforcevalperchild == "1" ? "1" : "0") . "-" . ($pforcesummary == "1" ? "1" : "0");
 		} else {
 			$strforceval = "";
 		}
@@ -8427,42 +9249,44 @@ class VikBookingController extends JControllerVikBooking
 			}
 		}
 		$damagedep = VikRequest::getInt('damagedep', 0, 'request');
+		$pet_fee = VikRequest::getInt('pet_fee', 0, 'request');
 		$oparams = array(
 			'minguestsnum' 	=> $minguestsnum,
 			'mingueststype' => $mingueststype,
 			'maxguestsnum' 	=> $maxguestsnum,
 			'maxgueststype' => $maxgueststype,
 			'damagedep' 	=> $damagedep,
+			'pet_fee' 		=> $pet_fee,
 		);
 		if (!empty($poptname)) {
-			if (intval($_FILES['optimg']['error']) == 0 && VikBooking::caniWrite(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR) && trim($_FILES['optimg']['name'])!="") {
+			if (intval($_FILES['optimg']['error']) == 0 && VikBooking::caniWrite(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR) && trim($_FILES['optimg']['name']) != "") {
 				jimport('joomla.filesystem.file');
-				$updpath = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
+				$updpath = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 				if (@is_uploaded_file($_FILES['optimg']['tmp_name'])) {
-					$safename=JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['optimg']['name'])));
-					if (file_exists($updpath.$safename)) {
+					$safename = JFile::makeSafe(str_replace(" ", "_", strtolower($_FILES['optimg']['name'])));
+					if (file_exists($updpath . $safename)) {
 						$j = 1;
-						while (file_exists($updpath.$j.$safename)) {
+						while (file_exists($updpath . $j . $safename)) {
 							$j++;
 						}
-						$pwhere = $updpath.$j.$safename;
+						$pwhere = $updpath . $j . $safename;
 					} else {
 						$j = "";
-						$pwhere = $updpath.$safename;
+						$pwhere = $updpath . $safename;
 					}
-					if (!getimagesize($_FILES['optimg']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico)\z/i", $safename)) {
+					if (!getimagesize($_FILES['optimg']['tmp_name']) || !preg_match("/\.(a?png|jpe?g|bmp|gif|ico|webp)\z/i", $safename)) {
 						@unlink($pwhere);
 						$picon = "";
 					} else {
 						VikBooking::uploadFile($_FILES['optimg']['tmp_name'], $pwhere);
 						@chmod($pwhere, 0644);
-						$picon = $j.$safename;
+						$picon = $j . $safename;
 						if ($pautoresize == "1" && !empty($presizeto)) {
 							$eforj = new vikResizer();
-							$origmod = $eforj->proportionalImage($pwhere, $updpath.'r_'.$j.$safename, $presizeto, $presizeto);
+							$origmod = $eforj->proportionalImage($pwhere, $updpath . 'r_' . $j . $safename, $presizeto, $presizeto);
 							if ($origmod) {
 								@unlink($pwhere);
-								$picon = 'r_'.$j.$safename;
+								$picon = 'r_' . $j . $safename;
 							}
 						}
 					}
@@ -8483,7 +9307,7 @@ class VikBookingController extends JControllerVikBooking
 					$acost = floatval($pagecost[$kage]);
 					if (strlen($vage) > 0 && strlen($pagecost[$kage]) > 0) {
 						if ($ato < $afrom) $ato = $afrom;
-						$ageintervalstr .= $afrom.'_'.$ato.'_'.$acost.(array_key_exists($kage, $pagectype) && strpos($pagectype[$kage], '%') !== false ? '_%'.(strpos($pagectype[$kage], '%b') !== false ? 'b' : '') : '').';;';
+						$ageintervalstr .= $afrom . '_' . $ato . '_' . $acost . (array_key_exists($kage, $pagectype) && strpos($pagectype[$kage], '%') !== false ? '_%' . (strpos($pagectype[$kage], '%b') !== false ? 'b' : '') : '') . ';;';
 					}
 				}
 				$ageintervalstr = rtrim($ageintervalstr, ';;');
@@ -8500,7 +9324,7 @@ class VikBookingController extends JControllerVikBooking
 			} else {
 				$newsortnum = 1;
 			}
-			$q = "INSERT INTO `#__vikbooking_optionals` (`name`,`descr`,`cost`,`perday`,`hmany`,`img`,`idiva`,`maxprice`,`forcesel`,`forceval`,`perperson`,`ifchildren`,`maxquant`,`ordering`,`ageintervals`,`is_citytax`,`is_fee`,`alwaysav`,`pcentroom`,`oparams`) VALUES(".$dbo->quote($poptname).", ".$dbo->quote($poptdescr).", ".$dbo->quote($poptcost).", ".$dbo->quote($poptperday).", ".$dbo->quote($popthmany).", '".$picon."', ".$dbo->quote($poptaliq).", ".$dbo->quote($pmaxprice).", '".$pforcesel."', '".$strforceval."', '".$poptperperson."', '".$pifchildren."', '".$pmaxquant."', '".$newsortnum."', '".$ageintervalstr."', '".$pis_citytax."', '".$pis_fee."', ".$dbo->quote($optavstr).", ".$dbo->quote($ppcentroom).", " . $dbo->quote(json_encode($oparams)) . ");";
+			$q = "INSERT INTO `#__vikbooking_optionals` (`name`,`descr`,`cost`,`perday`,`hmany`,`img`,`idiva`,`maxprice`,`forcesel`,`forceval`,`perperson`,`ifchildren`,`maxquant`,`ordering`,`ageintervals`,`is_citytax`,`is_fee`,`alwaysav`,`pcentroom`,`oparams`) VALUES(" . $dbo->quote($poptname) . ", " . $dbo->quote($poptdescr) . ", " . $dbo->quote($poptcost) . ", " . $dbo->quote($poptperday) . ", " . $dbo->quote($popthmany) . ", '" . $picon . "', " . $dbo->quote($poptaliq) . ", " . $dbo->quote($pmaxprice) . ", '" . $pforcesel . "', '" . $strforceval . "', '" . $poptperperson . "', '" . $pifchildren . "', '" . $pmaxquant . "', '" . $newsortnum . "', '" . $ageintervalstr . "', '" . $pis_citytax . "', '" . $pis_fee . "', " . $dbo->quote($optavstr) . ", " . $dbo->quote($ppcentroom) . ", " . $dbo->quote(json_encode($oparams)) . ");";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			$newoptid = $dbo->insertid();
@@ -8572,13 +9396,13 @@ class VikBookingController extends JControllerVikBooking
 				}
 				//
 			}
-
 		}
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=" . ($stay && isset($newoptid) && !empty($newoptid) ? 'editoptional&cid[]=' . $newoptid : 'optionals'));
 	}
 
-	public function removeoptionals() {
+	public function removeoptionals()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -8586,16 +9410,16 @@ class VikBookingController extends JControllerVikBooking
 		if (@count($ids)) {
 			$dbo = JFactory::getDbo();
 			foreach ($ids as $d) {
-				$q = "SELECT `img` FROM `#__vikbooking_optionals` WHERE `id`=".$dbo->quote($d).";";
+				$q = "SELECT `img` FROM `#__vikbooking_optionals` WHERE `id`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				if ($dbo->getNumRows() == 1) {
 					$rows = $dbo->loadAssocList();
-					if (!empty($rows[0]['img']) && file_exists(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.$rows[0]['img'])) {
-						@unlink(VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.$rows[0]['img']);
+					if (!empty($rows[0]['img']) && file_exists(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $rows[0]['img'])) {
+						@unlink(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $rows[0]['img']);
 					}
-				}	
-				$q = "DELETE FROM `#__vikbooking_optionals` WHERE `id`=".$dbo->quote($d).";";
+				}
+				$q = "DELETE FROM `#__vikbooking_optionals` WHERE `id`=" . $dbo->quote($d) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -8604,7 +9428,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect("index.php?option=com_vikbooking&task=optionals");
 	}
 
-	public function sendcustomsms() {
+	public function sendcustomsms()
+	{
 		$mainframe = JFactory::getApplication();
 		$pphone = VikRequest::getString('phone', '', 'request');
 		$psmscont = VikRequest::getString('smscont', '', 'request');
@@ -8613,11 +9438,11 @@ class VikBookingController extends JControllerVikBooking
 		if (!empty($pphone) && !empty($psmscont)) {
 			$sms_api = VikBooking::getSMSAPIClass();
 			$sms_api_params = VikBooking::getSMSParams();
-			if (!empty($sms_api) && file_exists(VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'smsapi'.DIRECTORY_SEPARATOR.$sms_api) && !empty($sms_api_params)) {
-				require_once(VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'smsapi'.DIRECTORY_SEPARATOR.$sms_api);
+			if (!empty($sms_api) && file_exists(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'smsapi' . DIRECTORY_SEPARATOR . $sms_api) && !empty($sms_api_params)) {
+				require_once(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'smsapi' . DIRECTORY_SEPARATOR . $sms_api);
 				$sms_obj = new VikSmsApi(array(), $sms_api_params);
 				$response_obj = $sms_obj->sendMessage($pphone, $psmscont);
-				if ( !$sms_obj->validateResponse($response_obj) ) {
+				if (!$sms_obj->validateResponse($response_obj)) {
 					VikError::raiseWarning('', $sms_obj->getLog());
 				} else {
 					$mainframe->enqueueMessage(JText::translate('VBSENDSMSOK'));
@@ -8631,8 +9456,9 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect($pgoto);
 	}
 
-	public function sendcustomemail() {
-		$dbo = JFactory::getDBO();
+	public function sendcustomemail()
+	{
+		$dbo = JFactory::getDbo();
 		$mainframe = JFactory::getApplication();
 		$vbo_tn = VikBooking::getTranslator();
 		$pbid = VikRequest::getInt('bid', '', 'request');
@@ -8649,15 +9475,15 @@ class VikBookingController extends JControllerVikBooking
 			if (isset($pemailattch) && strlen(trim($pemailattch['name']))) {
 				$filename = JFile::makeSafe(str_replace(" ", "_", strtolower($pemailattch['name'])));
 				$src = $pemailattch['tmp_name'];
-				$dest = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
+				$dest = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 				$j = "";
-				if (file_exists($dest.$filename)) {
+				if (file_exists($dest . $filename)) {
 					$j = rand(171, 1717);
-					while (file_exists($dest.$j.$filename)) {
+					while (file_exists($dest . $j . $filename)) {
 						$j++;
 					}
 				}
-				$finaldest = $dest.$j.$filename;
+				$finaldest = $dest . $j . $filename;
 				if (VikBooking::uploadFile($src, $finaldest)) {
 					$email_attach = $finaldest;
 				} else {
@@ -8670,19 +9496,19 @@ class VikBookingController extends JControllerVikBooking
 			$orig_mail_cont = $pemailcont;
 			if (strpos($pemailcont, '{') !== false && strpos($pemailcont, '}') !== false) {
 				// replace any possible placeholder for special tags
-				$pemailcont = preg_replace_callback("/(<strong class=\"vbo-editor-hl-specialtag\">)([^<]+)(<\/strong>)/", function($match) {
+				$pemailcont = preg_replace_callback("/(<strong class=\"vbo-editor-hl-specialtag\">)([^<]+)(<\/strong>)/", function ($match) {
 					return $match[2];
 				}, $pemailcont);
 
 				$booking = array();
-				$q = "SELECT `o`.*,`co`.`idcustomer`,CONCAT_WS(' ',`c`.`first_name`,`c`.`last_name`) AS `customer_name`,`c`.`pin` AS `customer_pin`,`nat`.`country_name` FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_customers_orders` `co` ON `co`.`idorder`=`o`.`id` AND `co`.`idorder`=".(int)$pbid." LEFT JOIN `#__vikbooking_customers` `c` ON `c`.`id`=`co`.`idcustomer` LEFT JOIN `#__vikbooking_countries` `nat` ON `nat`.`country_3_code`=`o`.`country` WHERE `o`.`id`=".(int)$pbid.";";
+				$q = "SELECT `o`.*,`co`.`idcustomer`,CONCAT_WS(' ',`c`.`first_name`,`c`.`last_name`) AS `customer_name`,`c`.`pin` AS `customer_pin`,`nat`.`country_name` FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_customers_orders` `co` ON `co`.`idorder`=`o`.`id` AND `co`.`idorder`=" . (int)$pbid . " LEFT JOIN `#__vikbooking_customers` `c` ON `c`.`id`=`co`.`idcustomer` LEFT JOIN `#__vikbooking_countries` `nat` ON `nat`.`country_3_code`=`o`.`country` WHERE `o`.`id`=" . (int)$pbid . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				if ($dbo->getNumRows() > 0) {
 					$booking = $dbo->loadAssoc();
 				}
 				$booking_rooms = array();
-				$q = "SELECT `or`.*,`r`.`name` AS `room_name` FROM `#__vikbooking_ordersrooms` AS `or` LEFT JOIN `#__vikbooking_rooms` `r` ON `r`.`id`=`or`.`idroom` WHERE `or`.`idorder`=".(int)$pbid.";";
+				$q = "SELECT `or`.*,`r`.`name` AS `room_name` FROM `#__vikbooking_ordersrooms` AS `or` LEFT JOIN `#__vikbooking_rooms` `r` ON `r`.`id`=`or`.`idroom` WHERE `or`.`idorder`=" . (int)$pbid . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				if ($dbo->getNumRows() > 0) {
@@ -8700,7 +9526,7 @@ class VikBookingController extends JControllerVikBooking
 			//
 			$is_html = (strpos($pemailcont, '<') !== false && strpos($pemailcont, '>') !== false);
 			$pemailcont = $is_html ? nl2br($pemailcont) : $pemailcont;
-			$vbo_app = new VboApplication();
+			$vbo_app = VikBooking::getVboApplication();
 			$vbo_app->sendMail($pemailfrom, $pemailfrom, $pemail, $pemailfrom, $pemailsubj, $pemailcont, $is_html, 'base64', $email_attach);
 			$mainframe->enqueueMessage(JText::translate('VBSENDEMAILOK'));
 			if ($email_attach !== null) {
@@ -8744,17 +9570,17 @@ class VikBookingController extends JControllerVikBooking
 			if (count($cur_emtpl) > 10) {
 				//Max 10 templates to avoid problems with the size of the field and truncated json strings
 				$exceed = count($cur_emtpl) - 10;
-				for ($tl=0; $tl < $exceed; $tl++) { 
+				for ($tl = 0; $tl < $exceed; $tl++) {
 					unset($cur_emtpl[$tl]);
 				}
 				$cur_emtpl = array_values($cur_emtpl);
 			}
 			if ($config_rec_exists === true) {
-				$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote(json_encode($cur_emtpl))." WHERE `param`='customemailtpls';";
+				$q = "UPDATE `#__vikbooking_config` SET `setting`=" . $dbo->quote(json_encode($cur_emtpl)) . " WHERE `param`='customemailtpls';";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			} else {
-				$q = "INSERT INTO `#__vikbooking_config` (`param`,`setting`) VALUES ('customemailtpls', ".$dbo->quote(json_encode($cur_emtpl)).");";
+				$q = "INSERT INTO `#__vikbooking_config` (`param`,`setting`) VALUES ('customemailtpls', " . $dbo->quote(json_encode($cur_emtpl)) . ");";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -8765,7 +9591,8 @@ class VikBookingController extends JControllerVikBooking
 		$mainframe->redirect($pgoto);
 	}
 
-	public function rmcustomemailtpl() {
+	public function rmcustomemailtpl()
+	{
 		$cid = VikRequest::getVar('cid', array(0));
 		$oid = $cid[0];
 		$dbo = JFactory::getDBO();
@@ -8792,19 +9619,20 @@ class VikBookingController extends JControllerVikBooking
 		if (array_key_exists($tplind, $cur_emtpl)) {
 			unset($cur_emtpl[$tplind]);
 			$cur_emtpl = count($cur_emtpl) > 0 ? array_values($cur_emtpl) : array();
-			$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote(json_encode($cur_emtpl))." WHERE `param`='customemailtpls';";
+			$q = "UPDATE `#__vikbooking_config` SET `setting`=" . $dbo->quote(json_encode($cur_emtpl)) . " WHERE `param`='customemailtpls';";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
-		$mainframe->redirect('index.php?option=com_vikbooking&task=editorder&cid[]='.$oid.'&customemail=1');
+		$mainframe->redirect('index.php?option=com_vikbooking&task=editorder&cid[]=' . $oid . '&customemail=1');
 		exit;
 	}
 
-	public function exportcustomers() {
+	public function exportcustomers()
+	{
 		//we do not set the menu for this view
-	
+
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'exportcustomers'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -8812,39 +9640,44 @@ class VikBookingController extends JControllerVikBooking
 		}
 	}
 
-	public function csvexportprepare() {
+	public function csvexportprepare()
+	{
 		//modal box, so we do not set menu or footer
-	
+
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'csvexportprepare'));
-	
+
 		parent::display();
 	}
 
-	public function icsexportprepare() {
+	public function icsexportprepare()
+	{
 		//modal box, so we do not set menu or footer
-	
+
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'icsexportprepare'));
-	
+
 		parent::display();
 	}
 
-	public function bookingcheckin() {
+	public function bookingcheckin()
+	{
 		//modal box, so we do not set menu or footer
-	
+
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'bookingcheckin'));
-	
+
 		parent::display();
 	}
 
-	public function gencheckindoc() {
+	public function gencheckindoc()
+	{
 		//modal box, so we do not set menu or footer
-	
+
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'gencheckindoc'));
-	
+
 		parent::display();
 	}
 
-	public function checkversion() {
+	public function checkversion()
+	{
 		//to be called via ajax
 		$params = new stdClass;
 		$params->version 	= VIKBOOKING_SOFTWARE_VERSION;
@@ -8863,7 +9696,8 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function updateprogram() {
+	public function updateprogram()
+	{
 		$params = new stdClass;
 		$params->version 	= VIKBOOKING_SOFTWARE_VERSION;
 		$params->alias 		= 'com_vikbooking';
@@ -8891,7 +9725,8 @@ class VikBookingController extends JControllerVikBooking
 		VikBookingHelper::pUpdateProgram($result[0]->response);
 	}
 
-	public function updateprogramlaunch() {
+	public function updateprogramlaunch()
+	{
 		$params = new stdClass;
 		$params->version 	= VIKBOOKING_SOFTWARE_VERSION;
 		$params->alias 		= 'com_vikbooking';
@@ -8903,42 +9738,50 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function invoke_vcm() {
-		$oids = VikRequest::getVar('cid', array(0));
-		$mainframe = JFactory::getApplication();
+	public function invoke_vcm()
+	{
+		$app = JFactory::getApplication();
+
+		$oids = VikRequest::getVar('cid', []);
 		$sync_type = VikRequest::getString('stype', 'new', 'request');
-		$sync_type = !in_array($sync_type, array('new', 'modify', 'cancel')) ? 'new' : $sync_type;
+		$sync_type = !in_array($sync_type, ['new', 'modify', 'cancel']) ? 'new' : $sync_type;
 		$original_booking_js = VikRequest::getString('origb', '', 'request', VIKREQUEST_ALLOWRAW);
 		$return_url = VikRequest::getString('returl', '', 'request', VIKREQUEST_ALLOWRAW);
 		$return_url = !empty($return_url) ? urldecode($return_url) : $return_url;
-		if (!(count($oids) > 0) || !file_exists(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
-			$mainframe->redirect("index.php?option=com_vikbooking&task=orders");
-			exit;
+
+		if (!$oids || !is_file(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
+			$app->redirect("index.php?option=com_vikbooking&task=orders");
+			$app->close();
 		}
 
-		$vcm_obj = VikBooking::getVcmInvoker();
-		$vcm_obj->setOids($oids)->setSyncType($sync_type)->setOriginalBooking($original_booking_js, true);
-		$result = $vcm_obj->doSync();
+		$result = VikBooking::getVcmInvoker()
+			->setOids($oids)
+			->setSyncType($sync_type)
+			->setOriginalBooking($original_booking_js, true)
+			->doSync();
 
 		if ($result === true) {
-			$mainframe->enqueueMessage(JText::translate('VBCHANNELMANAGERRESULTOK'));
+			$app->enqueueMessage(JText::translate('VBCHANNELMANAGERRESULTOK'));
 		} else {
-			VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO').' <a href="index.php?option=com_vikchannelmanager" target="_blank">'.JText::translate('VBCHANNELMANAGEROPEN').'</a>');
+			VikError::raiseWarning('', JText::translate('VBCHANNELMANAGERRESULTKO') . ' <a href="index.php?option=com_vikchannelmanager" target="_blank">' . JText::translate('VBCHANNELMANAGEROPEN') . '</a>');
 		}
 
 		if (!empty($return_url)) {
-			$mainframe->redirect($return_url);
+			$app->redirect($return_url);
 		} else {
-			$mainframe->redirect("index.php?option=com_vikbooking&task=orders");
+			$app->redirect("index.php?option=com_vikbooking&task=orders");
 		}
+
+		$app->close();
 	}
 
-	public function multiphotosupload() {
+	public function multiphotosupload()
+	{
 		jimport('joomla.filesystem.file');
 
 		$dbo = JFactory::getDBO();
 		$proomid = VikRequest::getInt('roomid', '', 'request');
-		
+
 		$resp = array('files' => array());
 		$error_messages = array(
 			1 => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
@@ -8965,14 +9808,14 @@ class VikBookingController extends JControllerVikBooking
 		);
 
 		$creativik = new vikResizer();
-		$updpath = VBO_SITE_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR;
+		$updpath = VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 		$bigsdest = $updpath;
 		$thumbsdest = $updpath;
 		$dest = $updpath;
 		$moreimagestr = '';
 		$cur_captions = json_encode(array());
 
-		$q = "SELECT `moreimgs`,`imgcaptions` FROM `#__vikbooking_rooms` WHERE `id`=".$proomid.";";
+		$q = "SELECT `moreimgs`,`imgcaptions` FROM `#__vikbooking_rooms` WHERE `id`=" . $proomid . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() == 1) {
@@ -8981,7 +9824,7 @@ class VikBookingController extends JControllerVikBooking
 			$cur_photos = $photo_data[0]['moreimgs'];
 			if (!empty($cur_photos)) {
 				$moreimagestr .= $cur_photos;
-			} 
+			}
 		}
 
 		$bulkphotos = VikRequest::getVar('bulkphotos', null, 'files', 'array');
@@ -8992,13 +9835,13 @@ class VikBookingController extends JControllerVikBooking
 				$filename = JFile::makeSafe(str_replace(" ", "_", strtolower($photoname)));
 				$src = $bulkphotos['tmp_name'][$updk];
 				$j = "";
-				if (file_exists($dest.$filename)) {
+				if (file_exists($dest . $filename)) {
 					$j = rand(171, 1717);
-					while (file_exists($dest.$j.$filename)) {
+					while (file_exists($dest . $j . $filename)) {
 						$j++;
 					}
 				}
-				$finaldest=$dest.$j.$filename;
+				$finaldest = $dest . $j . $filename;
 				$is_error = false;
 				$err_key = '';
 				if (array_key_exists('error', $bulkphotos) && array_key_exists($updk, $bulkphotos['error']) && !empty($bulkphotos['error'][$updk])) {
@@ -9011,20 +9854,20 @@ class VikBookingController extends JControllerVikBooking
 					$check = getimagesize($bulkphotos['tmp_name'][$updk]);
 					if ($check[2] & imagetypes()) {
 						if (VikBooking::uploadFile($src, $finaldest)) {
-							$gimg = $j.$filename;
+							$gimg = $j . $filename;
 							//orig img
 							$origmod = true;
-							VikBooking::uploadFile($finaldest, $bigsdest.'big_'.$j.$filename, true);
+							VikBooking::uploadFile($finaldest, $bigsdest . 'big_' . $j . $filename, true);
 							//thumb
 							$thumbsize = VikBooking::getThumbSize();
-							$thumb = $creativik->proportionalImage($finaldest, $thumbsdest.'thumb_'.$j.$filename, $thumbsize, $thumbsize);
+							$thumb = $creativik->proportionalImage($finaldest, $thumbsdest . 'thumb_' . $j . $filename, $thumbsize, $thumbsize);
 							if (!$thumb || !$origmod) {
-								if (file_exists($bigsdest.'big_'.$j.$filename)) @unlink($bigsdest.'big_'.$j.$filename);
-								if (file_exists($thumbsdest.'thumb_'.$j.$filename)) @unlink($thumbsdest.'thumb_'.$j.$filename);
+								if (file_exists($bigsdest . 'big_' . $j . $filename)) @unlink($bigsdest . 'big_' . $j . $filename);
+								if (file_exists($thumbsdest . 'thumb_' . $j . $filename)) @unlink($thumbsdest . 'thumb_' . $j . $filename);
 								$is_error = true;
 								$err_key = 'vbo_perm';
 							} else {
-								$moreimagestr.=$j.$filename.";;";
+								$moreimagestr .= $j . $filename . ";;";
 							}
 							@unlink($finaldest);
 						} else {
@@ -9047,7 +9890,7 @@ class VikBookingController extends JControllerVikBooking
 					$img->name = $photoname;
 					$img->size = $bulkphotos['size'][$updk];
 					$img->type = $bulkphotos['type'][$updk];
-					$img->url = VBO_SITE_URI.'resources/uploads/big_'.$j.$filename;
+					$img->url = VBO_SITE_URI . 'resources/uploads/big_' . $j . $filename;
 				}
 				$resp['files'][] = $img;
 			}
@@ -9061,13 +9904,13 @@ class VikBookingController extends JControllerVikBooking
 			$resp['files'][] = $res;
 		}
 		//Update current extra images string
-		$q = "UPDATE `#__vikbooking_rooms` SET `moreimgs`=".$dbo->quote($moreimagestr)." WHERE `id`=".$proomid.";";
+		$q = "UPDATE `#__vikbooking_rooms` SET `moreimgs`=" . $dbo->quote($moreimagestr) . " WHERE `id`=" . $proomid . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		$resp['actmoreimgs'] = $moreimagestr;
 		//Update current extra images uploaded
 		$cur_thumbs = '';
-		$morei=explode(';;', $moreimagestr);
+		$morei = explode(';;', $moreimagestr);
 		if (@count($morei) > 0) {
 			$imgcaptions = json_decode($cur_captions, true);
 			$usecaptions = empty($imgcaptions) || is_null($imgcaptions) || !is_array($imgcaptions) || !(count($imgcaptions) > 0) ? false : true;
@@ -9075,9 +9918,9 @@ class VikBookingController extends JControllerVikBooking
 			foreach ($morei as $ki => $mi) {
 				if (!empty($mi)) {
 					$cur_thumbs .= '<li class="vbo-editroom-currentphoto">';
-					$cur_thumbs .= '<a href="'.VBO_SITE_URI.'resources/uploads/big_'.$mi.'" target="_blank" class="vbomodal"><img src="'.VBO_SITE_URI.'resources/uploads/thumb_'.$mi.'" class="maxfifty"/></a>';
-					$cur_thumbs .= '<a class="vbo-toggle-imgcaption" href="javascript: void(0);" onclick="vbOpenImgDetails(\''.$ki.'\', this)"><i class="'.VikBookingIcons::i('cog').'"></i></a>';
-					$cur_thumbs .= '<div id="vbimgdetbox'.$ki.'" class="vbimagedetbox" style="display: none;"><div class="captionlabel"><span>'.JText::translate('VBIMGCAPTION').'</span><input type="text" name="caption'.$ki.'" value="'.($usecaptions === true && isset($imgcaptions[$ki]) ? $imgcaptions[$ki] : "").'" size="40"/></div><input type="hidden" name="imgsorting[]" value="'.$mi.'"/><input class="captionsubmit" type="button" name="updcatpion" value="'.JText::translate('VBIMGUPDATE').'" onclick="javascript: updateCaptions();"/><div class="captionremoveimg"><a class="vbimgrm btn btn-danger" href="index.php?option=com_vikbooking&task=removemoreimgs&roomid='.$proomid.'&imgind='.$ki.'" title="'.JText::translate('VBREMOVEIMG').'"><i class="icon-remove"></i>'.JText::translate('VBREMOVEIMG').'</a></div></div>';
+					$cur_thumbs .= '<a href="' . VBO_SITE_URI . 'resources/uploads/big_' . $mi . '" target="_blank" class="vbomodal"><img src="' . VBO_SITE_URI . 'resources/uploads/thumb_' . $mi . '" class="maxfifty"/></a>';
+					$cur_thumbs .= '<a class="vbo-toggle-imgcaption" href="javascript: void(0);" onclick="vbOpenImgDetails(\'' . $ki . '\', this)"><i class="' . VikBookingIcons::i('cog') . '"></i></a>';
+					$cur_thumbs .= '<div id="vbimgdetbox' . $ki . '" class="vbimagedetbox" style="display: none;"><div class="captionlabel"><span>' . JText::translate('VBIMGCAPTION') . '</span><input type="text" name="caption' . $ki . '" value="' . ($usecaptions === true && isset($imgcaptions[$ki]) ? $imgcaptions[$ki] : "") . '" size="40"/></div><input type="hidden" name="imgsorting[]" value="' . $mi . '"/><input class="captionsubmit" type="button" name="updcatpion" value="' . JText::translate('VBIMGUPDATE') . '" onclick="javascript: updateCaptions();"/><div class="captionremoveimg"><a class="vbimgrm btn btn-danger" href="index.php?option=com_vikbooking&task=removemoreimgs&roomid=' . $proomid . '&imgind=' . $ki . '" title="' . JText::translate('VBREMOVEIMG') . '"><i class="icon-remove"></i>' . JText::translate('VBREMOVEIMG') . '</a></div></div>';
 					$cur_thumbs .= '</li>';
 				}
 			}
@@ -9090,19 +9933,20 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function loadsmsbalance() {
+	public function loadsmsbalance()
+	{
 		//to be called via ajax
 		$html = 'Error1 [N/A]';
 		$sms_api = VikBooking::getSMSAPIClass();
-		if (file_exists(VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'smsapi'.DIRECTORY_SEPARATOR.$sms_api)) {
-			require_once(VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'smsapi'.DIRECTORY_SEPARATOR.$sms_api);
+		if (file_exists(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'smsapi' . DIRECTORY_SEPARATOR . $sms_api)) {
+			require_once(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'smsapi' . DIRECTORY_SEPARATOR . $sms_api);
 			$sms_obj = new VikSmsApi(array(), VikBooking::getSMSParams());
 			if (method_exists('VikSmsApi', 'estimate')) {
 				$array_result = $sms_obj->estimate("+393711271611", "estimate credit");
-				if ( $array_result->errorCode != 0 ) {
-					$html = 'Error3 ['.$array_result->errorMsg.']';
+				if ($array_result->errorCode != 0) {
+					$html = 'Error3 [' . $array_result->errorMsg . ']';
 				} else {
-					$html = VikBooking::getCurrencySymb().' '.$array_result->userCredit;
+					$html = VikBooking::getCurrencySymb() . ' ' . $array_result->userCredit;
 				}
 			} else {
 				$html = 'Error2 [N/A]';
@@ -9112,7 +9956,8 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function loadsmsparams() {
+	public function loadsmsparams()
+	{
 		//to be called via ajax
 		$html = '---------';
 		$phpfile = VikRequest::getString('phpfile', '', 'request');
@@ -9125,7 +9970,8 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function loadcronparams() {
+	public function loadcronparams()
+	{
 		//to be called via ajax
 		$html = '---------';
 		$phpfile = VikRequest::getString('phpfile', '', 'request');
@@ -9136,7 +9982,8 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function loadpaymentparams() {
+	public function loadpaymentparams()
+	{
 		//to be called via ajax
 		$html = '<p>---------</p>';
 		$phpfile = VikRequest::getString('phpfile', '', 'request');
@@ -9147,7 +9994,8 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function setbookingtag() {
+	public function setbookingtag()
+	{
 		//to be called via ajax
 		$dbo = JFactory::getDBO();
 		$pidorder = VikRequest::getInt('idorder', '', 'request');
@@ -9155,12 +10003,12 @@ class VikBookingController extends JControllerVikBooking
 		if (!empty($pidorder) && $ptagkey >= 0) {
 			$all_tags = VikBooking::loadBookingsColorTags();
 			if (array_key_exists($ptagkey, $all_tags)) {
-				$q = "SELECT `id` FROM `#__vikbooking_orders` WHERE `id`=".(int)$pidorder.";";
+				$q = "SELECT `id` FROM `#__vikbooking_orders` WHERE `id`=" . (int)$pidorder . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				if ($dbo->getNumRows() > 0) {
 					$newcolortag = json_encode($all_tags[$ptagkey]);
-					$q = "UPDATE `#__vikbooking_orders` SET `colortag`=".$dbo->quote($newcolortag)." WHERE `id`=".(int)$pidorder.";";
+					$q = "UPDATE `#__vikbooking_orders` SET `colortag`=" . $dbo->quote($newcolortag) . " WHERE `id`=" . (int)$pidorder . ";";
 					$dbo->setQuery($q);
 					$dbo->execute();
 					$newcolortag = $all_tags[$ptagkey];
@@ -9168,10 +10016,10 @@ class VikBookingController extends JControllerVikBooking
 					$newcolortag['fontcolor'] = VikBooking::getBestColorContrast($newcolortag['color']);
 					echo json_encode($newcolortag);
 				} else {
-					echo 'e4j.error.Booking ('.$pidorder.') not found';
+					echo 'e4j.error.Booking (' . $pidorder . ') not found';
 				}
 			} else {
-				echo 'e4j.error.Color Tag ('.$ptagkey.') not found';
+				echo 'e4j.error.Color Tag (' . $ptagkey . ') not found';
 			}
 		} else {
 			echo 'e4j.error.Missing Data';
@@ -9179,7 +10027,8 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function updatereceiptnum() {
+	public function updatereceiptnum()
+	{
 		//to be called via ajax
 		$pnewnum = VikRequest::getInt('newnum', '', 'request');
 		$pnewnotes = VikRequest::getString('newnotes', '', 'request', VIKREQUEST_ALLOWRAW);
@@ -9188,7 +10037,7 @@ class VikBookingController extends JControllerVikBooking
 			VikBooking::getNextReceiptNumber($poid, $pnewnum);
 			VikBooking::getReceiptNotes($pnewnotes);
 			//Booking History
-			VikBooking::getBookingHistoryInstance()->setBid($poid)->store('BR', JText::translate('VBOFISCRECEIPTNUM').': '.$pnewnum);
+			VikBooking::getBookingHistoryInstance()->setBid($poid)->store('BR', JText::translate('VBOFISCRECEIPTNUM') . ': ' . $pnewnum);
 			//
 			echo 'e4j.ok';
 			exit;
@@ -9197,7 +10046,8 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function isroombookable() {
+	public function isroombookable()
+	{
 		//to be called via ajax
 		$dbo = JFactory::getDBO();
 		$res = array(
@@ -9208,7 +10058,7 @@ class VikBookingController extends JControllerVikBooking
 		$pfdate = VikRequest::getString('fdate', '', 'request');
 		$ptdate = VikRequest::getString('tdate', '', 'request');
 		$room_info = array();
-		$q = "SELECT * FROM `#__vikbooking_rooms` WHERE `id`=".(int)$prid.";";
+		$q = "SELECT * FROM `#__vikbooking_rooms` WHERE `id`=" . (int)$prid . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() > 0) {
@@ -9230,10 +10080,10 @@ class VikBookingController extends JControllerVikBooking
 		$from_ts = VikBooking::getDateTimestamp($pfdate, $pcheckinh, $pcheckinm);
 		$to_ts = VikBooking::getDateTimestamp($ptdate, $pcheckouth, $pcheckoutm);
 		if (
-			count($room_info) > 0 && 
-			(!empty($pfdate) && !empty($ptdate) && !empty($from_ts) && !empty($to_ts)) && 
-			VikBooking::roomBookable($room_info['id'], $room_info['units'], $from_ts, $to_ts)) 
-		{
+			count($room_info) > 0 &&
+			(!empty($pfdate) && !empty($ptdate) && !empty($from_ts) && !empty($to_ts)) &&
+			VikBooking::roomBookable($room_info['id'], $room_info['units'], $from_ts, $to_ts)
+		) {
 			$res['status'] = 1;
 		} else {
 			if (!(count($room_info) > 0)) {
@@ -9250,8 +10100,9 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function uploadsnapshot() {
-		$snap_base_path = VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'idscans';
+	public function uploadsnapshot()
+	{
+		$snap_base_path = VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'idscans';
 		/**
 		 * We no longer access the uploaded file from php://input, we now retrieve it as a regular file upload.
 		 * The old snapshot collection script with Flash no longer works in 2021.
@@ -9275,7 +10126,8 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function checkvcmrateschanges() {
+	public function checkvcmrateschanges()
+	{
 		//to be called via ajax
 		$session = JFactory::getSession();
 		$ret = array('changesCount' => 0, 'changesData' => '');
@@ -9289,13 +10141,28 @@ class VikBookingController extends JControllerVikBooking
 		exit;
 	}
 
-	public function getbookingsinfo() {
+	/**
+	 * AJAX endpoint to load the details of one or more bookings.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP) the method was refactored.
+	 */
+	public function getbookingsinfo()
+	{
 		//to be called via ajax
 		$dbo = JFactory::getDbo();
-		$booking_infos = array();
-		$bookings = array();
+
+		$booking_infos = [];
+		$bookings = [];
+
 		$pidorders = VikRequest::getString('idorders', '', 'request');
 		$psubroom = VikRequest::getString('subroom', '', 'request');
+		$pstatus = VikRequest::getString('status', '', 'request');
+		$pstay_date = VikRequest::getString('stay_date', '', 'request');
+		$pidroom = VikRequest::getInt('idroom', 0, 'request');
+		$psharedcal = VikRequest::getInt('sharedcal', 0, 'request');
+
 		if (!empty($pidorders)) {
 			$bookings = explode(',', $pidorders);
 			foreach ($bookings as $k => $v) {
@@ -9308,7 +10175,8 @@ class VikBookingController extends JControllerVikBooking
 			}
 		}
 		$bookings = array_values($bookings);
-		if (!count($bookings)) {
+
+		if (!$bookings) {
 			/**
 			 * AJAX requests made by the page availability overview may contain empty booking IDs
 			 * due to SQL errors that only occupied the room, but could not save the booking record.
@@ -9320,9 +10188,8 @@ class VikBookingController extends JControllerVikBooking
 
 			$q = "SELECT `idbusy` FROM `#__vikbooking_ordersbusy` WHERE `idorder` = 0 OR `idorder` IS NULL;";
 			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows()) {
-				$removelist = $dbo->loadAssocList();
+			$removelist = $dbo->loadAssocList();
+			if ($removelist) {
 				foreach ($removelist as $hanging_busy) {
 					$hanging_busy_id = (int)$hanging_busy['idbusy'];
 					if (!in_array($hanging_busy_id, $hanging_busy_ids)) {
@@ -9334,9 +10201,8 @@ class VikBookingController extends JControllerVikBooking
 			// let's check also for ghost records that only occupy the room
 			$q = "SELECT `b`.*,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b` LEFT JOIN `#__vikbooking_ordersbusy` AS `ob` ON `b`.`id`=`ob`.`idbusy` WHERE `b`.`checkout` >= " . time() . " AND (`ob`.`idorder` = 0 OR `ob`.`idorder` IS NULL);";
 			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows()) {
-				$removelist = $dbo->loadAssocList();
+			$removelist = $dbo->loadAssocList();
+			if ($removelist) {
 				foreach ($removelist as $hanging_busy) {
 					$hanging_busy_id = (int)$hanging_busy['id'];
 					if (!in_array($hanging_busy_id, $hanging_busy_ids)) {
@@ -9345,16 +10211,17 @@ class VikBookingController extends JControllerVikBooking
 				}
 			}
 
-			if (count($hanging_busy_ids)) {
+			if ($hanging_busy_ids) {
 				$q = "DELETE FROM `#__vikbooking_busy` WHERE `id` IN (" . implode(', ', $hanging_busy_ids) . ");";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
 			//
 
-			echo 'e4j.error.1 '.addslashes(JText::translate('VBOVWGETBKERRMISSDATA'));
-			exit;
+			// output the error
+			VBOHttpDocument::getInstance()->close(500, '1 - ' . JText::translate('VBOVWGETBKERRMISSDATA'));
 		}
+
 		$nowdf = VikBooking::getDateFormat(true);
 		if ($nowdf == "%d/%m/%Y") {
 			$df = 'd/m/Y';
@@ -9364,150 +10231,352 @@ class VikBookingController extends JControllerVikBooking
 			$df = 'Y/m/d';
 		}
 		$datesep = VikBooking::getDateSeparator(true);
-		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id` IN (".implode(', ', $bookings).") AND (`status`='confirmed' OR `status`='standby');";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$booking_infos = $dbo->loadAssocList();
-			foreach ($booking_infos as $k => $row) {
-				//rooms, amounts and guests information
-				$rooms = VikBooking::loadOrdersRoomsData($row['id']);
-				$room_names = array();
-				$totadults = 0;
-				$totchildren = 0;
-				foreach ($rooms as $rr) {
-					$totadults += $rr['adults'];
-					$totchildren += $rr['children'];
-					$room_names[] = $rr['room_name'];
+		$currencysymb = VikBooking::getCurrencySymb();
+		$current_y = date('Y');
+		$current_ts = time();
+		$short_meal_enums = VBOMealplanManager::getInstance()->getShortMealPlans();
+
+		$query = $dbo->getQuery(true);
+		$query->select('o.*');
+		$query->from($dbo->qn('#__vikbooking_orders', 'o'));
+		if (!empty($pstay_date) && !empty($pidroom) && $pstatus == 'any') {
+			// include the requested booking IDs and the cancelled reservations for this stay date
+			$stay_date_info = getdate(strtotime($pstay_date));
+			$lim_ts_to = mktime(23, 59, 59, $stay_date_info['mon'], $stay_date_info['mday'], $stay_date_info['year']);
+			$query->where('((' . $dbo->qn('o.checkin') . ' <= ' . $lim_ts_to . ' AND ' . $dbo->qn('o.checkout') . ' > ' . $lim_ts_to . ') OR ' . $dbo->qn('o.id') . ' IN (' . implode(', ', $bookings) . '))');
+			// exclude the pending reservations
+			$query->where($dbo->qn('o.status') . ' IN (' . $dbo->q('confirmed') . ', ' . $dbo->q('cancelled') . ')');
+		} else {
+			// include only the requested booking IDs
+			$query->where($dbo->qn('o.id') . ' IN (' . implode(', ', $bookings) . ')');
+		}
+		if ($pstatus != 'any') {
+			$query->where($dbo->qn('o.status') . ' != ' . $dbo->q('cancelled'));
+		}
+		if (!empty($pstay_date) && $pstatus == 'any') {
+			// sort by confirmed status before cancelled status
+			$query->order('CASE WHEN ' . $dbo->qn('o.status') . ' = ' . $dbo->q('confirmed') . ' THEN 1 ELSE 0 END DESC');
+			$query->order($dbo->qn('o.id') . ' ASC');
+		}
+		$dbo->setQuery($query);
+		$booking_infos = $dbo->loadAssocList();
+
+		foreach ($booking_infos as $k => $row) {
+			// rooms, amounts and guests information
+			$rooms = VikBooking::loadOrdersRoomsData($row['id']);
+			$rids_involved = [];
+			$room_names = [];
+			$totadults = 0;
+			$totchildren = 0;
+			foreach ($rooms as $rr) {
+				$rids_involved[] = $rr['idroom'];
+				$totadults += $rr['adults'];
+				$totchildren += $rr['children'];
+				$room_names[] = $rr['room_name'];
+				if ($row['split_stay']) {
+					// do not sum guests in case of split stay booking
+					$totadults = $rr['adults'];
+					$totchildren = $rr['children'];
 				}
-				$booking_infos[$k]['status_lbl'] = ($row['status'] != 'confirmed' && $row['status'] != 'standby' ? $row['status'] : ($row['status'] == 'confirmed' ? JText::translate('VBCONFIRMED') : JText::translate('VBSTANDBY')));
-				$booking_infos[$k]['colortag'] = VikBooking::applyBookingColorTag($row);
-				if (count($booking_infos[$k]['colortag']) > 0) {
-					$booking_infos[$k]['colortag']['name'] = JText::translate($booking_infos[$k]['colortag']['name']);
-				}
-				$booking_infos[$k]['room_names'] = implode(', ', $room_names);
-				$booking_infos[$k]['tot_adults'] = $totadults;
-				$booking_infos[$k]['tot_children'] = $totchildren;
-				$booking_infos[$k]['format_tot'] = VikBooking::numberFormat($row['total']);
-				$booking_infos[$k]['format_totpaid'] = VikBooking::numberFormat($row['totpaid']);
-				//Rooms Indexes
-				$rindexes = array();
-				$optindexes = array();
-				$subroomdata = !empty($psubroom) ? explode('-', $psubroom) : array();
-				foreach ($rooms as $or) {
-					if ($row['status'] == "confirmed" && !empty($or['params']) && strlen($or['roomindex'])) {
-						$room_params = json_decode($or['params'], true);
-						if (is_array($room_params) && array_key_exists('features', $room_params) && @count($room_params['features']) > 0) {
-							foreach ($room_params['features'] as $rind => $rfeatures) {
-								if ($rind == $or['roomindex']) {
-									$ind_str = '';
-									foreach ($rfeatures as $fname => $fval) {
-										if (strlen($fval)) {
-											$ind_str = '#'.$rind.' - '.JText::translate($fname).': '.$fval;
-											break;
-										}
-									}
-									if (!array_key_exists($or['room_name'], $rindexes)) {
-										$rindexes[$or['room_name']] = $ind_str;
-									} else {
-										$rindexes[$or['room_name']] .= ', '.$ind_str;
-									}
-									break;
-								}
-							}
-							if (count($subroomdata) && !count($optindexes) && $or['idroom'] == (int)$subroomdata[0]) {
-								// build the options for switching the room index for this room
-								foreach ($room_params['features'] as $rind => $rfeatures) {
-									foreach ($rfeatures as $fname => $fval) {
-										if (strlen($fval)) {
-											$optindexes[] = '<option value="'.$rind.'"'.($rind == (int)$subroomdata[1] ? ' selected="selected"' : '').'>#'.$rind.' - '.JText::translate($fname).': '.$fval.'</option>';
-											break;
-										}
-									}
-								}
-							}
-						}
+			}
+
+			if (!empty($pstay_date) && !empty($pidroom) && $pstatus == 'any') {
+				// make sure we have fetched a reservation for the correct room (in case of cancellations included)
+				if (!in_array($pidroom, $rids_involved)) {
+					$is_out_of_scope = true;
+					if ($psharedcal && count($bookings) === 1) {
+						$is_out_of_scope = ($row['id'] != $bookings[0]);
+					}
+					if ($is_out_of_scope) {
+						// out of scope reservation, unset it and go to the next one
+						unset($booking_infos[$k]);
+						continue;
 					}
 				}
-				if (count($rindexes)) {
-					$booking_infos[$k]['rindexes'] = $rindexes;
+			}
+
+			// included meal plans to be displayed in case of single-room booking
+			$included_meals = [];
+			$rplan_name = '';
+			if (count($rooms) === 1) {
+				// rate plan name and ID, if any
+				$active_rplan_id = 0;
+				if (!empty($rooms[0]['otarplan'])) {
+					$rplan_name = $rooms[0]['otarplan'];
+				} else {
+					list($rplan_name, $active_rplan_id) = VBOMealplanManager::getInstance()->getPriceData($rooms[0]['idtar']);
 				}
-				if (count($optindexes)) {
-					$booking_infos[$k]['optindexes'] = $optindexes;
+
+				// find the included meals
+				if (!empty($rooms[0]['meals'])) {
+					// display included meals defined at room-reservation record
+					$included_meals = VBOMealplanManager::getInstance()->roomRateIncludedMeals($rooms[0]);
+				} else {
+					// fetch default included meals in the selected rate plan
+					$included_meals = $active_rplan_id ? VBOMealplanManager::getInstance()->ratePlanIncludedMeals($active_rplan_id) : [];
 				}
-				//Channel Provenience
-				$ota_logo_img = JText::translate('VBORDFROMSITE');
-				if (!empty($row['channel'])) {
-					$channelparts = explode('_', $row['channel']);
-					$otachannel = array_key_exists(1, $channelparts) && strlen($channelparts[1]) > 0 ? $channelparts[1] : ucwords($channelparts[0]);
-					$ota_logo_img = VikBooking::getVcmChannelsLogo($row['channel']);
-					if ($ota_logo_img === false) {
-						$ota_logo_img = $otachannel;
-					} else {
-						$ota_logo_img = '<img src="'.$ota_logo_img.'" class="vbo-channelimg-small"/>';
+				if (!$included_meals && empty($row['meals']) && !empty($row['idorderota']) && !empty($row['channel']) && !empty($row['custdata'])) {
+					// attempt to fetch the included meal plans from the raw customer data or OTA reservation and room
+					$included_meals = VBOMealplanManager::getInstance()->otaDataIncludedMeals($row, $rooms[0]);
+				}
+			}
+
+			if ($included_meals) {
+				$short_incl_meals = [];
+				foreach ($included_meals as $meal_enum => $meal_name) {
+					$short_incl_meals[] = $short_meal_enums[$meal_enum];
+				}
+				$booking_infos[$k]['meals_included'] = $short_incl_meals;
+			}
+
+			$booking_infos[$k]['rateplan_name'] = $rplan_name;
+			$booking_infos[$k]['currency_symb'] = $currencysymb;
+			if ($row['status'] == 'confirmed') {
+				$booking_infos[$k]['status_lbl'] = JText::translate('VBCONFIRMED');
+				if ($row['checkout'] < $current_ts) {
+					$booking_infos[$k]['status_lbl'] = JText::translate('VBOCHECKEDSTATUSOUT');
+				} elseif ($row['checkin'] < $current_ts && $row['checkout'] > $current_ts) {
+					if ($row['checked'] == 1) {
+						$booking_infos[$k]['status_lbl'] = JText::translate('VBOCHECKEDSTATUSIN');
+					} elseif ($row['checked'] == -1) {
+						$booking_infos[$k]['status_lbl'] = JText::translate('VBOCHECKEDSTATUSNOS');
 					}
 				}
-				$booking_infos[$k]['channelimg'] = $ota_logo_img;
-				//Customer Details
-				$custdata = $row['custdata'];
-				$custdata_parts = explode("\n", $row['custdata']);
-				if (count($custdata_parts) > 2 && strpos($custdata_parts[0], ':') !== false && strpos($custdata_parts[1], ':') !== false) {
-					//get the first two fields
-					$custvalues = array();
-					foreach ($custdata_parts as $custdet) {
-						if (strlen($custdet) < 1) {
+			} elseif ($row['status'] == 'standby') {
+				$booking_infos[$k]['status_lbl'] = JText::translate('VBSTANDBY');
+			} elseif ($row['status'] == 'cancelled') {
+				$booking_infos[$k]['status_lbl'] = JText::translate('VBCANCELLED');
+			} else {
+				$booking_infos[$k]['status_lbl'] = $row['status'];
+			}
+			$booking_infos[$k]['colortag'] = VikBooking::applyBookingColorTag($row);
+			if ($booking_infos[$k]['colortag']) {
+				$booking_infos[$k]['colortag']['name'] = JText::translate($booking_infos[$k]['colortag']['name']);
+			}
+			$booking_infos[$k]['room_names'] = implode(', ', $room_names);
+			$booking_infos[$k]['tot_adults'] = $totadults;
+			$booking_infos[$k]['tot_children'] = $totchildren;
+			$booking_infos[$k]['format_tot'] = VikBooking::numberFormat($row['total']);
+			$booking_infos[$k]['format_totpaid'] = VikBooking::numberFormat($row['totpaid']);
+
+			// room indexes
+			$rindexes 		  = [];
+			$av_room_indexes  = [];
+			$used_indexes_map = [];
+			$sub_units_data   = [];
+			$optindexes 	  = [];
+			$subroomdata 	  = !empty($psubroom) ? explode('-', $psubroom) : array();
+			$missing_index 	  = false;
+			foreach ($rooms as $kor => $or) {
+				if ($row['status'] != "confirmed" || $row['closure'] || empty($or['params'])) {
+					// cannot build room indexes data
+					continue;
+				}
+
+				$room_params = json_decode($or['params'], true);
+				if (!is_array($room_params) || empty($room_params['features']) || !is_array($room_params['features'])) {
+					// no distinctive features information
+					continue;
+				}
+
+				if (!strlen($or['roomindex'])) {
+					// turn flag on for missing index when room does support them
+					$missing_index = true;
+					// build array with available room indexes
+					$av_indexes = [];
+					$unavailable_indexes = VikBooking::getRoomUnitNumsUnavailable($row, $or['idroom']);
+					foreach ($room_params['features'] as $rind => $rfeatures) {
+						if (in_array($rind, $unavailable_indexes) || (isset($used_indexes_map[$or['idroom']]) && in_array($rind, $used_indexes_map[$or['idroom']]))) {
 							continue;
 						}
-						$custdet_parts = explode(':', $custdet);
-						if (count($custdet_parts) >= 2) {
-							unset($custdet_parts[0]);
-							array_push($custvalues, trim(implode(':', $custdet_parts)));
+						foreach ($rfeatures as $fname => $fval) {
+							if ($fval) {
+								$av_indexes[$rind] = '#' . $rind . ' - ' . JText::translate($fname) . ': ' . $fval;
+								break;
+							}
 						}
-						if (count($custvalues) > 1) {
+					}
+					if ($av_indexes) {
+						// push available indexes for this room
+						$av_room_indexes[$kor] = [
+							'rid'  => $or['idroom'],
+							'name' => $or['room_name'],
+							'list' => $av_indexes,
+						];
+					}
+					// do not proceed any further
+					continue;
+				}
+
+				// parse distinctive features
+				foreach ($room_params['features'] as $rind => $rfeatures) {
+					if ($rind != $or['roomindex']) {
+						continue;
+					}
+					$ind_str = '';
+					$ind_str_short = '';
+					foreach ($rfeatures as $fname => $fval) {
+						if (strlen($fval)) {
+							$ind_str = '#' . $rind . ' - ' . JText::translate($fname) . ': ' . $fval;
+							$ind_str_short = $fval;
 							break;
 						}
 					}
-					if (count($custvalues) > 1) {
-						$custdata = implode(' ', $custvalues);
+					if (!isset($rindexes[$or['room_name']])) {
+						$rindexes[$or['room_name']] 	  = $ind_str;
+						$sub_units_data[$or['room_name']] = $ind_str_short;
+					} else {
+						$rindexes[$or['room_name']] 	  .= ', ' . $ind_str;
+						$sub_units_data[$or['room_name']] .= ', ' . $ind_str_short;
 					}
-				}
-				if (strlen($custdata) > 45) {
-					$custdata = substr($custdata, 0, 45)." ...";
+					break;
 				}
 
-				$q = "SELECT `c`.*,`co`.`idorder` FROM `#__vikbooking_customers` AS `c` LEFT JOIN `#__vikbooking_customers_orders` `co` ON `c`.`id`=`co`.`idcustomer` WHERE `co`.`idorder`=".$row['id'].";";
-				$dbo->setQuery($q);
-				$dbo->execute();
-				if ($dbo->getNumRows() > 0) {
-					$cust_country = $dbo->loadAssocList();
-					$cust_country = $cust_country[0];
-					if (!empty($cust_country['first_name'])) {
-						$custdata = $cust_country['first_name'].' '.$cust_country['last_name'];
-						if (!empty($cust_country['country'])) {
-							if (file_exists(VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'countries'.DIRECTORY_SEPARATOR.$cust_country['country'].'.png')) {
-								$custdata .= '<img src="'.VBO_ADMIN_URI.'resources/countries/'.$cust_country['country'].'.png'.'" title="'.$cust_country['country'].'" class="vbo-country-flag vbo-country-flag-left"/>';
+				// build options to switch sub-unit index
+				if (count($subroomdata) && !count($optindexes) && $or['idroom'] == (int)$subroomdata[0]) {
+					// build the options for switching the room index for this room
+					foreach ($room_params['features'] as $rind => $rfeatures) {
+						foreach ($rfeatures as $fname => $fval) {
+							if (strlen((string)$fval)) {
+								$optindexes[] = '<option value="' . $rind . '"' . ($rind == (int)$subroomdata[1] ? ' selected="selected"' : '') . '>#' . $rind . ' - ' . JText::translate($fname) . ': ' . $fval . '</option>';
+								break;
 							}
 						}
 					}
 				}
-				$custdata = JText::translate('VBDBTEXTROOMCLOSED') == $row['custdata'] ? '<span class="vbordersroomclosed">'.JText::translate('VBDBTEXTROOMCLOSED').'</span>' : $custdata;
-				$booking_infos[$k]['cinfo'] = $custdata;
-				//Formatted dates
-				$booking_infos[$k]['ts'] = date(str_replace("/", $datesep, $df).' H:i', $row['ts']);
-				$booking_infos[$k]['checkin'] = date(str_replace("/", $datesep, $df).' H:i', $row['checkin']);
-				$booking_infos[$k]['checkout'] = date(str_replace("/", $datesep, $df).' H:i', $row['checkout']);
 			}
-		}
-		if (!(count($booking_infos) > 0)) {
-			echo 'e4j.error.2 '.addslashes(JText::translate('VBOVWGETBKERRMISSDATA'));
-			exit;
+
+			if ($rindexes) {
+				$booking_infos[$k]['rindexes'] 		 = $rindexes;
+				$booking_infos[$k]['sub_units_data'] = $sub_units_data;
+			}
+
+			if ($optindexes) {
+				$booking_infos[$k]['optindexes'] = $optindexes;
+			}
+
+			if ($missing_index && $av_room_indexes) {
+				$booking_infos[$k]['av_room_indexes'] = $av_room_indexes;
+			}
+
+			// include flag for missing room index
+			$booking_infos[$k]['missing_index'] = $missing_index;
+
+			// channel provenience and small logo URL
+			$ota_logo_img = JText::translate('VBORDFROMSITE');
+			$booking_avatar_src = null;
+			$booking_avatar_alt = null;
+			if (!empty($row['channel'])) {
+				$channelparts = explode('_', $row['channel']);
+				$otachannel = array_key_exists(1, $channelparts) && strlen($channelparts[1]) > 0 ? $channelparts[1] : ucwords($channelparts[0]);
+				$ota_logo_img = VikBooking::getVcmChannelsLogo($row['channel']);
+				if ($ota_logo_img === false) {
+					$ota_logo_img = $otachannel;
+				} else {
+					$ota_logo_img = '<img src="' . $ota_logo_img . '" class="vbo-channelimg-small"/>';
+				}
+				$logo_helper = VikBooking::getVcmChannelsLogo($row['channel'], $get_istance = true);
+				if ($logo_helper !== false) {
+					$booking_avatar_src = $logo_helper->getSmallLogoURL();
+					$booking_avatar_alt = $logo_helper->provenience;
+				}
+			}
+			$booking_infos[$k]['channelimg'] = $ota_logo_img;
+			$booking_infos[$k]['avatar_src'] = $booking_avatar_src;
+			$booking_infos[$k]['avatar_alt'] = $booking_avatar_alt;
+
+			// Customer Details
+			$custdata = $row['custdata'];
+			$custdata_parts = explode("\n", $row['custdata']);
+			if (count($custdata_parts) > 2 && strpos($custdata_parts[0], ':') !== false && strpos($custdata_parts[1], ':') !== false) {
+				//get the first two fields
+				$custvalues = [];
+				foreach ($custdata_parts as $custdet) {
+					if (strlen($custdet) < 1) {
+						continue;
+					}
+					$custdet_parts = explode(':', $custdet);
+					if (count($custdet_parts) >= 2) {
+						unset($custdet_parts[0]);
+						array_push($custvalues, trim(implode(':', $custdet_parts)));
+					}
+					if (count($custvalues) > 1) {
+						break;
+					}
+				}
+				if (count($custvalues) > 1) {
+					$custdata = implode(' ', $custvalues);
+				}
+			}
+			if (strlen($custdata) > 45) {
+				$custdata = substr($custdata, 0, 45) . " ...";
+			}
+
+			// customer record details
+			$customer = [];
+			$q = "SELECT `c`.*,`co`.`idorder` FROM `#__vikbooking_customers` AS `c` LEFT JOIN `#__vikbooking_customers_orders` `co` ON `c`.`id`=`co`.`idcustomer` WHERE `co`.`idorder`=" . $row['id'];
+			$dbo->setQuery($q, 0, 1);
+			$dbo->execute();
+			if ($dbo->getNumRows()) {
+				$customer = $dbo->loadAssoc();
+				if (!empty($customer['first_name'])) {
+					$custdata = $customer['first_name'] . ' ' . $customer['last_name'];
+					if (!empty($customer['country'])) {
+						if (file_exists(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'countries' . DIRECTORY_SEPARATOR . $customer['country'] . '.png')) {
+							$custdata .= '<img src="' . VBO_ADMIN_URI . 'resources/countries/' . $customer['country'] . '.png' . '" title="' . htmlspecialchars($customer['country']) . '" class="vbo-country-flag vbo-country-flag-left"/>';
+						}
+					}
+				}
+			}
+			$booking_infos[$k]['customer'] = $customer;
+
+			// check if a profile picture is available for the customer
+			if (!empty($customer['pic'])) {
+				$booking_avatar_src = strpos($customer['pic'], 'http') === 0 ? $customer['pic'] : VBO_SITE_URI . 'resources/uploads/' . $customer['pic'];
+				$booking_avatar_alt = basename($booking_avatar_src);
+				$booking_infos[$k]['avatar_src'] = $booking_avatar_src;
+				$booking_infos[$k]['avatar_alt'] = $booking_avatar_alt;
+			}
+
+			// whether this is a closure
+			$booking_infos[$k]['closure'] = (int)$row['closure'];
+			$booking_infos[$k]['closure_txt'] = $row['closure'] ? JText::translate('VBDBTEXTROOMCLOSED') : null;
+
+			// short customer information
+			$custdata = JText::translate('VBDBTEXTROOMCLOSED') == $row['custdata'] ? '<span class="vbordersroomclosed">' . JText::translate('VBDBTEXTROOMCLOSED') . '</span>' : $custdata;
+			$booking_infos[$k]['cinfo'] = $custdata;
+
+			// formatted dates
+			$booking_infos[$k]['ts'] = date(str_replace("/", $datesep, $df) . ' H:i', $row['ts']);
+			$booking_infos[$k]['checkin'] = date(str_replace("/", $datesep, $df) . ' H:i', $row['checkin']);
+			$booking_infos[$k]['checkout'] = date(str_replace("/", $datesep, $df) . ' H:i', $row['checkout']);
+
+			// short booking date, check-in, check-out date format
+			$stay_info_in  = getdate($row['checkin']);
+			$stay_info_out = getdate($row['checkout']);
+			$str_checkin = date('d', $row['checkin']);
+			$str_checkin .= $stay_info_in['mon'] != $stay_info_out['mon'] ? ' ' . VikBooking::sayMonth($stay_info_in['mon'], $short = true) : '';
+			$str_checkout = date('d', $row['checkout']) . ' ' . VikBooking::sayMonth($stay_info_out['mon'], $short = true);
+			if ($stay_info_in['year'] != $stay_info_out['year'] || $stay_info_in['year'] != $current_y || $stay_info_out['year'] != $current_y) {
+				$str_checkout .= ' ' . $stay_info_out['year'];
+			}
+			$booking_infos[$k]['checkin_short']  = $str_checkin;
+			$booking_infos[$k]['checkout_short'] = $str_checkout;
+			$booking_infos[$k]['book_date'] = date(str_replace("/", $datesep, $df), $row['ts']);
+			$booking_infos[$k]['book_time'] = date('H:i', $row['ts']);
 		}
 
-		echo json_encode($booking_infos);
-		exit;
+		if (!$booking_infos) {
+			// output the error
+			VBOHttpDocument::getInstance()->close(500, '2 - ' . JText::translate('VBOVWGETBKERRMISSDATA'));
+		}
+
+		// output the JSON encoded response and exit
+		VBOHttpDocument::getInstance()->json($booking_infos);
 	}
 
-	public function switchRoomIndex() {
+	public function switchRoomIndex()
+	{
 		//to be called via ajax
 		$dbo = JFactory::getDBO();
 		$bid = VikRequest::getInt('bid', '', 'request');
@@ -9518,7 +10587,7 @@ class VikBookingController extends JControllerVikBooking
 			echo 'e4j.error.#1 Missing Data';
 			exit;
 		}
-		$q = "SELECT * FROM `#__vikbooking_ordersrooms` WHERE `idorder`=".$bid." AND `idroom`=".$rid." AND `roomindex`=".$old_rindex.";";
+		$q = "SELECT * FROM `#__vikbooking_ordersrooms` WHERE `idorder`=" . $bid . " AND `idroom`=" . $rid . " AND `roomindex`=" . $old_rindex . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() < 1) {
@@ -9526,96 +10595,107 @@ class VikBookingController extends JControllerVikBooking
 			exit;
 		}
 		$rows = $dbo->loadAssocList();
-		$q = "UPDATE `#__vikbooking_ordersrooms` SET `roomindex`=".$new_rindex." WHERE `id`=".$rows[0]['id'].";";
+		$q = "UPDATE `#__vikbooking_ordersrooms` SET `roomindex`=" . $new_rindex . " WHERE `id`=" . $rows[0]['id'] . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		echo 'e4j.ok';
 		exit;
 	}
 
-	public function searchcustomer() {
-		//to be called via ajax
+	public function searchcustomer()
+	{
+		// to be called via ajax
+		$dbo = JFactory::getDbo();
+
 		$kw = VikRequest::getString('kw', '', 'request');
 		$nopin = VikRequest::getInt('nopin', '', 'request');
 		$email = VikRequest::getInt('email', 0, 'request');
-		$cstring = '';
-		if (strlen($kw) > 0) {
-			$dbo = JFactory::getDBO();
-			if ($nopin > 0) {
-				//page all bookings
-				$q = "SELECT * FROM `#__vikbooking_customers` WHERE CONCAT_WS(' ', `first_name`, `last_name`) LIKE ".$dbo->quote("%".$kw."%")." OR `email` LIKE ".$dbo->quote("%".$kw."%")." ORDER BY `first_name` ASC LIMIT 30;";
-			} elseif ($email > 0) {
-				// page calendar for checking if an email exists
-				$q = "SELECT `first_name`, `last_name`, `email` FROM `#__vikbooking_customers` WHERE `email`=".$dbo->quote($kw).";";
+		$selector = VikRequest::getString('selector', 'vbo-custsearchres-entry', 'request');
+		$no_script = VikRequest::getInt('no_script', 0, 'request');
+
+		if (!strlen($kw)) {
+			VBOHttpDocument::getInstance()->close(200, '');
+		}
+
+		if ($nopin > 0) {
+			//page all bookings
+			$q = "SELECT * FROM `#__vikbooking_customers` WHERE CONCAT_WS(' ', `first_name`, `last_name`) LIKE " . $dbo->quote("%" . $kw . "%") . " OR `email` LIKE " . $dbo->quote("%" . $kw . "%") . " ORDER BY `first_name` ASC LIMIT 30;";
+		} elseif ($email > 0) {
+			// page calendar for checking if an email exists
+			$q = "SELECT `first_name`, `last_name`, `email` FROM `#__vikbooking_customers` WHERE `email`=" . $dbo->quote($kw) . ";";
+		} else {
+			//page calendar
+			$q = "SELECT * FROM `#__vikbooking_customers` WHERE CONCAT_WS(' ', `first_name`, `last_name`) LIKE " . $dbo->quote("%" . $kw . "%") . " OR `email` LIKE " . $dbo->quote("%" . $kw . "%") . " OR `pin` LIKE " . $dbo->quote("%" . $kw . "%") . " ORDER BY `first_name` ASC;";
+		}
+		$dbo->setQuery($q);
+		$customers = $dbo->loadAssocList();
+
+		if (!$customers) {
+			VBOHttpDocument::getInstance()->close(200, '');
+		}
+
+		if ($email > 0) {
+			VBOHttpDocument::getInstance()->json($customers[0]);
+		}
+
+		$cust_old_fields = array();
+		$cstring_search = '<div class="vbo-custsearchres-inner">' . "\n";
+		foreach ($customers as $k => $v) {
+			$cstring_search .= '<div class="' . $selector . '" data-custid="' . $v['id'] . '" data-email="' . $v['email'] . '" data-phone="' . htmlspecialchars($v['phone']) . '" data-country="' . $v['country'] . '" data-pin="' . $v['pin'] . '" data-firstname="' . htmlspecialchars($v['first_name']) . '" data-lastname="' . htmlspecialchars($v['last_name']) . '">' . "\n";
+			$cstring_search .= '<span class="vbo-custsearchres-cflag">';
+			if (!empty($v['pic'])) {
+				$cstring_search .= '<img src="' . (strpos($v['pic'], 'http') === 0 ? $v['pic'] : VBO_SITE_URI . 'resources/uploads/' . $v['pic']) . '" class="vbo-country-flag vbo-customer-avatar-flag"/>' . "\n";
+			} elseif (is_file(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'countries' . DIRECTORY_SEPARATOR . $v['country'] . '.png')) {
+				$cstring_search .= '<img src="' . VBO_ADMIN_URI . 'resources/countries/' . $v['country'] . '.png' . '" title="' . htmlspecialchars($v['country']) . '" class="vbo-country-flag"/>' . "\n";
 			} else {
-				//page calendar
-				$q = "SELECT * FROM `#__vikbooking_customers` WHERE CONCAT_WS(' ', `first_name`, `last_name`) LIKE ".$dbo->quote("%".$kw."%")." OR `email` LIKE ".$dbo->quote("%".$kw."%")." OR `pin` LIKE ".$dbo->quote("%".$kw."%")." ORDER BY `first_name` ASC;";
+				$cstring_search .= '<i class="' . VikBookingIcons::i('globe') . '"></i>';
 			}
-			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows() > 0) {
-				$customers = $dbo->loadAssocList();
-				if ($email > 0) {
-					echo json_encode($customers[0]);
-					exit;
+			$cstring_search .= '</span>';
+			$cstring_search .= '<span class="vbo-custsearchres-name" title="' . htmlspecialchars($v['email']) . '">' . $v['first_name'] . ' ' . $v['last_name'] . '</span>' . "\n";
+			if (!($nopin > 0)) {
+				$cstring_search .= '<span class="vbo-custsearchres-pin">' . $v['pin'] . '</span>' . "\n";
+			}
+			$cstring_search .= '</div>' . "\n";
+			if (!empty($v['cfields'])) {
+				$oldfields = json_decode($v['cfields'], true);
+				if (is_array($oldfields) && count($oldfields)) {
+					$cust_old_fields[$v['id']] = $oldfields;
 				}
-				$cust_old_fields = array();
-				$cstring_search = '<div class="vbo-custsearchres-inner">' . "\n";
-				foreach ($customers as $k => $v) {
-					$cstring_search .= '<div class="vbo-custsearchres-entry" data-custid="'.$v['id'].'" data-email="'.$v['email'].'" data-phone="'.addslashes($v['phone']).'" data-country="'.$v['country'].'" data-pin="'.$v['pin'].'" data-firstname="'.addslashes($v['first_name']).'" data-lastname="'.addslashes($v['last_name']).'">'."\n";
-					$cstring_search .= '<span class="vbo-custsearchres-cflag">';
-					if (is_file(VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'countries'.DIRECTORY_SEPARATOR.$v['country'].'.png')) {
-						$cstring_search .= '<img src="'.VBO_ADMIN_URI.'resources/countries/'.$v['country'].'.png'.'" title="'.$v['country'].'" class="vbo-country-flag"/>'."\n";
-					} else {
-						$cstring_search .= '<i class="' . VikBookingIcons::i('globe') . '"></i>';
-					}
-					$cstring_search .= '</span>';
-					$cstring_search .= '<span class="vbo-custsearchres-name" title="'.$v['email'].'">'.$v['first_name'].' '.$v['last_name'].'</span>'."\n";
-					if (!($nopin > 0)) {
-						$cstring_search .= '<span class="vbo-custsearchres-pin">'.$v['pin'].'</span>'."\n";
-					}
-					$cstring_search .= '</div>'."\n";
-					if (!empty($v['cfields'])) {
-						$oldfields = json_decode($v['cfields'], true);
-						if (is_array($oldfields) && count($oldfields)) {
-							$cust_old_fields[$v['id']] = $oldfields;
-						}
-					}
-				}
-				$cstring_search .= '</div>'."\n";
-				/**
-				 * Add the necessary JS code for the arrow navigation.
-				 * 
-				 * @since 	1.13
-				 */
-				$cstring_search .= '<script type="text/javascript">';
-				$cstring_search .= '
-var vboCust = jQuery(".vbo-custsearchres-entry");
+			}
+		}
+		$cstring_search .= '</div>' . "\n";
+
+		/**
+		 * Add the necessary JS code for the arrow navigation.
+		 */
+		$cstring_search_js = '<script type="text/javascript">';
+		$cstring_search_js .= '
+var vboCust = jQuery(".' . $selector . '");
 var vboCustSelected = null;
 jQuery(window).keydown(function(e) {
 	if (e.which === 40) {
 		if (vboCustSelected) {
-			vboCustSelected.removeClass("vbo-custsearchres-entry-highligthed");
+			vboCustSelected.removeClass("' . $selector . '-highligthed");
 			next = vboCustSelected.next();
 			if (next.length > 0) {
-				vboCustSelected = next.addClass("vbo-custsearchres-entry-highligthed");
+				vboCustSelected = next.addClass("' . $selector . '-highligthed");
 			} else {
-				vboCustSelected = vboCust.eq(0).addClass("vbo-custsearchres-entry-highligthed");
+				vboCustSelected = vboCust.eq(0).addClass("' . $selector . '-highligthed");
 			}
 		} else {
-			vboCustSelected = vboCust.eq(0).addClass("vbo-custsearchres-entry-highligthed");
+			vboCustSelected = vboCust.eq(0).addClass("' . $selector . '-highligthed");
 		}
 	} else if (e.which === 38) {
 		if (vboCustSelected) {
-			vboCustSelected.removeClass("vbo-custsearchres-entry-highligthed");
+			vboCustSelected.removeClass("' . $selector . '-highligthed");
 			next = vboCustSelected.prev();
 			if (next.length > 0) {
-				vboCustSelected = next.addClass("vbo-custsearchres-entry-highligthed");
+				vboCustSelected = next.addClass("' . $selector . '-highligthed");
 			} else {
-				vboCustSelected = vboCust.last().addClass("vbo-custsearchres-entry-highligthed");
+				vboCustSelected = vboCust.last().addClass("' . $selector . '-highligthed");
 			}
 		} else {
-			vboCustSelected = vboCust.last().addClass("vbo-custsearchres-entry-highligthed");
+			vboCustSelected = vboCust.last().addClass("' . $selector . '-highligthed");
 		}
 	} else if (e.which === 13) {
 		if (vboCustSelected) {
@@ -9623,30 +10703,32 @@ jQuery(window).keydown(function(e) {
 		}
 	}
 });
-jQuery(".vbo-custsearchres-entry").hover(function() {
+jQuery(".' . $selector . '").off("hover");
+jQuery(".' . $selector . '").hover(function() {
 	if (vboCustSelected) {
-		vboCustSelected.removeClass("vbo-custsearchres-entry-highligthed");
+		vboCustSelected.removeClass("' . $selector . '-highligthed");
 		vboCustSelected = null;
 	}
-	vboCustSelected = jQuery(this).addClass("vbo-custsearchres-entry-highligthed");
+	vboCustSelected = jQuery(this).addClass("' . $selector . '-highligthed");
 }, function() {
 	if (vboCustSelected) {
-		vboCustSelected.removeClass("vbo-custsearchres-entry-highligthed");
+		vboCustSelected.removeClass("' . $selector . '-highligthed");
 		vboCustSelected = null;
 	}
-	jQuery(this).removeClass("vbo-custsearchres-entry-highligthed");
+	jQuery(this).removeClass("' . $selector . '-highligthed");
 });';
-				$cstring_search .= '</script>';
-				//
+		$cstring_search_js .= '</script>';
 
-				$cstring = json_encode(array(($nopin > 0 ? '' : $cust_old_fields), $cstring_search));
-			}
+		if (!$no_script) {
+			// append JS
+			$cstring_search .= $cstring_search_js;
 		}
-		echo $cstring;
-		exit;
+
+		VBOHttpDocument::getInstance()->json([($nopin > 0 ? '' : $cust_old_fields), $cstring_search]);
 	}
 
-	public function sharesignaturelink() {
+	public function sharesignaturelink()
+	{
 		//to be called via ajax
 		$dbo = JFactory::getDBO();
 		$response = array(
@@ -9660,34 +10742,46 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$cpin = VikBooking::getCPinIstance();
 		$customer_info = $cpin->getCustomerByID($pcustomer);
 		if (!empty($pbid) && !empty($phow) && !empty($pto) && count($customer_info) > 0) {
-			$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=".(int)$pbid." AND `status`='confirmed' AND `checked` > 0;";
+			$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=" . (int)$pbid . " AND `status`='confirmed' AND `checked` > 0;";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() > 0) {
 				$row = $dbo->loadAssoc();
-				$share_link = JUri::root().'index.php?option=com_vikbooking&task=signature&sid='.$row['sid'].'&ts='.$row['ts'];
-				/**
-				 * @wponly 	Rewrite URI for front-end signature
-				 */
-				$share_link = str_replace(JUri::root(), '', $share_link);
-				$model 		= JModel::getInstance('vikbooking', 'shortcodes');
-				$itemid 	= $model->all('post_id', $full = true);
-				if (count($itemid)) {
-					$share_link = JRoute::rewrite($share_link . "&Itemid={$itemid[0]->post_id}", false);
+
+				$share_link = JUri::root() . 'index.php?option=com_vikbooking&task=signature&sid=' . (!empty($row['idorderota']) && !empty($row['channel']) ? $row['idorderota'] : $row['sid']) . '&ts=' . $row['ts'];
+				if (VBOPlatformDetection::isWordPress()) {
+					/**
+					 * @wponly 	Rewrite URI for front-end signature
+					 */
+					$share_link = str_replace(JUri::root(), '', $share_link);
+					$model 		= JModel::getInstance('vikbooking', 'shortcodes');
+					$itemid 	= $model->all('post_id', $full = true);
+					if (count($itemid)) {
+						$share_link = JRoute::rewrite($share_link . "&Itemid={$itemid[0]->post_id}", false);
+					}
+				} else {
+					/**
+					 * @joomlaonly
+					 */
+					$best_menuitem_id = VikBooking::findProperItemIdType(['vikbooking', 'booking'], $row['lang']);
+					if ($best_menuitem_id) {
+						$share_base = str_replace(JUri::root(), '', $share_link);
+						$share_link = VikBooking::externalroute($share_base, $xhtml = false, $best_menuitem_id);
+					}
 				}
-				//
-				$share_message = JText::sprintf('VBOSIGNSHAREMESSAGE', ltrim($customer_info['first_name'].' '.$customer_info['last_name']), $share_link, VikBooking::getFrontTitle());
+
+				$share_message = JText::sprintf('VBOSIGNSHAREMESSAGE', ltrim($customer_info['first_name'] . ' ' . $customer_info['last_name']), $share_link, VikBooking::getFrontTitle());
 				if ($phow == 'email') {
 					$sender = VikBooking::getSenderMail();
-					$vbo_app = new VboApplication();
+					$vbo_app = VikBooking::getVboApplication();
 					$vbo_app->sendMail($sender, $sender, $pto, $sender, JText::translate('VBOSIGNSHARESUBJECT'), $share_message, false);
 					$response['status'] = 1;
 				} elseif ($phow == 'sms') {
-					$share_message = JText::sprintf('VBOSIGNSHAREMESSAGESMS', ltrim($customer_info['first_name'].' '.$customer_info['last_name']), $share_link, VikBooking::getFrontTitle());
+					$share_message = JText::sprintf('VBOSIGNSHAREMESSAGESMS', ltrim($customer_info['first_name'] . ' ' . $customer_info['last_name']), $share_link, VikBooking::getFrontTitle());
 					$sms_api = VikBooking::getSMSAPIClass();
 					$sms_api_params = VikBooking::getSMSParams();
-					if (!empty($sms_api) && file_exists(VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'smsapi'.DIRECTORY_SEPARATOR.$sms_api) && !empty($sms_api_params)) {
-						require_once(VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'smsapi'.DIRECTORY_SEPARATOR.$sms_api);
+					if (!empty($sms_api) && file_exists(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'smsapi' . DIRECTORY_SEPARATOR . $sms_api) && !empty($sms_api_params)) {
+						require_once(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'smsapi' . DIRECTORY_SEPARATOR . $sms_api);
 						$sms_obj = new VikSmsApi(array(), $sms_api_params);
 						$response_obj = $sms_obj->sendMessage($pto, $share_message);
 						if ($sms_obj->validateResponse($response_obj)) {
@@ -9712,17 +10806,18 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		exit;
 	}
 
-	public function dayselectioncount() {
+	public function dayselectioncount()
+	{
 		//to be called via ajax
 		$tsinit = VikRequest::getString('dinit', '', 'request');
 		$tsend = VikRequest::getString('dend', '', 'request');
 		if (strlen($tsinit) > 0 && strlen($tsend) > 0) {
-			$ptsinit=VikBooking::getDateTimestamp($tsinit, '0', '0');
-			$ptsend=VikBooking::getDateTimestamp($tsend, '23', '59');
+			$ptsinit = VikBooking::getDateTimestamp($tsinit, '0', '0');
+			$ptsend = VikBooking::getDateTimestamp($tsend, '23', '59');
 			$diff = $ptsend - $ptsinit;
 			if ($diff >= 172800) {
 				$datef = VikBooking::getDateFormat(true);
-				if ($datef=="%d/%m/%Y") {
+				if ($datef == "%d/%m/%Y") {
 					$df = 'd-m-Y';
 				} else {
 					$df = 'Y-m-d';
@@ -9731,19 +10826,19 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 				$daysdiff = floor($diff / 86400);
 				$infoinit = getdate($ptsinit);
 				$select = '';
-				$select .= '<div style="display: inline-block;"><select name="excludeday[]" multiple="multiple" size="'.($daysdiff > 8 ? 8 : $daysdiff).'" id="vboexclusion">';
-				for($i = 0; $i <= $daysdiff; $i++) {
+				$select .= '<div style="display: inline-block;"><select name="excludeday[]" multiple="multiple" size="' . ($daysdiff > 8 ? 8 : $daysdiff) . '" id="vboexclusion">';
+				for ($i = 0; $i <= $daysdiff; $i++) {
 					$ts = $i > 0 ? mktime(0, 0, 0, $infoinit['mon'], ((int)$infoinit['mday'] + $i), $infoinit['year']) : $ptsinit;
 					$infots = getdate($ts);
-					$optval = $infots['mon'].'-'.$infots['mday'].'-'.$infots['year'];
-					$select .= '<option value="'.$optval.'">'.date($df, $ts).'</option>';
+					$optval = $infots['mon'] . '-' . $infots['mday'] . '-' . $infots['year'];
+					$select .= '<option value="' . $optval . '">' . date($df, $ts) . '</option>';
 				}
 				$select .= '</select></div>';
 				//excluded days of the week
 				if ($daysdiff >= 14) {
 					$select .= '<div style="display: inline-block; margin-left: 40px;"><select name="excludewdays[]" multiple="multiple" size="8" id="excludewdays" onchange="vboExcludeWDays();">';
-					$select .= '<optgroup label="'.JText::translate('VBOEXCLWEEKD').'">';
-					$select .= '<option value="0">'.JText::translate('VBSUNDAY').'</option><option value="1">'.JText::translate('VBMONDAY').'</option><option value="2">'.JText::translate('VBTUESDAY').'</option><option value="3">'.JText::translate('VBWEDNESDAY').'</option><option value="4">'.JText::translate('VBTHURSDAY').'</option><option value="5">'.JText::translate('VBFRIDAY').'</option><option value="6">'.JText::translate('VBSATURDAY').'</option>';
+					$select .= '<optgroup label="' . JText::translate('VBOEXCLWEEKD') . '">';
+					$select .= '<option value="0">' . JText::translate('VBSUNDAY') . '</option><option value="1">' . JText::translate('VBMONDAY') . '</option><option value="2">' . JText::translate('VBTUESDAY') . '</option><option value="3">' . JText::translate('VBWEDNESDAY') . '</option><option value="4">' . JText::translate('VBTHURSDAY') . '</option><option value="5">' . JText::translate('VBFRIDAY') . '</option><option value="6">' . JText::translate('VBSATURDAY') . '</option>';
 					$select .= '</optgroup>';
 					$select .= '</select></div>';
 				}
@@ -9758,7 +10853,8 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		exit;
 	}
 
-	public function createcheckindoc() {
+	public function createcheckindoc()
+	{
 		$cid = VikRequest::getVar('cid', array(0));
 		$id = $cid[0];
 
@@ -9770,7 +10866,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$psignature = VikRequest::getString('signature', '', 'request', VIKREQUEST_ALLOWRAW);
 		$ppad_width = VikRequest::getInt('pad_width', '', 'request');
 		$ppad_ratio = VikRequest::getInt('pad_ratio', '', 'request');
-		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=".(int)$id." AND `status`='confirmed' AND `checked` > 0;";
+		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=" . (int)$id . " AND `status`='confirmed' AND `checked` > 0;";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() < 1) {
@@ -9780,10 +10876,14 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$row = $dbo->loadAssoc();
 		if (!empty($row['lang'])) {
 			if ($lang->getTag() != $row['lang']) {
-				/**
-				 * @wponly 	constant name for lang path is different
-				 */
-				$lang->load('com_vikbooking', VIKBOOKING_LANG, $row['lang'], true);
+				if (VBOPlatformDetection::isWordPress()) {
+					$lang->load('com_vikbooking', VIKBOOKING_LANG, $row['lang'], true);
+				} else {
+					$lang->load('com_vikbooking', JPATH_SITE, $row['lang'], true);
+					$lang->load('com_vikbooking', JPATH_ADMINISTRATOR, $row['lang'], true);
+					$lang->load('joomla', JPATH_SITE, $row['lang'], true);
+					$lang->load('joomla', JPATH_ADMINISTRATOR, $row['lang'], true);
+				}
 			}
 			if ($vbo_tn->getDefaultLang() != $row['lang']) {
 				// force the translation to start because contents should be translated
@@ -9791,20 +10891,20 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			}
 		}
 		$customer = array();
-		$q = "SELECT `c`.*,`co`.`idorder`,`co`.`signature`,`co`.`pax_data`,`co`.`comments`,`co`.`checkindoc` FROM `#__vikbooking_customers` AS `c` LEFT JOIN `#__vikbooking_customers_orders` `co` ON `c`.`id`=`co`.`idcustomer` WHERE `co`.`idorder`=".$row['id'].";";
+		$q = "SELECT `c`.*,`co`.`idorder`,`co`.`signature`,`co`.`pax_data`,`co`.`comments`,`co`.`checkindoc` FROM `#__vikbooking_customers` AS `c` LEFT JOIN `#__vikbooking_customers_orders` `co` ON `c`.`id`=`co`.`idcustomer` WHERE `co`.`idorder`=" . $row['id'] . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() > 0) {
 			$customer = $dbo->loadAssoc();
 			if (!empty($customer['country'])) {
-				if (file_exists(VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'countries'.DIRECTORY_SEPARATOR.$customer['country'].'.png')) {
-					$customer['country_img'] = '<img src="'.VBO_ADMIN_URI.'resources/countries/'.$customer['country'].'.png'.'" title="'.$customer['country'].'" class="vbo-country-flag vbo-country-flag-left"/>';
+				if (file_exists(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'countries' . DIRECTORY_SEPARATOR . $customer['country'] . '.png')) {
+					$customer['country_img'] = '<img src="' . VBO_ADMIN_URI . 'resources/countries/' . $customer['country'] . '.png' . '" title="' . htmlspecialchars($customer['country']) . '" class="vbo-country-flag vbo-country-flag-left"/>';
 				}
 			}
 		}
 		if (!(count($customer) > 0)) {
 			VikError::raiseWarning('', JText::translate('VBOCHECKINERRNOCUSTOMER'));
-			$mainframe->redirect('index.php?option=com_vikbooking&task=newcustomer&checkin=1&bid='.$row['id'].($ptmpl == 'component' ? '&tmpl=component' : ''));
+			$mainframe->redirect('index.php?option=com_vikbooking&task=newcustomer&checkin=1&bid=' . $row['id'] . ($ptmpl == 'component' ? '&tmpl=component' : ''));
 			exit;
 		}
 		$customer['pax_data'] = !empty($customer['pax_data']) ? json_decode($customer['pax_data'], true) : array();
@@ -9824,14 +10924,14 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 		if (!empty($signature_data)) {
 			//write file
-			$sign_fname = $row['id'].'_'.$row['sid'].'_'.$customer['id'].'.'.$cont_type;
+			$sign_fname = $row['id'] . '_' . $row['sid'] . '_' . $customer['id'] . '.' . $cont_type;
 			$filepath = VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'idscans' . DIRECTORY_SEPARATOR . $sign_fname;
 			$fp = fopen($filepath, 'w+');
 			$bytes = fwrite($fp, $signature_data);
 			fclose($fp);
 			if ($bytes !== false && $bytes > 0) {
 				//update the signature in the DB
-				$q = "UPDATE `#__vikbooking_customers_orders` SET `signature`=".$dbo->quote($sign_fname)." WHERE `idorder`=".(int)$row['id'].";";
+				$q = "UPDATE `#__vikbooking_customers_orders` SET `signature`=" . $dbo->quote($sign_fname) . " WHERE `idorder`=" . (int)$row['id'] . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				$customer['signature'] = $sign_fname;
@@ -9856,7 +10956,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		//
 		//generate PDF for check-in document by parsing the apposite template file
 		$booking_rooms = array();
-		$q = "SELECT `or`.*,`r`.`name` AS `room_name`,`r`.`fromadult`,`r`.`toadult` FROM `#__vikbooking_ordersrooms` AS `or` LEFT JOIN `#__vikbooking_rooms` `r` ON `r`.`id`=`or`.`idroom` WHERE `or`.`idorder`=".(int)$row['id'].";";
+		$q = "SELECT `or`.*,`r`.`name` AS `room_name`,`r`.`fromadult`,`r`.`toadult` FROM `#__vikbooking_ordersrooms` AS `or` LEFT JOIN `#__vikbooking_rooms` `r` ON `r`.`id`=`or`.`idroom` WHERE `or`.`idorder`=" . (int)$row['id'] . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() > 0) {
@@ -9866,13 +10966,24 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			}
 		}
 		if (!class_exists('TCPDF')) {
-			require_once(VBO_SITE_PATH . DS . "helpers" . DS . "tcpdf" . DS . 'tcpdf.php');
+			require_once(VBO_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "tcpdf" . DIRECTORY_SEPARATOR . 'tcpdf.php');
 		}
-		$usepdffont = file_exists(VBO_SITE_PATH . DS . "helpers" . DS . "tcpdf" . DS . "fonts" . DS . "dejavusans.php") ? 'dejavusans' : 'helvetica';
+		$usepdffont = is_file(VBO_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "tcpdf" . DIRECTORY_SEPARATOR . "fonts" . DIRECTORY_SEPARATOR . "dejavusans.php") ? 'dejavusans' : 'helvetica';
+
+		/**
+		 * Trigger event to allow third party plugins to return a specific font name.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$custom_pdf_font = VBOFactory::getPlatform()->getDispatcher()->filter('onGetPdfFontNameVikBooking', [$usepdffont]);
+		if (is_array($custom_pdf_font) && !empty($custom_pdf_font[0])) {
+			$usepdffont = $custom_pdf_font[0];
+		}
+
 		list($checkintpl, $pdfparams) = VikBooking::loadCheckinDocTmpl($row, $booking_rooms, $customer);
 		$checkin_body = VikBooking::parseCheckinDocTemplate($checkintpl, $row, $booking_rooms, $customer);
 		$pdffname = $row['id'] . '_' . $row['sid'] . '.pdf';
-		$pathpdf = VBO_SITE_PATH . DS . "helpers" . DS . "checkins" . DS . "generated" . DS . $pdffname;
+		$pathpdf = VBO_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "checkins" . DIRECTORY_SEPARATOR . "generated" . DIRECTORY_SEPARATOR . $pdffname;
 		if (file_exists($pathpdf)) @unlink($pathpdf);
 		$pdf_page_format = is_array($pdfparams['pdf_page_format']) ? $pdfparams['pdf_page_format'] : constant($pdfparams['pdf_page_format']);
 		$pdf = new TCPDF(constant($pdfparams['pdf_page_orientation']), constant($pdfparams['pdf_unit']), $pdf_page_format, true, 'UTF-8', false);
@@ -9905,7 +11016,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		if (!file_exists($pathpdf)) {
 			VikError::raiseWarning('', JText::translate('VBOERRGENCHECKINDOC'));
 		} else {
-			$q = "UPDATE `#__vikbooking_customers_orders` SET `checkindoc`=".$dbo->quote($pdffname)." WHERE `idorder`=".(int)$row['id'].";";
+			$q = "UPDATE `#__vikbooking_customers_orders` SET `checkindoc`=" . $dbo->quote($pdffname) . " WHERE `idorder`=" . (int)$row['id'] . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			$mainframe->enqueueMessage(JText::translate('VBOGENCHECKINDOCSUCCESS'));
@@ -9920,11 +11031,12 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		/**
 		 * @wponly - this task is executed via Ajax for the Modal forms listener. We cannot redirect to tmpl=component
 		 */
-		$mainframe->redirect('index.php?option=com_vikbooking&task=bookingcheckin&cid[]='.$row['id']);
+		$mainframe->redirect('index.php?option=com_vikbooking&task=bookingcheckin&cid[]=' . $row['id']);
 		exit;
 	}
 
-	public function updatebookingcheckin() {
+	public function updatebookingcheckin()
+	{
 		$cid = VikRequest::getVar('cid', array(0));
 		$id = $cid[0];
 
@@ -9941,7 +11053,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			$app->redirect('index.php');
 			exit;
 		}
-		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=".(int)$id." AND `status`='confirmed';";
+		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=" . (int)$id . " AND `status`='confirmed';";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() < 1) {
@@ -9949,17 +11061,17 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			exit;
 		}
 		$row = $dbo->loadAssoc();
-		$q = "SELECT * FROM `#__vikbooking_customers_orders` WHERE `idorder`=".$row['id'].";";
+		$q = "SELECT * FROM `#__vikbooking_customers_orders` WHERE `idorder`=" . $row['id'] . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() < 1) {
 			VikError::raiseWarning('', JText::translate('VBOCHECKINERRNOCUSTOMER'));
-			$app->redirect('index.php?option=com_vikbooking&task=bookingcheckin&cid[]='.$row['id'].($ptmpl == 'component' ? '&tmpl=component' : ''));
+			$app->redirect('index.php?option=com_vikbooking&task=bookingcheckin&cid[]=' . $row['id'] . ($ptmpl == 'component' ? '&tmpl=component' : ''));
 			exit;
 		}
 		$custorder = $dbo->loadAssoc();
 		//update checked status and new total paid
-		$q = "UPDATE `#__vikbooking_orders` SET `checked`=".$pcheckin_action."".($pnewtotpaid > 0 ? ', `totpaid`='.$pnewtotpaid : '')." WHERE `id`=".$row['id'].";";
+		$q = "UPDATE `#__vikbooking_orders` SET `checked`=" . $pcheckin_action . "" . ($pnewtotpaid > 0 ? ', `totpaid`=' . $pnewtotpaid : '') . " WHERE `id`=" . $row['id'] . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		// Booking History log for new amount paid (payment update)
@@ -10039,36 +11151,47 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 				}
 			}
 			//
-			$q = "UPDATE `#__vikbooking_customers_orders` SET `pax_data`=".$dbo->quote(json_encode($guests_details))." WHERE `id`=".$custorder['id'].";";
+			$q = "UPDATE `#__vikbooking_customers_orders` SET `pax_data`=" . $dbo->quote(json_encode($guests_details)) . " WHERE `id`=" . $custorder['id'] . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
 
 		//'checked' status comments
-		$q = "UPDATE `#__vikbooking_customers_orders` SET `comments`=".$dbo->quote($pcomments)." WHERE `id`=".$custorder['id'].";";
+		$q = "UPDATE `#__vikbooking_customers_orders` SET `comments`=" . $dbo->quote($pcomments) . " WHERE `id`=" . $custorder['id'] . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 
 		$app->enqueueMessage(JText::translate('VBOCHECKINSTATUSUPDATED'));
-		$app->redirect('index.php?option=com_vikbooking&task=bookingcheckin&cid[]='.$row['id'].($pcheckin_action != $row['checked'] ? '&changed=1' : '').($ptmpl == 'component' ? '&tmpl=component' : ''));
+		$app->redirect('index.php?option=com_vikbooking&task=bookingcheckin&cid[]=' . $row['id'] . ($pcheckin_action != $row['checked'] ? '&changed=1' : '') . ($ptmpl == 'component' ? '&tmpl=component' : ''));
 		exit;
 	}
 
-	public function alterbooking() {
+	public function alterbooking()
+	{
 		$dbo = JFactory::getDbo();
+		$app = JFactory::getApplication();
 		$user = JFactory::getUser();
-		$response = array('esit' => 1, 'message' => '', 'vcm' => '');
-		$pdebug = VikRequest::getInt('e4j_debug', '', 'request');
+
+		$response = array(
+			'esit' => 1,
+			'message' => '',
+			'vcm' => '',
+		);
+
+		// must be a string as it may contain a dash
 		$pidorder = VikRequest::getString('idorder', '', 'request');
 		$pidorder = intval(str_replace('-', '', $pidorder));
+
 		$poldidroom = VikRequest::getInt('oldidroom', '', 'request');
-		$pidroom = VikRequest::getInt('idroom', '', 'request');
+		$pidroom = VikRequest::getInt('idroom', 0, 'request');
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$ptodate = VikRequest::getString('todate', '', 'request');
+		$pdebug = VikRequest::getInt('e4j_debug', 0, 'request');
 		if ($pdebug == 1) {
-			echo 'e4j.error.'.print_r($_POST, true);
+			echo 'e4j.error.' . print_r($app->input->post->getArray(), true);
 			exit;
 		}
+
 		$nowdf = VikBooking::getDateFormat(true);
 		if ($nowdf == "%d/%m/%Y") {
 			$df = 'd/m/Y';
@@ -10096,28 +11219,33 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$second = VikBooking::getDateTimestamp(date($df, $actualtsto), $pcheckouth, $pcheckoutm);
 		$ptodate = date('Y-m-d', $second);
 		if (!($second > $first)) {
-			echo 'e4j.error.1 '.addslashes(JText::translate('VBOVWALTBKERRMISSDATA'));
+			echo 'e4j.error.1 ' . addslashes(JText::translate('VBOVWALTBKERRMISSDATA'));
 			exit;
 		}
 		if (!($pidorder > 0) || !($pidroom > 0) || empty($pfromdate) || empty($ptodate)) {
-			echo 'e4j.error.2 '.addslashes(JText::translate('VBOVWALTBKERRMISSDATA'));
+			echo 'e4j.error.2 ' . addslashes(JText::translate('VBOVWALTBKERRMISSDATA'));
 			exit;
 		}
-		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`='".$pidorder."' AND `status`='confirmed';";
-		$dbo->setQuery($q);
+
+		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=" . $pidorder . " AND `status`='confirmed'";
+		$dbo->setQuery($q, 0, 1);
 		$dbo->execute();
-		if ($dbo->getNumRows() != 1) {
-			echo 'e4j.error.3 '.addslashes(JText::translate('VBOVWALTBKERRMISSDATA'));
+		if (!$dbo->getNumRows()) {
+			echo 'e4j.error.3 ' . addslashes(JText::translate('VBOVWALTBKERRMISSDATA'));
 			exit;
 		}
-		$ord = $dbo->loadAssocList();
-		$q = "SELECT `or`.*,`r`.`name`,`r`.`idopt`,`r`.`units`,`r`.`fromadult`,`r`.`toadult` FROM `#__vikbooking_ordersrooms` AS `or`,`#__vikbooking_rooms` AS `r` WHERE `or`.`idorder`=".$ord[0]['id']." AND `or`.`idroom`=`r`.`id` ORDER BY `or`.`id` ASC;";
+		$ord = $dbo->loadAssoc();
+
+		$q = "SELECT `or`.*,`r`.`name`,`r`.`idopt`,`r`.`units`,`r`.`fromadult`,`r`.`toadult` FROM `#__vikbooking_ordersrooms` AS `or`,`#__vikbooking_rooms` AS `r` WHERE `or`.`idorder`=" . $ord['id'] . " AND `or`.`idroom`=`r`.`id` ORDER BY `or`.`id` ASC;";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		$ordersrooms = $dbo->loadAssocList();
-		$ord[0]['rooms_info'] = $ordersrooms;
-		//Package or custom rate
-		$is_package = !empty($ord[0]['pkg']) ? true : false;
+
+		// store for VCM the current rooms before the modification
+		$ord['rooms_info'] = $ordersrooms;
+
+		// package or custom rate
+		$is_package = !empty($ord['pkg']) ? true : false;
 		$is_cust_cost = false;
 		foreach ($ordersrooms as $kor => $or) {
 			if ($is_package !== true && !empty($or['cust_cost']) && $or['cust_cost'] > 0.00) {
@@ -10125,7 +11253,27 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 				break;
 			}
 		}
-		//
+
+		// availability helper
+		$av_helper = VikBooking::getAvailabilityInstance();
+
+		// room stay dates in case of split stay
+		$room_stay_dates = [];
+		if ($ord['split_stay']) {
+			// no need to get the transient based on booking status, as the booking must be confirmed
+			$room_stay_dates = $av_helper->loadSplitStayBusyRecords($ord['id']);
+			// immediately count the number of nights of stay for each split room
+			foreach ($room_stay_dates as $sps_r_k => $sps_r_v) {
+				$room_stay_dates[$sps_r_k]['nights'] = $av_helper->countNightsOfStay($sps_r_v['checkin'], $sps_r_v['checkout']);
+			}
+		}
+
+		// determine if dates have changed
+		$dates_changed = false;
+		if (date('Y-m-d', $ord['checkin']) != $pfromdate || date('Y-m-d', $ord['checkout']) != $ptodate) {
+			$dates_changed = true;
+		}
+
 		$toswitch = array();
 		$idbooked = array();
 		$rooms_units = array();
@@ -10137,91 +11285,142 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			$rooms_units[$rr['id']]['name'] = $rr['name'];
 			$rooms_units[$rr['id']]['units'] = $rr['units'];
 		}
-		//Switch room
+
+		// switch room
 		if ($poldidroom != $pidroom) {
 			foreach ($ordersrooms as $ind => $or) {
 				if ($poldidroom == $or['idroom'] && array_key_exists($pidroom, $rooms_units)) {
 					if (!isset($idbooked[$or['idroom']])) {
 						$idbooked[$or['idroom']] = 0;
 					}
-					//$idbooked is not really needed as switch is never made for the same room id
+					// $idbooked is not really needed as switch is never made for the same room id
 					$idbooked[$or['idroom']]++;
 					//
 					$orkey = count($toswitch);
 					$toswitch[$orkey]['from'] = $or['idroom'];
-					$toswitch[$orkey]['to'] = intval($pidroom);
+					$toswitch[$orkey]['to'] = $pidroom;
 					$toswitch[$orkey]['record'] = $or;
+					$toswitch[$orkey]['record_ind'] = $ind;
 					break;
 				}
 			}
 		}
-		if (count($toswitch) > 0) {
+		if (count($toswitch)) {
 			foreach ($toswitch as $ksw => $rsw) {
 				$plusunit = array_key_exists($rsw['to'], $idbooked) ? $idbooked[$rsw['to']] : 0;
-				if (!VikBooking::roomBookable($rsw['to'], ($rooms_units[$rsw['to']]['units'] + $plusunit), $ord[0]['checkin'], $ord[0]['checkout'])) {
+				$room_checkin  = $ord['checkin'];
+				$room_checkout = $ord['checkout'];
+				if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$rsw['record_ind']]) && $room_stay_dates[$rsw['record_ind']]['idroom'] == $rsw['from']) {
+					$room_checkin  = $room_stay_dates[$rsw['record_ind']]['checkin'];
+					$room_checkout = $room_stay_dates[$rsw['record_ind']]['checkout'];
+				}
+				if (!VikBooking::roomBookable($rsw['to'], ($rooms_units[$rsw['to']]['units'] + $plusunit), $room_checkin, $room_checkout)) {
+					// the room is not available
 					unset($toswitch[$ksw]);
-					echo 'e4j.error.'.JText::sprintf('VBSWITCHRERR', $rsw['record']['name'], $rooms_units[$rsw['to']]['name']);
+					echo 'e4j.error.' . JText::sprintf('VBSWITCHRERR', $rsw['record']['name'], $rooms_units[$rsw['to']]['name']);
 					exit;
 				}
 			}
-			if (count($toswitch) > 0) {
+			if (count($toswitch)) {
 				//reset first record rate so that rates can be set again (rates are unset only if the room is switched, if just the dates are different the rates are kept equal as the num nights is the same)
 				reset($ordersrooms);
-				$q = "UPDATE `#__vikbooking_ordersrooms` SET `idtar`=NULL,`roomindex`=NULL,`room_cost`=NULL WHERE `id`=".$ordersrooms[0]['id'].";";
+				$q = "UPDATE `#__vikbooking_ordersrooms` SET `idtar`=NULL,`roomindex`=NULL,`room_cost`=NULL WHERE `id`=" . $ordersrooms[0]['id'] . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				//
 				foreach ($toswitch as $ksw => $rsw) {
-					$q = "UPDATE `#__vikbooking_ordersrooms` SET `idroom`=".$rsw['to'].",`idtar`=NULL,`roomindex`=NULL,`room_cost`=NULL WHERE `id`=".$rsw['record']['id'].";";
+					// update room reservation record
+					$q = "UPDATE `#__vikbooking_ordersrooms` SET `idroom`=" . $rsw['to'] . ",`idtar`=NULL,`roomindex`=NULL,`room_cost`=NULL WHERE `id`=" . $rsw['record']['id'] . ";";
 					$dbo->setQuery($q);
 					$dbo->execute();
-					$response['message'] .= JText::sprintf('VBOVWALTBKSWITCHROK', $rsw['record']['name'], $rooms_units[$rsw['to']]['name'])."\n";
-					//update Notes field for this booking to keep track of the previous room that was assigned
+					$response['message'] .= JText::sprintf('VBOVWALTBKSWITCHROK', $rsw['record']['name'], $rooms_units[$rsw['to']]['name']) . "\n";
+
+					// update Notes field for this booking to keep track of the previous room that was assigned
 					$prev_room_name = array_key_exists($rsw['from'], $rooms_units) ? $rooms_units[$rsw['from']]['name'] : '';
 					if (!empty($prev_room_name)) {
-						$new_notes = JText::sprintf('VBOPREVROOMMOVED', $prev_room_name, date($df.' H:i:s'))."\n".$ord[0]['adminnotes'];
-						$q = "UPDATE `#__vikbooking_orders` SET `adminnotes`=".$dbo->quote($new_notes)." WHERE `id`=".(int)$ord[0]['id'].";";
+						$new_notes = JText::sprintf('VBOPREVROOMMOVED', $prev_room_name, date($df . ' H:i:s')) . "\n" . $ord['adminnotes'];
+						$q = "UPDATE `#__vikbooking_orders` SET `adminnotes`=" . $dbo->quote($new_notes) . " WHERE `id`=" . (int)$ord['id'] . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
 					}
-					//
-					if ($ord[0]['status'] == 'confirmed') {
-						//update record in _busy
-						$q = "SELECT `b`.`id`,`b`.`idroom`,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`idroom`=" . $rsw['from'] . " AND `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`=".$ord[0]['id']." LIMIT 1;";
-						$dbo->setQuery($q);
-						$dbo->execute();
-						if ($dbo->getNumRows() == 1) {
-							$cur_busy = $dbo->loadAssocList();
-							$q = "UPDATE `#__vikbooking_busy` SET `idroom`=".$rsw['to']." WHERE `id`=".$cur_busy[0]['id']." AND `idroom`=".$cur_busy[0]['idroom']." LIMIT 1;";
+
+					if ($ord['status'] == 'confirmed') {
+						// update room record in _busy
+						if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$rsw['record_ind']]) && $room_stay_dates[$rsw['record_ind']]['idroom'] == $rsw['from'] && !empty($room_stay_dates[$rsw['record_ind']]['id'])) {
+							// in case of a split stay it is fundamental to update the exact busy record ID
+							$q = "UPDATE `#__vikbooking_busy` SET `idroom`=" . $rsw['to'] . " WHERE `id`=" . (int)$room_stay_dates[$rsw['record_ind']]['id'];
 							$dbo->setQuery($q);
 							$dbo->execute();
+						} else {
+							// regular processing of a room ID for a reservation, no matter which one, we switch it
+							$q = "SELECT `b`.`id`,`b`.`idroom`,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`idroom`=" . $rsw['from'] . " AND `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`=" . $ord['id'] . " LIMIT 1;";
+							$dbo->setQuery($q);
+							$dbo->execute();
+							if ($dbo->getNumRows() == 1) {
+								$cur_busy = $dbo->loadAssocList();
+								$q = "UPDATE `#__vikbooking_busy` SET `idroom`=" . $rsw['to'] . " WHERE `id`=" . $cur_busy[0]['id'] . " AND `idroom`=" . $cur_busy[0]['idroom'] . " LIMIT 1;";
+								$dbo->setQuery($q);
+								$dbo->execute();
+							}
 						}
-						//if automated updates enabled, keep $response['vcm'] empty
-						//Invoke Channel Manager
+
+						// if automated updates enabled, keep $response['vcm'] empty
+						// Invoke Channel Manager
 						if (file_exists(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
-							$response['vcm'] = JText::translate('VBCHANNELMANAGERINVOKEASK').' <form action="index.php?option=com_vikbooking" method="post"><input type="hidden" name="option" value="com_vikbooking"/><input type="hidden" name="task" value="invoke_vcm"/><input type="hidden" name="stype" value="modify"/><input type="hidden" name="cid[]" value="'.$ord[0]['id'].'"/><input type="hidden" name="origb" value="'.urlencode(json_encode($ord[0])).'"/><input type="hidden" name="returl" value="'.urlencode("index.php?option=com_vikbooking&task=overview").'"/><button type="submit" class="btn btn-primary">'.JText::translate('VBCHANNELMANAGERSENDRQ').'</button></form>';
+							$response['vcm'] = JText::translate('VBCHANNELMANAGERINVOKEASK') . ' <form action="index.php?option=com_vikbooking" method="post"><input type="hidden" name="option" value="com_vikbooking"/><input type="hidden" name="task" value="invoke_vcm"/><input type="hidden" name="stype" value="modify"/><input type="hidden" name="cid[]" value="' . $ord['id'] . '"/><input type="hidden" name="origb" value="' . urlencode(json_encode($ord)) . '"/><input type="hidden" name="returl" value="' . urlencode("index.php?option=com_vikbooking&task=overview") . '"/><button type="submit" class="btn btn-primary">' . JText::translate('VBCHANNELMANAGERSENDRQ') . '</button></form>';
 						}
-						//
-					} elseif ($ord[0]['status'] == 'standby') {
-						//remove record in _tmplock
-						$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `idorder`=" . intval($ord[0]['id']) . ";";
+					} elseif ($ord['status'] == 'standby') {
+						// remove record in _tmplock
+						$q = "DELETE FROM `#__vikbooking_tmplock` WHERE `idorder`=" . intval($ord['id']) . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
 					}
 				}
-				//do not terminate the process when there is a switch, proceed to check the dates.
+
+				// check if sub-units should be assigned again when switching room
+				if (!$dates_changed && !$ord['split_stay'] && VikBooking::autoRoomUnit()) {
+					$new_order_rooms = VikBooking::loadOrdersRoomsData($ord['id']);
+					$room_indexes_usemap = [];
+					foreach ($new_order_rooms as $kor => $or) {
+						$num = $kor + 1;
+						// assign room specific unit
+						$room_indexes = VikBooking::getRoomUnitNumsAvailable($ord, $or['idroom']);
+						$use_ind_key = 0;
+						if ($room_indexes) {
+							if (!array_key_exists($or['idroom'], $room_indexes_usemap)) {
+								$room_indexes_usemap[$or['idroom']] = $use_ind_key;
+							} else {
+								$use_ind_key = $room_indexes_usemap[$or['idroom']];
+							}
+							$q = "UPDATE `#__vikbooking_ordersrooms` SET `roomindex`=" . (int)$room_indexes[$use_ind_key] . " WHERE `id`=" . (int)$or['id'] . ";";
+							$dbo->setQuery($q);
+							$dbo->execute();
+							$room_indexes_usemap[$or['idroom']]++;
+						}
+					}
+				}
+
+				// do not terminate the process when there is a switch, proceed to check the dates.
 			}
 		}
-		//end Switch room
-		//Change Dates
-		if (date('Y-m-d', $ord[0]['checkin']) != $pfromdate || date('Y-m-d', $ord[0]['checkout']) != $ptodate) {
-			$daysdiff = $ord[0]['days'];
-			//re-read ordersrooms (as rooms may have been switched)
-			$q = "SELECT `or`.*,`r`.`name`,`r`.`idopt`,`r`.`units`,`r`.`fromadult`,`r`.`toadult` FROM `#__vikbooking_ordersrooms` AS `or`,`#__vikbooking_rooms` AS `r` WHERE `or`.`idorder`=".$ord[0]['id']." AND `or`.`idroom`=`r`.`id` ORDER BY `or`.`id` ASC;";
+
+		// change dates
+		if ($dates_changed) {
+			if ($ord['split_stay']) {
+				// we do not allow to drag and change dates for rooms in a split stay reservation
+				echo 'e4j.error.' . JText::sprintf('VBO_BOOK_SPLIT_STAY_CANNOTDRAG', $ord['id']);
+				exit;
+			}
+
+			// total nights of stay
+			$daysdiff = $ord['days'];
+
+			// re-read ordersrooms (as rooms may have been switched)
+			$q = "SELECT `or`.*,`r`.`name`,`r`.`idopt`,`r`.`units`,`r`.`fromadult`,`r`.`toadult` FROM `#__vikbooking_ordersrooms` AS `or`,`#__vikbooking_rooms` AS `r` WHERE `or`.`idorder`=" . $ord['id'] . " AND `or`.`idroom`=`r`.`id` ORDER BY `or`.`id` ASC;";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			$ordersrooms = $dbo->loadAssocList();
-			//
+
 			$groupdays = VikBooking::getGroupDays($first, $second, $daysdiff);
 			$opertwounits = true;
 			$units_counter = array();
@@ -10231,9 +11430,10 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 				}
 				$units_counter[$or['idroom']]++;
 			}
+
 			foreach ($ordersrooms as $ind => $or) {
 				$num = $ind + 1;
-				$check = "SELECT `b`.`id`,`b`.`checkin`,`b`.`realback`,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`idroom`=" . $or['idroom'] . " AND `b`.`realback`>=" . $first . " AND `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`!=" . $ord[0]['id'] . ";";
+				$check = "SELECT `b`.`id`,`b`.`checkin`,`b`.`realback`,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`idroom`=" . $or['idroom'] . " AND `b`.`realback`>=" . $first . " AND `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`!=" . $ord['id'] . ";";
 				$dbo->setQuery($check);
 				$dbo->execute();
 				if ($dbo->getNumRows() > 0) {
@@ -10254,50 +11454,52 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			}
 			if ($opertwounits !== true) {
 				$response['esit'] = 0;
-				$response['message'] = JText::translate('VBROOMNOTRIT')." ".date($df.' H:i', $first)." ".JText::translate('VBROOMNOTCONSTO')." ".date($df.' H:i', $second);
+				$response['message'] = JText::translate('VBROOMNOTRIT') . " " . date($df . ' H:i', $first) . " " . JText::translate('VBROOMNOTCONSTO') . " " . date($df . ' H:i', $second);
 				echo json_encode($response);
 				exit;
 			}
-			//update dates and busy records
+
+			// update dates and busy records
 			$realback = VikBooking::getHoursRoomAvail() * 3600;
 			$realback += $second;
-			$q = "UPDATE `#__vikbooking_orders` SET `checkin`='".$first."', `checkout`='".$second."' WHERE `id`=".$ord[0]['id'].";";
+			$q = "UPDATE `#__vikbooking_orders` SET `checkin`='" . $first . "', `checkout`='" . $second . "' WHERE `id`=" . $ord['id'] . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
-			if ($ord[0]['status'] == 'confirmed') {
-				$q = "SELECT `b`.`id` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`=".$ord[0]['id'].";";
+			if ($ord['status'] == 'confirmed') {
+				$q = "SELECT `b`.`id` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`id`=`ob`.`idbusy` AND `ob`.`idorder`=" . $ord['id'] . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				$allbusy = $dbo->loadAssocList();
 				foreach ($allbusy as $bb) {
-					$q = "UPDATE `#__vikbooking_busy` SET `checkin`='".$first."', `checkout`='".$second."', `realback`='".$realback."' WHERE `id`='".$bb['id']."';";
+					$q = "UPDATE `#__vikbooking_busy` SET `checkin`='" . $first . "', `checkout`='" . $second . "', `realback`='" . $realback . "' WHERE `id`='" . $bb['id'] . "';";
 					$dbo->setQuery($q);
 					$dbo->execute();
 				}
-				//if automated updates enabled, keep $response['vcm'] empty
-				//Invoke Channel Manager
+				// if automated updates enabled, keep $response['vcm'] empty
+				// Invoke Channel Manager
 				if (file_exists(VCM_SITE_PATH . DIRECTORY_SEPARATOR . "helpers" . DIRECTORY_SEPARATOR . "synch.vikbooking.php")) {
-					$response['vcm'] = JText::translate('VBCHANNELMANAGERINVOKEASK').' <form action="index.php?option=com_vikbooking" method="post"><input type="hidden" name="option" value="com_vikbooking"/><input type="hidden" name="task" value="invoke_vcm"/><input type="hidden" name="stype" value="modify"/><input type="hidden" name="cid[]" value="'.$ord[0]['id'].'"/><input type="hidden" name="origb" value="'.urlencode(json_encode($ord[0])).'"/><input type="hidden" name="returl" value="'.urlencode("index.php?option=com_vikbooking&task=overview").'"/><button type="submit" class="btn btn-primary">'.JText::translate('VBCHANNELMANAGERSENDRQ').'</button></form>';
+					$response['vcm'] = JText::translate('VBCHANNELMANAGERINVOKEASK') . ' <form action="index.php?option=com_vikbooking" method="post"><input type="hidden" name="option" value="com_vikbooking"/><input type="hidden" name="task" value="invoke_vcm"/><input type="hidden" name="stype" value="modify"/><input type="hidden" name="cid[]" value="' . $ord['id'] . '"/><input type="hidden" name="origb" value="' . urlencode(json_encode($ord)) . '"/><input type="hidden" name="returl" value="' . urlencode("index.php?option=com_vikbooking&task=overview") . '"/><button type="submit" class="btn btn-primary">' . JText::translate('VBCHANNELMANAGERSENDRQ') . '</button></form>';
 				}
-				//
 			}
-			$response['message'] .= JText::translate('RESUPDATED')."\n";
-			//
+			$response['message'] .= JText::translate('RESUPDATED') . "\n";
 		}
-		//end Change Dates
-		
-		if (count($toswitch) > 0) {
-			//TODO: rooms have changed so the new rates must be re-calculated. Maybe they should be calculated in any case, even if just the dates have changed. For the moment the rates are reset
+
+		if (count($toswitch)) {
+			/**
+			 * Rooms have changed so the new rates must be re-calculated.
+			 * Maybe they should be calculated in any case, even if just
+			 * the dates have changed. For the moment the rates are reset.
+			 */
 		}
 
 		// unset any previously booked room due to calendar sharing
-		VikBooking::cleanSharedCalendarsBusy($ord[0]['id']);
+		VikBooking::cleanSharedCalendarsBusy($ord['id']);
 		// check if some of the rooms booked have shared calendars
-		VikBooking::updateSharedCalendars($ord[0]['id']);
+		VikBooking::updateSharedCalendars($ord['id']);
 		//
 
 		//Booking History
-		VikBooking::getBookingHistoryInstance()->setBid($ord[0]['id'])->store('MB', "({$user->name}) " . VikBooking::getLogBookingModification($ord[0]));
+		VikBooking::getBookingHistoryInstance()->setBid($ord['id'])->store('MB', "({$user->name}) " . VikBooking::getLogBookingModification($ord));
 		//
 
 		$vcm_autosync = VikBooking::vcmAutoUpdate();
@@ -10305,25 +11507,25 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			//unset the vcm property as no buttons should be displayed when in auto-sync
 			$response['vcm'] = '';
 			$vcm_obj = VikBooking::getVcmInvoker();
-			$vcm_obj->setOids(array($ord[0]['id']))->setSyncType('modify')->setOriginalBooking($ord[0]);
+			$vcm_obj->setOids(array($ord['id']))->setSyncType('modify')->setOriginalBooking($ord);
 			$sync_result = $vcm_obj->doSync();
 			if ($sync_result === false) {
-				$response['message'] .= JText::translate('VBCHANNELMANAGERRESULTKO')." (".$vcm_obj->getError().")\n";
+				$response['message'] .= JText::translate('VBCHANNELMANAGERRESULTKO') . " (" . $vcm_obj->getError() . ")\n";
 			}
 		}
 
-		//in case of error but not empty VCM message, set an error that will be displayed after the mustReload
+		// in case of error but not empty VCM message, set an error that will be displayed after the mustReload
 		if ($response['esit'] < 1 && !empty($response['vcm'])) {
 			VikError::raiseNotice('', $response['vcm']);
 		}
-		//
-		
+
 		$response['message'] = nl2br($response['message']);
 		echo json_encode($response);
 		exit;
 	}
 
-	public function modroomrateplans() {
+	public function modroomrateplans()
+	{
 		$dbo = JFactory::getDBO();
 		$session = JFactory::getSession();
 		$updforvcm = $session->get('vbVcmRatesUpd', '');
@@ -10334,18 +11536,18 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$ptodate = VikRequest::getString('todate', '', 'request');
 		if (empty($pid_room) || empty($pid_price) || empty($ptype) || empty($pfromdate) || empty($ptodate) || !(strtotime($pfromdate) > 0)  || !(strtotime($ptodate) > 0)) {
-			echo 'e4j.error.'.addslashes(JText::translate('VBRATESOVWERRMODRPLANS'));
+			echo 'e4j.error.' . addslashes(JText::translate('VBRATESOVWERRMODRPLANS'));
 			exit;
 		}
 		$price_record = array();
-		$q = "SELECT * FROM `#__vikbooking_prices` WHERE `id`=".$pid_price.";";
+		$q = "SELECT * FROM `#__vikbooking_prices` WHERE `id`=" . $pid_price . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() > 0) {
 			$price_record = $dbo->loadAssoc();
 		}
 		if (!count($price_record) > 0) {
-			echo 'e4j.error.'.addslashes(JText::translate('VBRATESOVWERRMODRPLANS')).'.';
+			echo 'e4j.error.' . addslashes(JText::translate('VBRATESOVWERRMODRPLANS')) . '.';
 			exit;
 		}
 		$current_closed = array();
@@ -10360,7 +11562,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$output = array();
 		while ($infostart[0] > 0 && $infostart[0] <= $end_ts) {
 			$all_days[] = date('Y-m-d', $infostart[0]);
-			$indkey = $infostart['mday'].'-'.$infostart['mon'].'-'.$infostart['year'].'-'.$pid_price;
+			$indkey = $infostart['mday'] . '-' . $infostart['mon'] . '-' . $infostart['year'] . '-' . $pid_price;
 			$output[$indkey] = array();
 			$infostart = getdate(mktime(0, 0, 0, $infostart['mon'], ($infostart['mday'] + 1), $infostart['year']));
 		}
@@ -10392,7 +11594,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		if (!count($current_closed[$pid_room]) > 0) {
 			unset($current_closed[$pid_room]);
 		}
-		$q = "UPDATE `#__vikbooking_prices` SET `closingd`=".(count($current_closed) > 0 ? $dbo->quote(json_encode($current_closed)) : "NULL")." WHERE `id`=".(int)$pid_price.";";
+		$q = "UPDATE `#__vikbooking_prices` SET `closingd`=" . (count($current_closed) > 0 ? $dbo->quote(json_encode($current_closed)) : "NULL") . " WHERE `id`=" . (int)$pid_price . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		$oldcsscls = $ptype == 'close' ? 'vbo-roverw-rplan-on' : 'vbo-roverw-rplan-off';
@@ -10434,15 +11636,16 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		//
 		$pdebug = VikRequest::getInt('e4j_debug', '', 'request');
 		if ($pdebug == 1) {
-			echo "e4j.error.\n".print_r($current_closed, true)."\n";
-			echo print_r($output, true)."\n\n";
-			echo print_r($all_days, true)."\n";
+			echo "e4j.error.\n" . print_r($current_closed, true) . "\n";
+			echo print_r($output, true) . "\n\n";
+			echo print_r($all_days, true) . "\n";
 		}
 		echo json_encode($output);
 		exit;
 	}
 
-	public function icsexportlaunch() {
+	public function icsexportlaunch()
+	{
 		$dbo = JFactory::getDBO();
 		$pcheckindate = VikRequest::getString('checkindate', '', 'request');
 		$pcheckoutdate = VikRequest::getString('checkoutdate', '', 'request');
@@ -10465,13 +11668,13 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 		if (!empty($pcheckindate)) {
 			if (VikBooking::dateIsValid($pcheckindate)) {
-				$first=VikBooking::getDateTimestamp($pcheckindate, '0', '0');
+				$first = VikBooking::getDateTimestamp($pcheckindate, '0', '0');
 				$filterfirst = $first;
 			}
 		}
 		if (!empty($pcheckoutdate)) {
 			if (VikBooking::dateIsValid($pcheckoutdate)) {
-				$second=VikBooking::getDateTimestamp($pcheckoutdate, '23', '59');
+				$second = VikBooking::getDateTimestamp($pcheckoutdate, '23', '59');
 				if ($second > $first) {
 					$filtersecond = $second;
 				}
@@ -10479,15 +11682,15 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 		$clause = array();
 		if ($filterfirst > 0) {
-			$clause[] = "`o`.`checkin` >= ".$filterfirst;
+			$clause[] = "`o`.`checkin` >= " . $filterfirst;
 		}
 		if ($filtersecond > 0) {
-			$clause[] = "`o`.`checkout` <= ".$filtersecond;
+			$clause[] = "`o`.`checkout` <= " . $filtersecond;
 		}
 		if (!empty($filterstatus)) {
-			$clause[] = "`o`.`status` = '".$filterstatus."'";
+			$clause[] = "`o`.`status` = '" . $filterstatus . "'";
 		}
-		$q = "SELECT `o`.*,`or`.`idroom`,`or`.`adults`,`or`.`children`,`r`.`name` FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_ordersrooms` `or` ON `or`.`idorder`=`o`.`id` LEFT JOIN `#__vikbooking_rooms` `r` ON `or`.`idroom`=`r`.`id` ".(count($clause) > 0 ? "WHERE ".implode(" AND ", $clause)." " : "")."ORDER BY `o`.`checkin` ASC;";
+		$q = "SELECT `o`.*,`or`.`idroom`,`or`.`adults`,`or`.`children`,`r`.`name` FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_ordersrooms` `or` ON `or`.`idorder`=`o`.`id` LEFT JOIN `#__vikbooking_rooms` `r` ON `or`.`idroom`=`r`.`id` " . (count($clause) > 0 ? "WHERE " . implode(" AND ", $clause) . " " : "") . "ORDER BY `o`.`checkin` ASC;";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() > 0) {
@@ -10511,7 +11714,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 				} elseif ($ord['status'] == 'cancelled') {
 					$statusstr = JText::translate('VBCSVSTATUSCANCELLED');
 				}
-				$uri = JURI::root().'index.php?option=com_vikbooking&view=booking&sid='.$ord['sid'].'&ts='.$ord['ts'];
+				$uri = JURI::root() . 'index.php?option=com_vikbooking&view=booking&sid=' . $ord['sid'] . '&ts=' . $ord['ts'];
 				/**
 				 * @wponly 	Rewrite URI for front-end
 				 */
@@ -10522,17 +11725,17 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 					$uri = JRoute::rewrite($uri . "&Itemid={$itemid}", false);
 				}
 				//
-				$ordnumbstr = $ord['id'].(!empty($ord['confirmnumber']) ? ' - '.$ord['confirmnumber'] : '').(!empty($ord['idorderota']) ? ' ('.ucwords($ord['channel']).')' : '').' - '.$statusstr;
-				$peoplestr = ($ord['adults'] + $ord['children']).($ord['children'] > 0 ? ' ('.JText::translate('VBCSVCHILDREN').': '.$ord['children'].')' : '');
-				$totalstring = ($ord['total'] > 0 ? ($usecurrencyname.' '.VikBooking::numberFormat($ord['total'])) : '');
-				$totalpaidstring = ($ord['totpaid'] > 0 ? (' ('.VikBooking::numberFormat($ord['totpaid']).')') : '');
-				$description = JText::sprintf('VBICSEXPDESCRIPTION', $ordnumbstr."\\n", $peoplestr."\\n", $ord['days']."\\n", $totalstring.$totalpaidstring."\\n", "\\n".str_replace("\n", "\\n", trim($ord['custdata'])));
+				$ordnumbstr = $ord['id'] . (!empty($ord['confirmnumber']) ? ' - ' . $ord['confirmnumber'] : '') . (!empty($ord['idorderota']) ? ' (' . ucwords($ord['channel']) . ')' : '') . ' - ' . $statusstr;
+				$peoplestr = ($ord['adults'] + $ord['children']) . ($ord['children'] > 0 ? ' (' . JText::translate('VBCSVCHILDREN') . ': ' . $ord['children'] . ')' : '');
+				$totalstring = ($ord['total'] > 0 ? ($usecurrencyname . ' ' . VikBooking::numberFormat($ord['total'])) : '');
+				$totalpaidstring = ($ord['totpaid'] > 0 ? (' (' . VikBooking::numberFormat($ord['totpaid']) . ')') : '');
+				$description = JText::sprintf('VBICSEXPDESCRIPTION', $ordnumbstr . "\\n", $peoplestr . "\\n", $ord['days'] . "\\n", $totalstring . $totalpaidstring . "\\n", "\\n" . str_replace("\n", "\\n", trim($ord['custdata'])));
 				$str .= "BEGIN:VEVENT\n";
 				$str .= "DTEND:" . JFactory::getDate(date('Y-m-d H:i:s', $ord['checkout']), date_default_timezone_get())->format('Ymd\THis\Z') . "\n";
 				$str .= "UID:" . uniqid() . "\n";
 				$str .= "DTSTAMP:" . JFactory::getDate(date('Y-m-d H:i:s'), date_default_timezone_get())->format('Ymd\THis\Z') . "\n";
-				$str .= ((strlen($description) > 0 ) ? "DESCRIPTION:".preg_replace('/([\,;])/','\\\$1', $description)."\n" : "");
-				$str .= "URL;VALUE=URI:" . preg_replace('/([\,;])/','\\\$1', $uri) . "\n";
+				$str .= ((strlen($description) > 0) ? "DESCRIPTION:" . preg_replace('/([\,;])/', '\\\$1', $description) . "\n" : "");
+				$str .= "URL;VALUE=URI:" . preg_replace('/([\,;])/', '\\\$1', $uri) . "\n";
 				$str .= "SUMMARY:" . JText::sprintf('VBICSEXPSUMMARY', date($df, $ord['checkin'])) . "\n";
 				$str .= "DTSTART:" . JFactory::getDate(date('Y-m-d H:i:s', $ord['checkin']), date_default_timezone_get())->format('Ymd\THis\Z') . "\n";
 				$str .= "END:VEVENT\n";
@@ -10550,12 +11753,15 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		} else {
 			VikError::raiseWarning('', JText::translate('VBICSEXPNORECORDS'));
 			$mainframe = JFactory::getApplication();
-			$mainframe->redirect("index.php?option=com_vikbooking&task=icsexportprepare&checkindate=".$pcheckindate."&checkoutdate=".$pcheckoutdate."&status=".$pstatus."&tmpl=component");
+			$mainframe->redirect("index.php?option=com_vikbooking&task=icsexportprepare&checkindate=" . $pcheckindate . "&checkoutdate=" . $pcheckoutdate . "&status=" . $pstatus . "&tmpl=component");
 		}
 	}
 
-	public function csvexportlaunch() {
+	public function csvexportlaunch()
+	{
 		$dbo = JFactory::getDbo();
+		$app = JFactory::getApplication();
+
 		$pdatefilt = VikRequest::getString('datefilt', '', 'request');
 		$proomfilt = VikRequest::getString('roomfilt', '', 'request');
 		$pchfilt = VikRequest::getString('chfilt', '', 'request');
@@ -10564,8 +11770,14 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$pcheckoutdate = VikRequest::getString('checkoutdate', '', 'request');
 		$pstatus = VikRequest::getString('status', '', 'request');
 		$pcatfilt = VikRequest::getInt('catfilt', 0, 'request');
+		$pformat = VikRequest::getString('format', 'csv', 'request');
+
+		// let the report class (a generic one) generate the CSV file in the proper format
+		$report_obj = VikBooking::getReportInstance('revenue')->setExportCSVFormat($pformat);
+
 		$validstatus = array('confirmed', 'standby', 'cancelled');
 		$validdates = array('ts', 'checkin', 'checkout');
+
 		$filterdate = '';
 		$filterstatus = '';
 		$first = 0;
@@ -10581,6 +11793,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 		$datesep = VikBooking::getDateSeparator(true);
 		$currencyname = VikBooking::getCurrencyName();
+
 		if (!empty($pstatus) && in_array($pstatus, $validstatus)) {
 			$filterstatus = $pstatus;
 		}
@@ -10603,22 +11816,22 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 		$clause = array();
 		if ($filterfirst > 0) {
-			$clause[] = "`o`.`".$filterdate."` >= ".$filterfirst;
+			$clause[] = "`o`.`" . $filterdate . "` >= " . $filterfirst;
 		}
 		if ($filtersecond > 0) {
-			$clause[] = "`o`.`".$filterdate."` <= ".$filtersecond;
+			$clause[] = "`o`.`" . $filterdate . "` <= " . $filtersecond;
 		}
 		if (!empty($filterstatus)) {
-			$clause[] = "`o`.`status` = '".$filterstatus."'";
+			$clause[] = "`o`.`status` = '" . $filterstatus . "'";
 		}
 		if (!empty($pchfilt)) {
-			$clause[] = "`o`.`channel` LIKE ".$dbo->quote("%".$pchfilt."%");
+			$clause[] = "`o`.`channel` LIKE " . $dbo->quote("%" . $pchfilt . "%");
 		}
 		if (!empty($ppayfilt)) {
-			$clause[] = "`o`.`idpayment` LIKE '".$ppayfilt."=%'";
+			$clause[] = "`o`.`idpayment` LIKE '" . $ppayfilt . "=%'";
 		}
 		if (!empty($proomfilt)) {
-			$clause[] = "`or`.`idroom` = '".(int)$proomfilt."'";
+			$clause[] = "`or`.`idroom` = '" . (int)$proomfilt . "'";
 		}
 
 		if (!empty($pcatfilt)) {
@@ -10640,215 +11853,358 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			}
 		}
 
-		$q = "SELECT `o`.*,`or`.`idroom`,`or`.`adults`,`or`.`children`,`or`.`idtar`,`or`.`optionals`,`or`.`t_first_name`,`or`.`t_last_name`,`or`.`extracosts`,`or`.`cust_cost`,`or`.`cust_idiva`,`or`.`room_cost`,`r`.`name`,`d`.`idprice`,`p`.`idiva`,`t`.`aliq`,`t`.`breakdown` FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_ordersrooms` `or` ON `or`.`idorder`=`o`.`id` LEFT JOIN `#__vikbooking_rooms` `r` ON `or`.`idroom`=`r`.`id` LEFT JOIN `#__vikbooking_dispcost` `d` ON `or`.`idtar`=`d`.`id` LEFT JOIN `#__vikbooking_prices` `p` ON `d`.`idprice`=`p`.`id` LEFT JOIN `#__vikbooking_iva` `t` ON `p`.`idiva`=`t`.`id` ".(count($clause) > 0 ? "WHERE ".implode(" AND ", $clause)." " : "")."ORDER BY `o`.`checkin` ASC;";
+		$q = "SELECT `o`.*,`or`.`idroom`,`or`.`adults`,`or`.`children`,`or`.`idtar`,`or`.`optionals`,`or`.`t_first_name`,`or`.`t_last_name`,`or`.`extracosts`,`or`.`cust_cost`,`or`.`cust_idiva`,`or`.`room_cost`,`r`.`name`,`d`.`idprice`,`p`.`idiva`,`t`.`aliq`,`t`.`breakdown` FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_ordersrooms` `or` ON `or`.`idorder`=`o`.`id` LEFT JOIN `#__vikbooking_rooms` `r` ON `or`.`idroom`=`r`.`id` LEFT JOIN `#__vikbooking_dispcost` `d` ON `or`.`idtar`=`d`.`id` LEFT JOIN `#__vikbooking_prices` `p` ON `d`.`idprice`=`p`.`id` LEFT JOIN `#__vikbooking_iva` `t` ON `p`.`idiva`=`t`.`id` " . (count($clause) > 0 ? "WHERE " . implode(" AND ", $clause) . " " : "") . "ORDER BY `o`.`checkin` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$orders = $dbo->loadAssocList();
-			//options
-			$all_options = array();
-			$q = "SELECT * FROM `#__vikbooking_optionals` ORDER BY `#__vikbooking_optionals`.`ordering` ASC;";
-			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows() > 0) {
-				$options = $dbo->loadAssocList();
-				foreach ($options as $ok => $ov) {
-					$all_options[$ov['id']] = $ov;
-				}
-			}
-			//
-			$orderscsv = array();
-			$orderscsv[] = array(
-				JText::translate('VBDASHBOOKINGID'),
-				JText::translate('VBCSVCHECKIN'),
-				JText::translate('VBCSVCHECKOUT'),
-				JText::translate('VBCSVNIGHTS'),
-				JText::translate('VBCSVROOM'),
-				JText::translate('VBCSVPEOPLE'),
-				JText::translate('VBCSVCUSTINFO'),
-				JText::translate('ORDER_SPREQUESTS'),
-				JText::translate('ORDER_NOTES'),
-				JText::translate('VBCSVCREATEDBY'),
-				JText::translate('VBCSVCUSTMAIL'),
-				JText::translate('ORDER_PHONE'),
-				JText::translate('VBCSVOPTIONS'),
-				JText::translate('VBCSVPAYMENTMETHOD'),
-				JText::translate('VBCSVORDIDCONFNUMB'),
-				JText::translate('VBCSVEXPFILTBSTATUS'),
-				JText::translate('VBCSVTOTAL'),
-				JText::translate('VBCSVTOTPAID'),
-				JText::translate('VBCSVTOTTAXES')
-			);
-			foreach ($orders as $kord => $ord) {
-				$usecurrencyname = $currencyname;
-				$usecurrencyname = !empty($ord['idorderota']) && !empty($ord['chcurrency']) ? $ord['chcurrency'] : $usecurrencyname;
-				$peoplestr = ($ord['adults'] + $ord['children']).($ord['children'] > 0 ? ' ('.JText::translate('VBCSVCHILDREN').': '.$ord['children'].')' : '');
-				$custinfostr = str_replace(",", " ", $ord['custdata']);
-				$customer = VikBooking::getCPinIstance()->getCustomerFromBooking($ord['id']);
-				if (count($customer)) {
-					$custinfostr = $customer['first_name'] . ' ' . $customer['last_name'];
-				}
-				$special_requests = '';
-				if (preg_match("/(?:special requests:\s*)(.*?)$/is", $ord['custdata'], $match)) {
-					$special_requests = $match[1];
-				} elseif (preg_match("/(?:special request:\s*)(.*?)$/is", $ord['custdata'], $match)) {
-					$special_requests = $match[1];
-				} elseif (preg_match("/(?:special request\s*)(.*?)$/is", $ord['custdata'], $match)) {
-					$special_requests = $match[1]; 
-				}
-				$paystr = '';
-				if (!empty($ord['idpayment'])) {
-					$payparts = explode('=', $ord['idpayment']);
-					$paystr = $payparts[1];
-				}
-				$ordnumbstr = $ord['id'].' - '.$ord['confirmnumber'].(!empty($ord['idorderota']) ? ' ('.ucwords($ord['channel']).')' : ''); 
-				$statusstr = '';
-				if ($ord['status'] == 'confirmed') {
-					$statusstr = JText::translate('VBCSVSTATUSCONFIRMED');
-				} elseif ($ord['status'] == 'standby') {
-					$statusstr = JText::translate('VBCSVSTATUSSTANDBY');
-				} elseif ($ord['status'] == 'cancelled') {
-					$statusstr = JText::translate('VBCSVSTATUSCANCELLED');
-				}
-				$totalstring = $usecurrencyname . ' ' . VikBooking::numberFormat($ord['total']);
-				if ($ord['roomsnum'] > 1) {
-					// take the cost for the individual room
-					$totalstring = !empty($ord['cust_cost']) && $ord['cust_cost'] > 0 ? ($usecurrencyname . ' ' . VikBooking::numberFormat($ord['cust_cost'])) : ($usecurrencyname . ' ' . VikBooking::numberFormat($ord['room_cost']));
-				}
-				$totalpaidstring = $usecurrencyname . ' ' . VikBooking::numberFormat($ord['totpaid']);
-				if (isset($orders[($kord + 1)]) && $orders[($kord + 1)]['id'] == $ord['id']) {
-					// total paid will be printed only for the last room booked
-					$totalpaidstring = '';
-				}
-				$options_str = '';
-				if (!empty($ord['optionals'])) {
-					$stepo = explode(";", $ord['optionals']);
-					foreach ($stepo as $roptkey => $oo) {
-						if (!empty($oo)) {
-							$stept = explode(":", $oo);
-							if (array_key_exists($stept[0], $all_options)) {
-								$actopt = $all_options[$stept[0]];
-								$optpcent = false;
-								if (!empty($actopt['ageintervals']) && $ord['children'] > 0 && strstr($stept[1], '-') != false) {
-									$optagenames = VikBooking::getOptionIntervalsAges($actopt['ageintervals']);
-									$optagepcent = VikBooking::getOptionIntervalsPercentage($actopt['ageintervals']);
-									$optageovrct = VikBooking::getOptionIntervalChildOverrides($actopt, $ord['adults'], $ord['children']);
-									$child_num 	 = VikBooking::getRoomOptionChildNumber($ord['optionals'], $actopt['id'], $roptkey, $ord['children']);
-									$optagecosts = VikBooking::getOptionIntervalsCosts(isset($optageovrct['ageintervals_child' . ($child_num + 1)]) ? $optageovrct['ageintervals_child' . ($child_num + 1)] : $actopt['ageintervals']);
-									$agestept = explode('-', $stept[1]);
-									$stept[1] = $agestept[0];
-									$chvar = $agestept[1];
-									if (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] > 0) {
-										$optpcent = true;
-									}
-									$actopt['chageintv'] = $chvar;
-									if (isset($optagenames[($chvar - 1)])) {
-										$actopt['name'] .= ' ('.$optagenames[($chvar - 1)].')';
-									}
-									if (isset($optagecosts[($chvar - 1)])) {
-										$realcost = (intval($actopt['perday']) == 1 ? (floatval($optagecosts[($chvar - 1)]) * $ord['days'] * $stept[1]) : (floatval($optagecosts[($chvar - 1)]) * $stept[1]));
-									} else {
-										$realcost = 0;
-									}
-								} else {
-									// VBO 1.11 - options percentage cost of the room total fee
-									$optpcent = (int)$actopt['pcentroom'] ? true : $optpcent;
-									//
-									$realcost = (intval($actopt['perday']) == 1 ? ($actopt['cost'] * $ord['days'] * $stept[1]) : ($actopt['cost'] * $stept[1]));
-								}
-								if ($actopt['maxprice'] > 0 && $realcost > $actopt['maxprice']) {
-									$realcost=$actopt['maxprice'];
-									if (intval($actopt['hmany']) == 1 && intval($stept[1]) > 1) {
-										$realcost = $actopt['maxprice'] * $stept[1];
-									}
-								}
-								$realcost = $actopt['perperson'] == 1 ? ($realcost * $ord['adults']) : $realcost;
-								$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $actopt['idiva']);
-								$options_str .= ($stept[1] > 1 ? $stept[1]." " : "").$actopt['name'].": ".(!$optpcent ? $currencyname : '')." ".VikBooking::numberFormat($tmpopr).($optpcent ? ' %' : '')." \r\n";
-							}
-						}
-					}
-				}
-				//custom extra costs
-				if (!empty($ord['extracosts'])) {
-					$cur_extra_costs = json_decode($ord['extracosts'], true);
-					foreach ($cur_extra_costs as $eck => $ecv) {
-						$ecplustax = !empty($ecv['idtax']) ? VikBooking::sayOptionalsPlusIva($ecv['cost'], $ecv['idtax']) : $ecv['cost'];
-						$options_str .= $ecv['name'].": ".$currencyname." ".VikBooking::numberFormat($ecplustax)." \r\n";
-					}
-				}
-				//
-				//taxes
-				$taxes_str = '';
-				if ($ord['tot_taxes'] > 0.00) {
-					$taxes_str .= $usecurrencyname.' '.VikBooking::numberFormat($ord['tot_taxes']);
-					if (!empty($ord['aliq']) && !empty($ord['breakdown'])) {
-						$tax_breakdown = json_decode($ord['breakdown'], true);
-						$tax_breakdown = is_array($tax_breakdown) && count($tax_breakdown) > 0 ? $tax_breakdown : array();
-						if (count($tax_breakdown)) {
-							foreach ($tax_breakdown as $tbkk => $tbkv) {
-								$tax_break_cost = $ord['tot_taxes'] * floatval($tbkv['aliq']) / $ord['aliq'];
-								$taxes_str .= "\r\n".$tbkv['name'].": ".$usecurrencyname.' '.VikBooking::numberFormat($tax_break_cost);
-							}
-						}
-					}
-				}
-				if (isset($orders[($kord + 1)]) && $orders[($kord + 1)]['id'] == $ord['id']) {
-					// total taxes will be printed only for the last room booked
-					$taxes_str = '';
-				}
-				//
-				//created by
-				$created_by = '';
-				if (!empty($ord['ujid'])) {
-					$creator = new JUser($ord['ujid']);
-					if (property_exists($creator, 'name')) {
-						$created_by = $creator->name.' ('.$creator->username.')';
-					}
-				}
-				if (empty($created_by) && !empty($ord['t_first_name'])) {
-					$created_by = $ord['t_first_name'].' '.$ord['t_last_name'];
-				}
-				//
-				$orderscsv[] = array(
-					$ord['id'],
-					date(str_replace("/", $datesep, $df), $ord['checkin']),
-					date(str_replace("/", $datesep, $df), $ord['checkout']),
-					$ord['days'],
-					$ord['name'],
-					$peoplestr,
-					$custinfostr,
-					$special_requests,
-					$ord['adminnotes'],
-					$created_by,
-					$ord['custmail'],
-					$ord['phone'],
-					$options_str,
-					$paystr,
-					$ordnumbstr,
-					$statusstr,
-					$totalstring,
-					$totalpaidstring,
-					$taxes_str,
-				);
-			}
-			header("Content-type: text/csv");
-			header("Cache-Control: no-store, no-cache");
-			header('Content-Disposition: attachment; filename="bookings_export_'.date('Y-m-d').'.csv"');
-			$outstream = fopen("php://output", 'w');
-			foreach ($orderscsv as $csvline) {
-				fputcsv($outstream, $csvline);
-			}
-			fclose($outstream);
-			exit;
-		} else {
-			VikError::raiseWarning('', JText::translate('VBCSVEXPNORECORDS'));
-			$mainframe = JFactory::getApplication();
-			$mainframe->redirect("index.php?option=com_vikbooking&task=csvexportprepare&checkindate=".$pcheckindate."&checkoutdate=".$pcheckoutdate."&status=".$pstatus."&tmpl=component");
+		$orders = $dbo->loadAssocList();
+		if (!$orders) {
+			$app->enqueueMessage(JText::translate('VBCSVEXPNORECORDS'), 'error');
+			$app->redirect("index.php?option=com_vikbooking&task=csvexportprepare&checkindate=" . $pcheckindate . "&checkoutdate=" . $pcheckoutdate . "&status=" . $pstatus . "&tmpl=component");
+			$app->close();
 		}
+
+		// options
+		$all_options = array();
+		$q = "SELECT * FROM `#__vikbooking_optionals` ORDER BY `#__vikbooking_optionals`.`ordering` ASC;";
+		$dbo->setQuery($q);
+		$options = $dbo->loadAssocList();
+		if ($options) {
+			foreach ($options as $ok => $ov) {
+				$all_options[$ov['id']] = $ov;
+			}
+		}
+
+		// set CSV columns
+		$report_obj->setReportCols([
+			[
+				'label' => JText::translate('VBDASHBOOKINGID'),
+			],
+			[
+				'label' => JText::translate('VBPVIEWORDERSONE'),
+			],
+			[
+				'label' => JText::translate('VBCSVCHECKIN'),
+			],
+			[
+				'label' => JText::translate('VBCSVCHECKOUT'),
+			],
+			[
+				'label' => JText::translate('VBCSVNIGHTS'),
+			],
+			[
+				'label' => JText::translate('VBCSVROOM'),
+			],
+			[
+				'label' => JText::translate('VBCSVPEOPLE'),
+			],
+			[
+				'label' => JText::translate('VBCSVCUSTINFO'),
+			],
+			[
+				'label' => JText::translate('ORDER_SPREQUESTS'),
+			],
+			[
+				'label' => JText::translate('ORDER_NOTES'),
+			],
+			[
+				'label' => JText::translate('VBCSVCREATEDBY'),
+			],
+			[
+				'label' => JText::translate('VBCSVCUSTMAIL'),
+			],
+			[
+				'label' => JText::translate('ORDER_PHONE'),
+			],
+			[
+				'label' => JText::translate('VBCSVOPTIONS'),
+			],
+			[
+				'label' => JText::translate('VBCSVPAYMENTMETHOD'),
+			],
+			[
+				'label' => JText::translate('VBCSVORDIDCONFNUMB'),
+			],
+			[
+				'label' => JText::translate('VBCSVEXPFILTBSTATUS'),
+			],
+			[
+				'label' => JText::translate('VBCSVTOTAL'),
+			],
+			[
+				'label' => JText::translate('VBCSVTOTPAID'),
+			],
+			[
+				'label' => JText::translate('VBCSVTOTTAXES'),
+			],
+		]);
+
+		// prepare the container for the CSV rows
+		$orderscsv = [];
+
+		// availability helper
+		$av_helper = VikBooking::getAvailabilityInstance();
+
+		$room_inds = [];
+		$room_stay_dates = [];
+		foreach ($orders as $kord => $ord) {
+			// room index in this booking
+			if (!isset($room_inds[$ord['id']])) {
+				$room_inds[$ord['id']] = -1;
+			}
+			$room_inds[$ord['id']]++;
+
+			/**
+			 * Split stay reservation.
+			 * 
+			 * @since 	1.16.0 (J) - 1.6.0 (WP)
+			 */
+			$room_stay_dates = $room_inds[$ord['id']] > 0 ? $room_stay_dates : [];
+			if ($ord['split_stay']) {
+				if ($ord['status'] == 'confirmed') {
+					$room_stay_dates = $av_helper->loadSplitStayBusyRecords($ord['id']);
+				} else {
+					$room_stay_dates = VBOFactory::getConfig()->getArray('split_stay_' . $ord['id'], []);
+				}
+				// immediately count the number of nights of stay for each split room
+				foreach ($room_stay_dates as $sps_r_k => $sps_r_v) {
+					if (!empty($sps_r_v['checkin_ts']) && !empty($sps_r_v['checkout_ts'])) {
+						// overwrite values for compatibility with non-confirmed bookings
+						$sps_r_v['checkin'] = $sps_r_v['checkin_ts'];
+						$sps_r_v['checkout'] = $sps_r_v['checkout_ts'];
+					}
+					$sps_r_v['nights'] = $av_helper->countNightsOfStay($sps_r_v['checkin'], $sps_r_v['checkout']);
+					// overwrite the whole array
+					$room_stay_dates[$sps_r_k] = $sps_r_v;
+				}
+			}
+
+			// determine nights and dates for this room booking
+			$booking_nights   = $ord['days'];
+			$booking_checkin  = $ord['checkin'];
+			$booking_checkout = $ord['checkout'];
+			if ($ord['split_stay'] && !empty($room_stay_dates) && isset($room_stay_dates[$room_inds[$ord['id']]]) && $room_stay_dates[$room_inds[$ord['id']]]['idroom'] == $ord['idroom']) {
+				$booking_nights   = $room_stay_dates[$room_inds[$ord['id']]]['nights'];
+				$booking_checkin  = $room_stay_dates[$room_inds[$ord['id']]]['checkin'];
+				$booking_checkout = $room_stay_dates[$room_inds[$ord['id']]]['checkout'];
+			}
+
+			$usecurrencyname = $currencyname;
+			$usecurrencyname = !empty($ord['idorderota']) && !empty($ord['chcurrency']) ? $ord['chcurrency'] : $usecurrencyname;
+			$peoplestr = ($ord['adults'] + $ord['children']) . ($ord['children'] > 0 ? ' (' . JText::translate('VBCSVCHILDREN') . ': ' . $ord['children'] . ')' : '');
+			$custinfostr = str_replace(",", " ", $ord['custdata']);
+			$customer = VikBooking::getCPinIstance()->getCustomerFromBooking($ord['id']);
+			if (count($customer)) {
+				$custinfostr = $customer['first_name'] . ' ' . $customer['last_name'];
+			}
+			$special_requests = '';
+			if (preg_match("/(?:special requests:\s*)(.*?)$/is", $ord['custdata'], $match)) {
+				$special_requests = $match[1];
+			} elseif (preg_match("/(?:special request:\s*)(.*?)$/is", $ord['custdata'], $match)) {
+				$special_requests = $match[1];
+			} elseif (preg_match("/(?:special request\s*)(.*?)$/is", $ord['custdata'], $match)) {
+				$special_requests = $match[1];
+			} elseif (preg_match("/(?:" . JText::translate('ORDER_SPREQUESTS') . ":\s*)(.*?)$/is", $ord['custdata'], $match)) {
+				$special_requests = $match[1];
+			}
+			$paystr = '';
+			if (!empty($ord['idpayment'])) {
+				$payparts = explode('=', $ord['idpayment']);
+				$paystr = $payparts[1];
+			}
+			$ordnumbstr = $ord['id'] . ' - ' . $ord['confirmnumber'] . (!empty($ord['idorderota']) ? ' (' . ucwords($ord['channel']) . ')' : '');
+			$statusstr = '';
+			if ($ord['status'] == 'confirmed') {
+				$statusstr = JText::translate('VBCSVSTATUSCONFIRMED');
+			} elseif ($ord['status'] == 'standby') {
+				$statusstr = JText::translate('VBCSVSTATUSSTANDBY');
+			} elseif ($ord['status'] == 'cancelled') {
+				$statusstr = JText::translate('VBCSVSTATUSCANCELLED');
+			}
+			$totalstring = $usecurrencyname . ' ' . VikBooking::numberFormat($ord['total']);
+			if ($ord['roomsnum'] > 1) {
+				// take the cost for the individual room
+				$totalstring = !empty($ord['cust_cost']) && $ord['cust_cost'] > 0 ? ($usecurrencyname . ' ' . VikBooking::numberFormat($ord['cust_cost'])) : ($usecurrencyname . ' ' . VikBooking::numberFormat($ord['room_cost']));
+			}
+			$totalpaidstring = $usecurrencyname . ' ' . VikBooking::numberFormat($ord['totpaid']);
+			if (isset($orders[($kord + 1)]) && $orders[($kord + 1)]['id'] == $ord['id']) {
+				// total paid will be printed only for the last room booked
+				$totalpaidstring = '';
+			}
+			$options_str = '';
+			if (!empty($ord['optionals'])) {
+				$stepo = explode(";", $ord['optionals']);
+				foreach ($stepo as $roptkey => $oo) {
+					if (!empty($oo)) {
+						$stept = explode(":", $oo);
+						if (array_key_exists($stept[0], $all_options)) {
+							$actopt = $all_options[$stept[0]];
+							$optpcent = false;
+							if (!empty($actopt['ageintervals']) && $ord['children'] > 0 && strstr($stept[1], '-') != false) {
+								$optagenames = VikBooking::getOptionIntervalsAges($actopt['ageintervals']);
+								$optagepcent = VikBooking::getOptionIntervalsPercentage($actopt['ageintervals']);
+								$optageovrct = VikBooking::getOptionIntervalChildOverrides($actopt, $ord['adults'], $ord['children']);
+								$child_num 	 = VikBooking::getRoomOptionChildNumber($ord['optionals'], $actopt['id'], $roptkey, $ord['children']);
+								$optagecosts = VikBooking::getOptionIntervalsCosts(isset($optageovrct['ageintervals_child' . ($child_num + 1)]) ? $optageovrct['ageintervals_child' . ($child_num + 1)] : $actopt['ageintervals']);
+								$agestept = explode('-', $stept[1]);
+								$stept[1] = $agestept[0];
+								$chvar = $agestept[1];
+								if (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] > 0) {
+									$optpcent = true;
+								}
+								$actopt['chageintv'] = $chvar;
+								if (isset($optagenames[($chvar - 1)])) {
+									$actopt['name'] .= ' (' . $optagenames[($chvar - 1)] . ')';
+								}
+								if (isset($optagecosts[($chvar - 1)])) {
+									$realcost = (intval($actopt['perday']) == 1 ? (floatval($optagecosts[($chvar - 1)]) * $booking_nights * $stept[1]) : (floatval($optagecosts[($chvar - 1)]) * $stept[1]));
+								} else {
+									$realcost = 0;
+								}
+							} else {
+								// VBO 1.11 - options percentage cost of the room total fee
+								$optpcent = (int)$actopt['pcentroom'] ? true : $optpcent;
+								//
+								$realcost = (intval($actopt['perday']) == 1 ? ($actopt['cost'] * $booking_nights * $stept[1]) : ($actopt['cost'] * $stept[1]));
+							}
+							if ($actopt['maxprice'] > 0 && $realcost > $actopt['maxprice']) {
+								$realcost = $actopt['maxprice'];
+								if (intval($actopt['hmany']) == 1 && intval($stept[1]) > 1) {
+									$realcost = $actopt['maxprice'] * $stept[1];
+								}
+							}
+							$realcost = $actopt['perperson'] == 1 ? ($realcost * $ord['adults']) : $realcost;
+							$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $actopt['idiva']);
+							$options_str .= ($stept[1] > 1 ? $stept[1] . " " : "") . $actopt['name'] . ": " . (!$optpcent ? $currencyname : '') . " " . VikBooking::numberFormat($tmpopr) . ($optpcent ? ' %' : '') . " \r\n";
+						}
+					}
+				}
+			}
+
+			// custom extra costs
+			if (!empty($ord['extracosts'])) {
+				$cur_extra_costs = json_decode($ord['extracosts'], true);
+				foreach ($cur_extra_costs as $eck => $ecv) {
+					$ecplustax = !empty($ecv['idtax']) ? VikBooking::sayOptionalsPlusIva($ecv['cost'], $ecv['idtax']) : $ecv['cost'];
+					$options_str .= $ecv['name'] . ": " . $currencyname . " " . VikBooking::numberFormat($ecplustax) . " \r\n";
+				}
+			}
+
+			// taxes
+			$taxes_str = '';
+			if ($ord['tot_taxes'] > 0.00) {
+				$taxes_str .= $usecurrencyname . ' ' . VikBooking::numberFormat($ord['tot_taxes']);
+				if (!empty($ord['aliq']) && !empty($ord['breakdown'])) {
+					$tax_breakdown = json_decode($ord['breakdown'], true);
+					$tax_breakdown = is_array($tax_breakdown) && count($tax_breakdown) > 0 ? $tax_breakdown : array();
+					if (count($tax_breakdown)) {
+						foreach ($tax_breakdown as $tbkk => $tbkv) {
+							$tax_break_cost = $ord['tot_taxes'] * floatval($tbkv['aliq']) / $ord['aliq'];
+							$taxes_str .= "\r\n" . $tbkv['name'] . ": " . $usecurrencyname . ' ' . VikBooking::numberFormat($tax_break_cost);
+						}
+					}
+				}
+			}
+			if (isset($orders[($kord + 1)]) && $orders[($kord + 1)]['id'] == $ord['id']) {
+				// total taxes will be printed only for the last room booked
+				$taxes_str = '';
+			}
+
+			// created by
+			$created_by = '';
+			if (!empty($ord['ujid'])) {
+				$creator = new JUser($ord['ujid']);
+				if (property_exists($creator, 'name')) {
+					$created_by = $creator->name . ' (' . $creator->username . ')';
+				}
+			}
+			if (empty($created_by) && !empty($ord['t_first_name'])) {
+				$created_by = $ord['t_first_name'] . ' ' . $ord['t_last_name'];
+			}
+
+			// push line for export
+			$orderscsv[] = [
+				[
+					'value' => $ord['id'],
+				],
+				[
+					'value' => date(str_replace("/", $datesep, $df), $ord['ts']),
+				],
+				[
+					'value' => date(str_replace("/", $datesep, $df), $booking_checkin),
+				],
+				[
+					'value' => date(str_replace("/", $datesep, $df), $booking_checkout),
+				],
+				[
+					'value' => $booking_nights,
+				],
+				[
+					'value' => $ord['name'],
+				],
+				[
+					'value' => $peoplestr,
+				],
+				[
+					'value' => $custinfostr,
+				],
+				[
+					'value' => $special_requests,
+				],
+				[
+					'value' => $ord['adminnotes'],
+				],
+				[
+					'value' => $created_by,
+				],
+				[
+					'value' => $ord['custmail'],
+				],
+				[
+					'value' => $ord['phone'],
+				],
+				[
+					'value' => $options_str,
+				],
+				[
+					'value' => $paystr,
+				],
+				[
+					'value' => $ordnumbstr,
+				],
+				[
+					'value' => $statusstr,
+				],
+				[
+					'value' => $totalstring,
+				],
+				[
+					'value' => $totalpaidstring,
+				],
+				[
+					'value' => $taxes_str,
+				],
+			];
+		}
+
+		// set CSV rows
+		$report_obj->setReportRows($orderscsv);
+
+		// build lines to export
+		$csvlines = $report_obj->getExportCSVLines($no_data = true);
+
+		// set export file name
+		$report_obj->setExportCSVFileName('bookings_export_' . date('Y-m-d') . '.csv');
+
+		// force the download of the CSV file
+		$report_obj->outputHeaders();
+
+		// send lines to output
+		$report_obj->outputCSV($csvlines);
+
+		exit;
 	}
 
-	public function exportcustomerslaunch() {
+	public function exportcustomerslaunch()
+	{
 		$cid = VikRequest::getVar('cid', array(0));
 		$dbo = JFactory::getDBO();
 		$pnotes = VikRequest::getInt('notes', '', 'request');
@@ -10860,10 +12216,10 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$pdatefilt = VikRequest::getInt('datefilt', '', 'request');
 		$clauses = array();
 		if (count($cid) > 0 && !empty($cid[0])) {
-			$clauses[] = "`c`.`id` IN (".implode(', ', $cid).")";
+			$clauses[] = "`c`.`id` IN (" . implode(', ', $cid) . ")";
 		}
 		if (!empty($pcountry)) {
-			$clauses[] = "`c`.`country`=".$dbo->quote($pcountry);
+			$clauses[] = "`c`.`country`=" . $dbo->quote($pcountry);
 		}
 		$datescol = '`bk`.`ts`';
 		if ($pdatefilt > 0) {
@@ -10877,21 +12233,21 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 		if (!empty($pfromdate)) {
 			$from_ts = VikBooking::getDateTimestamp($pfromdate, 0, 0);
-			$clauses[] = $datescol.">=".$from_ts;
+			$clauses[] = $datescol . ">=" . $from_ts;
 		}
 		if (!empty($ptodate)) {
 			$to_ts = VikBooking::getDateTimestamp($ptodate, 23, 59);
-			$clauses[] = $datescol."<=".$to_ts;
+			$clauses[] = $datescol . "<=" . $to_ts;
 		}
 		//this query below is safe with the error #1055 when sql_mode=only_full_group_by
-		$q = "SELECT `c`.`id`,`c`.`first_name`,`c`.`last_name`,`c`.`email`,`c`.`phone`,`c`.`country`,`c`.`cfields`,`c`.`pin`,`c`.`ujid`,`c`.`address`,`c`.`city`,`c`.`zip`,`c`.`doctype`,`c`.`docnum`,`c`.`docimg`,`c`.`notes`,`c`.`ischannel`,`c`.`chdata`,`c`.`company`,`c`.`vat`,`c`.`gender`,`c`.`bdate`,`c`.`pbirth`,".
-			"(SELECT COUNT(*) FROM `#__vikbooking_customers_orders` AS `co` WHERE `co`.`idcustomer`=`c`.`id`) AS `tot_bookings`,".
-			"`cy`.`country_3_code`,`cy`.`country_name` ".
-			"FROM `#__vikbooking_customers` AS `c` LEFT JOIN `#__vikbooking_countries` `cy` ON `cy`.`country_3_code`=`c`.`country` ".
-			"LEFT JOIN `#__vikbooking_customers_orders` `co` ON `co`.`idcustomer`=`c`.`id` ".
-			"LEFT JOIN `#__vikbooking_orders` `bk` ON `bk`.`id`=`co`.`idorder`".
-			(count($clauses) > 0 ? " WHERE ".implode(' AND ', $clauses) : "")." 
-			GROUP BY `c`.`id`,`c`.`first_name`,`c`.`last_name`,`c`.`email`,`c`.`phone`,`c`.`country`,`c`.`cfields`,`c`.`pin`,`c`.`ujid`,`c`.`address`,`c`.`city`,`c`.`zip`,`c`.`doctype`,`c`.`docnum`,`c`.`docimg`,`c`.`notes`,`c`.`ischannel`,`c`.`chdata`,`c`.`company`,`c`.`vat`,`c`.`gender`,`c`.`bdate`,`c`.`pbirth`,`cy`.`country_3_code`,`cy`.`country_name` ".
+		$q = "SELECT `c`.`id`,`c`.`first_name`,`c`.`last_name`,`c`.`email`,`c`.`phone`,`c`.`country`,`c`.`cfields`,`c`.`pin`,`c`.`ujid`,`c`.`address`,`c`.`city`,`c`.`zip`,`c`.`doctype`,`c`.`docnum`,`c`.`docimg`,`c`.`notes`,`c`.`ischannel`,`c`.`chdata`,`c`.`company`,`c`.`vat`,`c`.`gender`,`c`.`bdate`,`c`.`pbirth`," .
+			"(SELECT COUNT(*) FROM `#__vikbooking_customers_orders` AS `co` WHERE `co`.`idcustomer`=`c`.`id`) AS `tot_bookings`," .
+			"`cy`.`country_3_code`,`cy`.`country_name` " .
+			"FROM `#__vikbooking_customers` AS `c` LEFT JOIN `#__vikbooking_countries` `cy` ON `cy`.`country_3_code`=`c`.`country` " .
+			"LEFT JOIN `#__vikbooking_customers_orders` `co` ON `co`.`idcustomer`=`c`.`id` " .
+			"LEFT JOIN `#__vikbooking_orders` `bk` ON `bk`.`id`=`co`.`idorder`" .
+			(count($clauses) > 0 ? " WHERE " . implode(' AND ', $clauses) : "") . " 
+			GROUP BY `c`.`id`,`c`.`first_name`,`c`.`last_name`,`c`.`email`,`c`.`phone`,`c`.`country`,`c`.`cfields`,`c`.`pin`,`c`.`ujid`,`c`.`address`,`c`.`city`,`c`.`zip`,`c`.`doctype`,`c`.`docnum`,`c`.`docimg`,`c`.`notes`,`c`.`ischannel`,`c`.`chdata`,`c`.`company`,`c`.`vat`,`c`.`gender`,`c`.`bdate`,`c`.`pbirth`,`cy`.`country_3_code`,`cy`.`country_name` " .
 			"ORDER BY `c`.`last_name` ASC;";
 		$dbo->setQuery($q);
 		$dbo->execute();
@@ -10924,16 +12280,16 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			if ($pscanimg > 0) {
 				$csvcustomerline[] = $customer['doctype'];
 				$csvcustomerline[] = $customer['docnum'];
-				$csvcustomerline[] = (!empty($customer['docimg']) ? VBO_ADMIN_URI.'resources/idscans/'.$customer['docimg'] : '');
+				$csvcustomerline[] = (!empty($customer['docimg']) ? VBO_ADMIN_URI . 'resources/idscans/' . $customer['docimg'] : '');
 			}
 			if ($pnotes > 0) {
 				$csvcustomerline[] = $customer['notes'];
-			}	
+			}
 			$csvlines[] = $csvcustomerline;
 		}
 		header("Content-type: text/csv");
 		header("Cache-Control: no-store, no-cache");
-		header('Content-Disposition: attachment; filename="customers_export_'.(!empty($pcountry) ? strtolower($pcountry).'_' : '').date('Y-m-d').'.csv"');
+		header('Content-Disposition: attachment; filename="customers_export_' . (!empty($pcountry) ? strtolower($pcountry) . '_' : '') . date('Y-m-d') . '.csv"');
 		$outstream = fopen("php://output", 'w');
 		foreach ($csvlines as $csvline) {
 			fputcsv($outstream, $csvline);
@@ -10942,7 +12298,8 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		exit;
 	}
 
-	public function renewsession() {
+	public function renewsession()
+	{
 		/*
 		 * @wponly
 		 * We just destroy the session
@@ -10952,11 +12309,12 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$mainframe->redirect("index.php?option=com_vikbooking&task=config");
 	}
 
-	public function trackings() {
+	public function trackings()
+	{
 		VikBookingHelper::printHeader("trackings");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'trackings'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -10964,11 +12322,12 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 	}
 
-	public function trkconfig() {
+	public function trkconfig()
+	{
 		VikBookingHelper::printHeader("trackings");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'trkconfig'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -10976,21 +12335,24 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 	}
 
-	public function savetrkconfigstay() {
+	public function savetrkconfigstay()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_savetrkconfig(true);
 	}
 
-	public function savetrkconfig() {
+	public function savetrkconfig()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_savetrkconfig();
 	}
 
-	private function do_savetrkconfig($stay = false) {
+	private function do_savetrkconfig($stay = false)
+	{
 		$dbo = JFactory::getDBO();
 		$trkenabled = VikRequest::getInt('trkenabled', 0, 'request');
 		$trkenabled = $trkenabled == 1 ? 1 : 0;
@@ -11005,7 +12367,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 				continue;
 			}
 			$trkcampkey[$k] = str_replace(' ', '', trim($trkcampkey[$k]));
-			$name = !empty($v) ? $v : date('Y-m-d').' '.(count($trkcampaigns) + 1);
+			$name = !empty($v) ? $v : date('Y-m-d') . ' ' . (count($trkcampaigns) + 1);
 			$trkcampaigns[$trkcampkey[$k]] = array(
 				'key' => $trkcampkey[$k],
 				'value' => $trkcampval[$k],
@@ -11013,31 +12375,32 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			);
 		}
 
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($trkenabled)." WHERE `param`='trkenabled';";
+		$q = "UPDATE `#__vikbooking_config` SET `setting`=" . $dbo->quote($trkenabled) . " WHERE `param`='trkenabled';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote($trkcookierfrdur)." WHERE `param`='trkcookierfrdur';";
+		$q = "UPDATE `#__vikbooking_config` SET `setting`=" . $dbo->quote($trkcookierfrdur) . " WHERE `param`='trkcookierfrdur';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		$q = "UPDATE `#__vikbooking_config` SET `setting`=".$dbo->quote(json_encode($trkcampaigns))." WHERE `param`='trkcampaigns';";
+		$q = "UPDATE `#__vikbooking_config` SET `setting`=" . $dbo->quote(json_encode($trkcampaigns)) . " WHERE `param`='trkcampaigns';";
 		$dbo->setQuery($q);
 		$dbo->execute();
-		
+
 		$mainframe = JFactory::getApplication();
-		$mainframe->redirect("index.php?option=com_vikbooking&task=".($stay ? 'trkconfig' : 'trackings'));
+		$mainframe->redirect("index.php?option=com_vikbooking&task=" . ($stay ? 'trkconfig' : 'trackings'));
 	}
 
-	public function modtracking() {
+	public function modtracking()
+	{
 		$dbo = JFactory::getDbo();
 		$cid = VikRequest::getVar('cid', array());
 		foreach ($cid as $id) {
 			if (!empty($id)) {
-				$q = "SELECT `id`,`published` FROM `#__vikbooking_trackings` WHERE `id`=".(int)$id.";";
+				$q = "SELECT `id`,`published` FROM `#__vikbooking_trackings` WHERE `id`=" . (int)$id . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				if ($dbo->getNumRows()) {
 					$data = $dbo->loadAssoc();
-					$q = "UPDATE `#__vikbooking_trackings` SET `published`=".($data['published'] ? '0' : '1')." WHERE `id`=".(int)$data['id'].";";
+					$q = "UPDATE `#__vikbooking_trackings` SET `published`=" . ($data['published'] ? '0' : '1') . " WHERE `id`=" . (int)$data['id'] . ";";
 					$dbo->setQuery($q);
 					$dbo->execute();
 				}
@@ -11047,15 +12410,16 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$mainframe->redirect("index.php?option=com_vikbooking&task=trackings");
 	}
 
-	public function removetrackings() {
+	public function removetrackings()
+	{
 		$ids = VikRequest::getVar('cid', array());
 		$dbo = JFactory::getDbo();
 
 		foreach ($ids as $d) {
-			$q = "DELETE FROM `#__vikbooking_trackings` WHERE `id`=".(int)$d.";";
+			$q = "DELETE FROM `#__vikbooking_trackings` WHERE `id`=" . (int)$d . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
-			$q = "DELETE FROM `#__vikbooking_tracking_infos` WHERE `idtracking`=".(int)$d.";";
+			$q = "DELETE FROM `#__vikbooking_tracking_infos` WHERE `idtracking`=" . (int)$d . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
@@ -11071,7 +12435,8 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 	 *
 	 * @since 	1.11
 	 */
-	public function getgeoinfo() {
+	public function getgeoinfo()
+	{
 		$ips = VikRequest::getVar('ips', array());
 		if (!count($ips)) {
 			echo 'e4j.error.empty IPs';
@@ -11106,7 +12471,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			$cname = '';
 			if (!empty($geo['country'])) {
 				// returned country is a 2-char code, get the 3-char country code
-				$q = "SELECT `country_3_code`,`country_name` FROM `#__vikbooking_countries` WHERE `country_2_code`=".$dbo->quote($geo['country']).";";
+				$q = "SELECT `country_3_code`,`country_name` FROM `#__vikbooking_countries` WHERE `country_2_code`=" . $dbo->quote($geo['country']) . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				if ($dbo->getNumRows()) {
@@ -11131,7 +12496,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			}
 
 			// update main tracking record
-			$q = "UPDATE `#__vikbooking_trackings` SET `geo`=".$dbo->quote($geoinfostr).(!empty($threecode) ? ', `country`='.$dbo->quote($threecode) : '')." WHERE `id`=".(int)$id.";";
+			$q = "UPDATE `#__vikbooking_trackings` SET `geo`=" . $dbo->quote($geoinfostr) . (!empty($threecode) ? ', `country`=' . $dbo->quote($threecode) : '') . " WHERE `id`=" . (int)$id . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 		}
@@ -11167,12 +12532,12 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		// global min los
 		$glob_minlos = VikBooking::getDefaultNightsCalendar();
 		$glob_minlos = $glob_minlos < 1 ? 1 : $glob_minlos;
-		
+
 		// rooms and dates
 		$roomids = VikRequest::getVar('roomids', array(), 'request', 'int');
 		$months = VikRequest::getInt('months', 3, 'request');
 		$from = VikRequest::getString('from', '', 'request');
-		$today = strtotime(date('Y').'-'.date('m').'-'.date('d'));
+		$today = strtotime(date('Y') . '-' . date('m') . '-' . date('d'));
 		if (!empty($from)) {
 			$fromts = VikBooking::getDateTimestamp($from, 0, 0);
 			if (!empty($fromts)) {
@@ -11184,7 +12549,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 
 		// load all rooms
 		$rooms = array();
-		$q = "SELECT `id`,`name`,`units` FROM `#__vikbooking_rooms` WHERE `avail`=1".(count($roomids) ? ' AND `id` IN ('.implode(', ', $roomids).')' : '').";";
+		$q = "SELECT `id`,`name`,`units` FROM `#__vikbooking_rooms` WHERE `avail`=1" . (count($roomids) ? ' AND `id` IN (' . implode(', ', $roomids) . ')' : '') . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows()) {
@@ -11200,7 +12565,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 
 		// load availabilities
-		$q = "SELECT `b`.*,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`idroom` IN (".implode(', ', array_keys($rooms)).") AND `b`.`id`=`ob`.`idbusy` AND (`b`.`checkin`>=".$today." OR `b`.`checkout`>=".$today.") AND (`b`.`checkin`<=".$until." OR `b`.`checkout`<=".$today.");";
+		$q = "SELECT `b`.*,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`idroom` IN (" . implode(', ', array_keys($rooms)) . ") AND `b`.`id`=`ob`.`idbusy` AND (`b`.`checkin`>=" . $today . " OR `b`.`checkout`>=" . $today . ") AND (`b`.`checkin`<=" . $until . " OR `b`.`checkout`<=" . $today . ");";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if (!$dbo->getNumRows()) {
@@ -11243,12 +12608,12 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			$nowts = getdate($today);
 			while ($nowts[0] <= $until) {
 				$dateind = date('Y-m-d', $nowts[0]);
-				
+
 				// remaining availability
 				if (!isset($rooms_busy[$rid])) {
 					// no bookings for this room, set full availability for this day
 					$rooms_data[$rid]['avail'][] = array(
-						'dt' => $dateind, 
+						'dt' => $dateind,
 						'units' => $r['units']
 					);
 				} else {
@@ -11256,10 +12621,10 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 					$totfound = 0;
 					foreach ($rooms_busy[$rid] as $b) {
 						$tmpone = getdate($b['checkin']);
-						$rit = ($tmpone['mon'] < 10 ? "0".$tmpone['mon'] : $tmpone['mon'])."/".($tmpone['mday'] < 10 ? "0".$tmpone['mday'] : $tmpone['mday'])."/".$tmpone['year'];
+						$rit = ($tmpone['mon'] < 10 ? "0" . $tmpone['mon'] : $tmpone['mon']) . "/" . ($tmpone['mday'] < 10 ? "0" . $tmpone['mday'] : $tmpone['mday']) . "/" . $tmpone['year'];
 						$ritts = strtotime($rit);
 						$tmptwo = getdate($b['checkout']);
-						$con = ($tmptwo['mon'] < 10 ? "0".$tmptwo['mon'] : $tmptwo['mon'])."/".($tmptwo['mday'] < 10 ? "0".$tmptwo['mday'] : $tmptwo['mday'])."/".$tmptwo['year'];
+						$con = ($tmptwo['mon'] < 10 ? "0" . $tmptwo['mon'] : $tmptwo['mon']) . "/" . ($tmptwo['mday'] < 10 ? "0" . $tmptwo['mday'] : $tmptwo['mday']) . "/" . $tmptwo['year'];
 						$conts = strtotime($con);
 						if ($nowts[0] >= $ritts && $nowts[0] < $conts) {
 							$totfound++;
@@ -11267,7 +12632,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 					}
 					$totfound = $totfound > $r['units'] ? $r['units'] : $totfound;
 					$rooms_data[$rid]['avail'][] = array(
-						'dt' => $dateind, 
+						'dt' => $dateind,
 						'units' => ($r['units'] - $totfound)
 					);
 				}
@@ -11377,7 +12742,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 					$hasorphans = false;
 				}
 				//
-				
+
 				if ($hasorphans) {
 					// we pass the name of the room, the list of raw dates (Y-m-d), the list of readable dates, and the fist date with the VBO format
 					if (!isset($orphans[$rid])) {
@@ -11402,11 +12767,12 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		exit;
 	}
 
-	public function tableaux() {
+	public function tableaux()
+	{
 		VikBookingHelper::printHeader("tableaux");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'tableaux'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -11414,11 +12780,12 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 	}
 
-	public function operators() {
+	public function operators()
+	{
 		VikBookingHelper::printHeader("operators");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'operators'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -11426,11 +12793,12 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 	}
 
-	public function newoperator() {
+	public function newoperator()
+	{
 		VikBookingHelper::printHeader("operators");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageoperator'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -11438,11 +12806,12 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 	}
 
-	public function editoperator() {
+	public function editoperator()
+	{
 		VikBookingHelper::printHeader("operators");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'manageoperator'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -11450,21 +12819,24 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 	}
 
-	public function updateoperator() {
+	public function updateoperator()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updateoperator();
 	}
 
-	public function updateoperatorstay() {
+	public function updateoperatorstay()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
 		$this->do_updateoperator(true);
 	}
 
-	private function do_updateoperator($stay = false) {
+	private function do_updateoperator($stay = false)
+	{
 		$dbo = JFactory::getDBO();
 		$mainframe = JFactory::getApplication();
 		$pfirst_name = VikRequest::getString('first_name', '', 'request');
@@ -11475,7 +12847,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$pujid = VikRequest::getInt('ujid', '', 'request');
 		$pwhere = VikRequest::getInt('where', '', 'request');
 		if (!empty($pfirst_name) && !empty($pemail) && (!empty($pcode) || !empty($pujid))) {
-			$q = "SELECT * FROM `#__vikbooking_operators` WHERE `id`=".(int)$pwhere." LIMIT 1;";
+			$q = "SELECT * FROM `#__vikbooking_operators` WHERE `id`=" . (int)$pwhere . " LIMIT 1;";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() == 1) {
@@ -11484,35 +12856,36 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 				$mainframe->redirect("index.php?option=com_vikbooking&task=operators");
 				exit;
 			}
-			$q = "SELECT * FROM `#__vikbooking_operators` WHERE (`email`=".$dbo->quote($pemail)." OR ".(!empty($pcode) ? "`code`=".$dbo->quote($pcode) : "`ujid`=".$dbo->quote($pujid)).") AND `id`!=".(int)$pwhere." LIMIT 1;";
+			$q = "SELECT * FROM `#__vikbooking_operators` WHERE (`email`=" . $dbo->quote($pemail) . " OR " . (!empty($pcode) ? "`code`=" . $dbo->quote($pcode) : "`ujid`=" . $dbo->quote($pujid)) . ") AND `id`!=" . (int)$pwhere . " LIMIT 1;";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() == 0) {
 				// update fingerprint for the operator
-				$fingpt = md5($pwhere.$pemail);
+				$fingpt = md5($pwhere . $pemail);
 				//
-				$q = "UPDATE `#__vikbooking_operators` SET `first_name`=".$dbo->quote($pfirst_name).",`last_name`=".$dbo->quote($plast_name).",`email`=".$dbo->quote($pemail).",`phone`=".$dbo->quote($pphone).",`code`=".$dbo->quote($pcode).",`ujid`=".$dbo->quote($pujid).",`fingpt`=".$dbo->quote($fingpt)." WHERE `id`=".(int)$pwhere.";";
+				$q = "UPDATE `#__vikbooking_operators` SET `first_name`=" . $dbo->quote($pfirst_name) . ",`last_name`=" . $dbo->quote($plast_name) . ",`email`=" . $dbo->quote($pemail) . ",`phone`=" . $dbo->quote($pphone) . ",`code`=" . $dbo->quote($pcode) . ",`ujid`=" . $dbo->quote($pujid) . ",`fingpt`=" . $dbo->quote($fingpt) . " WHERE `id`=" . (int)$pwhere . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				$mainframe->enqueueMessage(JText::translate('VBOPERATORSAVED'));
 			} else {
 				//email already exists
 				$ex_operator = $dbo->loadAssoc();
-				VikError::raiseWarning('', JText::translate('VBERROPERATOREXISTS').'<br/><a href="index.php?option=com_vikbooking&task=editoperator&cid[]='.$ex_operator['id'].'" target="_blank">'.$ex_operator['first_name'].' '.$ex_operator['last_name'].'</a>');
-				$mainframe->redirect("index.php?option=com_vikbooking&task=editoperator&cid[]=".$pwhere);
+				VikError::raiseWarning('', JText::translate('VBERROPERATOREXISTS') . '<br/><a href="index.php?option=com_vikbooking&task=editoperator&cid[]=' . $ex_operator['id'] . '" target="_blank">' . $ex_operator['first_name'] . ' ' . $ex_operator['last_name'] . '</a>');
+				$mainframe->redirect("index.php?option=com_vikbooking&task=editoperator&cid[]=" . $pwhere);
 				exit;
 			}
 		} else {
 			VikError::raiseWarning('', JText::translate('VBERROPERATORDATA'));
 		}
 		if ($stay) {
-			$mainframe->redirect("index.php?option=com_vikbooking&task=editoperator&cid[]=".$pwhere);
+			$mainframe->redirect("index.php?option=com_vikbooking&task=editoperator&cid[]=" . $pwhere);
 		} else {
 			$mainframe->redirect("index.php?option=com_vikbooking&task=operators");
 		}
 	}
 
-	public function saveoperator() {
+	public function saveoperator()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -11525,18 +12898,18 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$pcode = VikRequest::getString('code', '', 'request');
 		$pujid = VikRequest::getInt('ujid', '', 'request');
 		if (!empty($pfirst_name) && !empty($pemail) && (!empty($pcode) || !empty($pujid))) {
-			$q = "SELECT * FROM `#__vikbooking_operators` WHERE `email`=".$dbo->quote($pemail)." OR ".(!empty($pcode) ? "`code`=".$dbo->quote($pcode) : "`ujid`=".$dbo->quote($pujid))." LIMIT 1;";
+			$q = "SELECT * FROM `#__vikbooking_operators` WHERE `email`=" . $dbo->quote($pemail) . " OR " . (!empty($pcode) ? "`code`=" . $dbo->quote($pcode) : "`ujid`=" . $dbo->quote($pujid)) . " LIMIT 1;";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			if ($dbo->getNumRows() == 0) {
-				$q = "INSERT INTO `#__vikbooking_operators` (`first_name`,`last_name`,`email`,`phone`,`code`,`ujid`) VALUES(".$dbo->quote($pfirst_name).", ".$dbo->quote($plast_name).", ".$dbo->quote($pemail).", ".$dbo->quote($pphone).", ".$dbo->quote($pcode).", ".$dbo->quote($pujid).");";
+				$q = "INSERT INTO `#__vikbooking_operators` (`first_name`,`last_name`,`email`,`phone`,`code`,`ujid`) VALUES(" . $dbo->quote($pfirst_name) . ", " . $dbo->quote($plast_name) . ", " . $dbo->quote($pemail) . ", " . $dbo->quote($pphone) . ", " . $dbo->quote($pcode) . ", " . $dbo->quote($pujid) . ");";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				$lid = $dbo->insertid();
 				if (!empty($lid)) {
 					$mainframe->enqueueMessage(JText::translate('VBOPERATORSAVED'));
 					// generate fingerprint for the operator
-					$q = "UPDATE `#__vikbooking_operators` SET `fingpt`=".$dbo->quote(md5($lid.$pemail))." WHERE `id`=".(int)$lid.";";
+					$q = "UPDATE `#__vikbooking_operators` SET `fingpt`=" . $dbo->quote(md5($lid . $pemail)) . " WHERE `id`=" . (int)$lid . ";";
 					$dbo->setQuery($q);
 					$dbo->execute();
 					//
@@ -11544,7 +12917,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			} else {
 				//email already exists
 				$ex_operator = $dbo->loadAssoc();
-				VikError::raiseWarning('', JText::translate('VBERROPERATOREXISTS').'<br/><a href="index.php?option=com_vikbooking&task=editoperator&cid[]='.$ex_operator['id'].'" target="_blank">'.$ex_operator['first_name'].' '.$ex_operator['last_name'].'</a>');
+				VikError::raiseWarning('', JText::translate('VBERROPERATOREXISTS') . '<br/><a href="index.php?option=com_vikbooking&task=editoperator&cid[]=' . $ex_operator['id'] . '" target="_blank">' . $ex_operator['first_name'] . ' ' . $ex_operator['last_name'] . '</a>');
 			}
 		} else {
 			VikError::raiseWarning('', JText::translate('VBERROPERATORDATA'));
@@ -11552,7 +12925,8 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$mainframe->redirect("index.php?option=com_vikbooking&task=operators");
 	}
 
-	public function removeoperators() {
+	public function removeoperators()
+	{
 		if (!JSession::checkToken()) {
 			throw new Exception(JText::translate('JINVALID_TOKEN'), 403);
 		}
@@ -11560,7 +12934,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		if (@count($ids)) {
 			$dbo = JFactory::getDBO();
 			foreach ($ids as $d) {
-				$q = "DELETE FROM `#__vikbooking_operators` WHERE `id`=".(int)$d.";";
+				$q = "DELETE FROM `#__vikbooking_operators` WHERE `id`=" . (int)$d . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
@@ -11569,7 +12943,8 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$mainframe->redirect("index.php?option=com_vikbooking&task=operators");
 	}
 
-	public function operatorperms() {
+	public function operatorperms()
+	{
 		$dbo = JFactory::getDbo();
 		$permtype = VikRequest::getString('permtype', 'tableaux', 'request');
 		$permschanged = 0;
@@ -11584,7 +12959,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			if (count($oper_rm)) {
 				// remove permissions first
 				foreach ($oper_rm as $operatorid) {
-					$q = "SELECT `id`,`perms` FROM `#__vikbooking_operators` WHERE `id`=".(int)$operatorid.";";
+					$q = "SELECT `id`,`perms` FROM `#__vikbooking_operators` WHERE `id`=" . (int)$operatorid . ";";
 					$dbo->setQuery($q);
 					$dbo->execute();
 					if ($dbo->getNumRows()) {
@@ -11598,7 +12973,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 							}
 						}
 						// update permissions for this operator
-						$q = "UPDATE `#__vikbooking_operators` SET `perms`=".$dbo->quote(json_encode($perms))." WHERE `id`=".$current['id'].";";
+						$q = "UPDATE `#__vikbooking_operators` SET `perms`=" . $dbo->quote(json_encode($perms)) . " WHERE `id`=" . $current['id'] . ";";
 						$dbo->setQuery($q);
 						$dbo->execute();
 						$permschanged++;
@@ -11611,7 +12986,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 					continue;
 				}
 				// get operator
-				$q = "SELECT `id`,`perms` FROM `#__vikbooking_operators` WHERE `id`=".(int)$v.";";
+				$q = "SELECT `id`,`perms` FROM `#__vikbooking_operators` WHERE `id`=" . (int)$v . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				if (!$dbo->getNumRows()) {
@@ -11637,7 +13012,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 					)
 				));
 				// update permissions for this operator
-				$q = "UPDATE `#__vikbooking_operators` SET `perms`=".$dbo->quote(json_encode($perms))." WHERE `id`=".$current['id'].";";
+				$q = "UPDATE `#__vikbooking_operators` SET `perms`=" . $dbo->quote(json_encode($perms)) . " WHERE `id`=" . $current['id'] . ";";
 				$dbo->setQuery($q);
 				$dbo->execute();
 				$permschanged++;
@@ -11648,25 +13023,29 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		if ($permschanged > 0) {
 			$mainframe->enqueueMessage(JText::translate('VBOPERMSUPDOPEROK'));
 		}
-		$mainframe->redirect("index.php?option=com_vikbooking&task=".$permtype);
+		$mainframe->redirect("index.php?option=com_vikbooking&task=" . $permtype);
 	}
 
-	public function canceloperator() {
+	public function canceloperator()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=operators");
 	}
 
-	public function cancelcrons() {
+	public function cancelcrons()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=crons");
 	}
 
-	public function cancelpackages() {
+	public function cancelpackages()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=packages");
 	}
 
-	public function cancelcustomer() {
+	public function cancelcustomer()
+	{
 		$mainframe = JFactory::getApplication();
 		$pgoto = VikRequest::getString('goto', '', 'request', VIKREQUEST_ALLOWRAW);
 		if (!empty($pgoto)) {
@@ -11676,106 +13055,132 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$mainframe->redirect("index.php?option=com_vikbooking&task=customers");
 	}
 
-	public function cancelbusyvcm() {
+	public function cancelbusyvcm()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikchannelmanager&task=oversight");
 	}
 
-	public function cancelrestriction() {
+	public function cancelrestriction()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=restrictions");
 	}
 
-	public function cancelcoupon() {
+	public function cancelcoupon()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=coupons");
 	}
 
-	public function cancelcustomf() {
+	public function cancelcustomf()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=customf");
 	}
 
-	public function cancelpayment() {
+	public function cancelpayment()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=payments");
 	}
 
-	public function cancelseason() {
+	public function cancelseason()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=seasons");
 	}
 
-	public function goconfig() {
+	public function goconfig()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=config");
 	}
 
-	public function canceledorder() {
+	public function canceledorder()
+	{
 		$pgoto = VikRequest::getString('goto', 'orders', 'request');
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=" . $pgoto);
 	}
 
-	public function cancelbusy() {
+	public function cancelbusy()
+	{
 		$pidorder = VikRequest::getString('idorder', '', 'request');
 		$pgoto = VikRequest::getString('goto', '', 'request');
 		$mainframe = JFactory::getApplication();
-		$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=".$pidorder.($pgoto == 'overv' ? '&goto=overv' : ''));
+		$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=" . $pidorder . ($pgoto == 'overv' ? '&goto=overv' : ''));
 	}
 
-	public function canceloverv() {
+	public function canceloverv()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=overv");
 	}
 
-	public function cancelcalendar() {
-		$pidroom = VikRequest::getString('idroom', '', 'request');
+	public function canceltableaux()
+	{
 		$mainframe = JFactory::getApplication();
-		$mainframe->redirect("index.php?option=com_vikbooking&task=calendar&cid[]=".$pidroom);
+		$mainframe->redirect("index.php?option=com_vikbooking&task=tableaux");
 	}
 
-	public function canceloptionals() {
+	public function cancelcalendar()
+	{
+		$pidroom = VikRequest::getString('idroom', '', 'request');
+		$mainframe = JFactory::getApplication();
+		$mainframe->redirect("index.php?option=com_vikbooking&task=calendar&cid[]=" . $pidroom);
+	}
+
+	public function canceloptionals()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=optionals");
 	}
 
-	public function cancel() {
+	public function cancel()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=rooms");
 	}
 
-	public function cancelcarat() {
+	public function cancelcarat()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=carat");
 	}
 
-	public function cancelcat() {
+	public function cancelcat()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=categories");
 	}
 
-	public function cancelprice() {
+	public function cancelprice()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=prices");
 	}
 
-	public function canceliva() {
+	public function canceliva()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=iva");
 	}
 
-	public function canceltrk() {
+	public function canceltrk()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking&task=trackings");
 	}
 
-	public function canceldash() {
+	public function canceldash()
+	{
 		$mainframe = JFactory::getApplication();
 		$mainframe->redirect("index.php?option=com_vikbooking");
 	}
 
-	public function cancelinvoice() {
+	public function cancelinvoice()
+	{
 		$mainframe = JFactory::getApplication();
 		$pgoto = VikRequest::getString('goto', '', 'request', VIKREQUEST_ALLOWRAW);
 		if (!empty($pgoto)) {
@@ -11802,8 +13207,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$result = new stdClass;
 		$result->status = 0;
 
-		try
-		{			
+		try {
 			$q = $dbo->getQuery(true)
 				->select($dbo->qn(array(
 					'id',
@@ -11818,8 +13222,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			$dbo->setQuery($q, 0, 1);
 			$dbo->execute();
 
-			if (!$dbo->getNumRows())
-			{
+			if (!$dbo->getNumRows()) {
 				throw new Exception(sprintf('Customer [%d] not found', $customer_id), 404);
 			}
 
@@ -11829,8 +13232,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			$dirpath = VBO_CUSTOMERS_PATH . DIRECTORY_SEPARATOR;
 
 			// check if we have a valid directory
-			if (empty($customer->docsfolder) || !is_dir($dirpath . $customer->docsfolder))
-			{
+			if (empty($customer->docsfolder) || !is_dir($dirpath . $customer->docsfolder)) {
 				// randomize string
 				$customer->seed = uniqid();
 
@@ -11844,8 +13246,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 				// join fetched parts
 				$customer->docsfolder = JFilterOutput::stringURLSafe(implode('-', array_filter($parts)));
 
-				if (strlen($customer->docsfolder) < 16)
-				{
+				if (strlen($customer->docsfolder) < 16) {
 					throw new Exception('Possible security breach. Please specify the most details as possible.', 400);
 				}
 
@@ -11854,8 +13255,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 				// create a folder for this customer
 				$created = JFolder::create($dirpath . $customer->docsfolder);
 
-				if (!$created)
-				{
+				if (!$created) {
 					throw new Exception(sprintf('Unable to create the folder [%s]', $dirpath . $customer->docsfolder), 403);
 				}
 
@@ -11874,9 +13274,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 
 			$result->size = JHtml::fetch('number.bytes', filesize($result->path), 'auto', 0);
 			$result->url  = str_replace(DIRECTORY_SEPARATOR, '/', str_replace(VBO_CUSTOMERS_PATH . DIRECTORY_SEPARATOR, VBO_CUSTOMERS_URI, $result->path));
-		}
-		catch (Exception $e)
-		{
+		} catch (Exception $e) {
 			$result->error = $e->getMessage();
 			$result->code  = $e->getCode();
 		}
@@ -11910,29 +13308,25 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$dbo->setQuery($q, 0, 1);
 		$dbo->execute();
 
-		if (!$dbo->getNumRows())
-		{
+		if (!$dbo->getNumRows()) {
 			throw new Exception(sprintf('Customer [%d] not found', $customer_id), 404);
 		}
 
 		$folder = $dbo->loadResult();
 
-		if (!$folder)
-		{
+		if (!$folder) {
 			throw new Exception('The customer does not have any documents', 500);
 		}
 
 		$file = $input->getString('file');
 
-		if (!$file)
-		{
+		if (!$file) {
 			throw new Exception('File to remove not specified', 400);
 		}
 
 		$path = implode(DIRECTORY_SEPARATOR, array(VBO_CUSTOMERS_PATH, $folder, $file));
 
-		if (!is_file($path)) 
-		{
+		if (!is_file($path)) {
 			throw new Exception(sprintf('File [%s] not found', $path), 404);
 		}
 
@@ -11966,7 +13360,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		// idroom can be an array of IDs or just one ID as int/string
 		$idroom = VikRequest::getVar('idroom', null, 'request');
 		//
-		
+
 		if (empty($report_name) || empty($current_fromdate) || empty($current_todate)) {
 			throw new Exception("Missing request data", 400);
 		}
@@ -12266,7 +13660,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 
 		// reload end date
 		$end_date = $dt;
-		
+
 		// build critical date object
 		$new_note = array(
 			'name'  => $name,
@@ -12399,7 +13793,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			$cur_params[$k] = $v;
 		}
 
-		$q = "UPDATE `#__vikbooking_optionals` SET `oparams`=" . $dbo->quote(json_encode($cur_params)) ." WHERE `id`=" . (int)$optid . ";";
+		$q = "UPDATE `#__vikbooking_optionals` SET `oparams`=" . $dbo->quote(json_encode($cur_params)) . " WHERE `id`=" . (int)$optid . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 
@@ -12409,54 +13803,59 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 
 	/**
 	 * Hidden task to clean up duplicate records in certain database tables
-	 * due to a double execution of the installation queries.
+	 * due to a double execution of the installation queries. Ghost records,
+	 * if any, are also removed to clean up issues with hanging records.
 	 * 
 	 * @since 	November 4th 2020
+	 * @since 	1.16.3 (J) - 1.6.3 (WP)
 	 */
-	public function clean_duplicate_records() {
+	public function clean_duplicate_records()
+	{
 		$dbo = JFactory::getDbo();
 
-		$tables_with_duplicates = array(
-			'#__vikbooking_config' => array(
+		$tables_with_duplicates = [
+			'#__vikbooking_config' => [
 				'id_key' 	  => 'id',
 				'compare_key' => 'param',
-			),
-			'#__vikbooking_countries' => array(
+			],
+			'#__vikbooking_countries' => [
 				'id_key' 	  => 'id',
 				'compare_key' => 'country_3_code',
-			),
-			'#__vikbooking_custfields' => array(
+			],
+			'#__vikbooking_custfields' => [
 				'id_key' 	  => 'id',
 				'compare_key' => 'name',
-			),
-			'#__vikbooking_texts' => array(
+			],
+			'#__vikbooking_texts' => [
 				'id_key' 	  => 'id',
 				'compare_key' => 'param',
-			),
-		);
+			],
+		];
 
 		foreach ($tables_with_duplicates as $tblname => $data) {
-			$doubles = array();
-			$storage = array();
-			$rmlist = array();
+			$doubles = [];
+			$storage = [];
+			$rmlist = [];
+
 			$q = "SELECT * FROM `{$tblname}` ORDER BY `{$data['id_key']}` DESC;";
 			$dbo->setQuery($q);
-			$dbo->execute();
-			if (!$dbo->getNumRows()) {
+			$rows = $dbo->loadAssocList();
+			if (!$rows) {
 				echo "<p>No records found in table {$tblname}</p>";
 				continue;
 			}
-			$rows = $dbo->loadAssocList();
+
 			foreach ($rows as $row) {
 				if (!isset($doubles[$row[$data['compare_key']]])) {
 					$doubles[$row[$data['compare_key']]] = 0;
 				}
 				$doubles[$row[$data['compare_key']]]++;
 				if (!isset($storage[$row[$data['compare_key']]])) {
-					$storage[$row[$data['compare_key']]] = array();
+					$storage[$row[$data['compare_key']]] = [];
 				}
 				array_push($storage[$row[$data['compare_key']]], $row[$data['id_key']]);
 			}
+
 			foreach ($doubles as $paramkey => $paramcount) {
 				if ($paramcount < 2 || !isset($storage[$paramkey]) || count($storage[$paramkey]) < 2 || $paramcount != count($storage[$paramkey])) {
 					continue;
@@ -12466,15 +13865,57 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 					array_push($rmlist, $storage[$paramkey][$x]);
 				}
 			}
+
 			echo "<p>Total records found in table {$tblname}: " . count($rows) . "</p>";
 			echo '<p>Total records to remove: ' . count($rmlist) . '</p>';
-			echo '<pre style="display: none;">'.print_r($rmlist, true).'</pre><br/>';
+			echo '<pre style="display: none;">' . print_r($rmlist, true) . '</pre><br/>';
+
 			if (count($rmlist)) {
 				$q = "DELETE FROM `{$tblname}` WHERE `{$data['id_key']}` IN (" . implode(', ', $rmlist) . ");";
 				$dbo->setQuery($q);
 				$dbo->execute();
 			}
 		}
+
+		/**
+		 * Clean up busy records where the busy relations contain empty booking IDs.
+		 */
+		$hanging_busy_ids = [];
+
+		$q = "SELECT `idbusy` FROM `#__vikbooking_ordersbusy` WHERE `idorder` = 0 OR `idorder` IS NULL;";
+		$dbo->setQuery($q);
+		$removelist = $dbo->loadAssocList();
+		if ($removelist) {
+			foreach ($removelist as $hanging_busy) {
+				$hanging_busy_id = (int)$hanging_busy['idbusy'];
+				if (!in_array($hanging_busy_id, $hanging_busy_ids)) {
+					array_push($hanging_busy_ids, $hanging_busy_id);
+				}
+			}
+		}
+
+		// let's check also for ghost records that only occupy the room
+		$q = "SELECT `b`.*,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b` LEFT JOIN `#__vikbooking_ordersbusy` AS `ob` ON `b`.`id`=`ob`.`idbusy` WHERE `b`.`checkout` >= " . time() . " AND (`ob`.`idorder` = 0 OR `ob`.`idorder` IS NULL);";
+		$dbo->setQuery($q);
+		$removelist = $dbo->loadAssocList();
+		if ($removelist) {
+			foreach ($removelist as $hanging_busy) {
+				$hanging_busy_id = (int)$hanging_busy['id'];
+				if (!in_array($hanging_busy_id, $hanging_busy_ids)) {
+					array_push($hanging_busy_ids, $hanging_busy_id);
+				}
+			}
+		}
+
+		if ($hanging_busy_ids) {
+			$q = "DELETE FROM `#__vikbooking_busy` WHERE `id` IN (" . implode(', ', $hanging_busy_ids) . ");";
+			$dbo->setQuery($q);
+			$dbo->execute();
+		}
+
+		echo "<p>Total ghost records removed: " . count($hanging_busy_ids) . "</p>";
+
+		return;
 	}
 
 	/**
@@ -12483,18 +13924,24 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 	 * 
 	 * @see 	this is an AJAX endpoint.
 	 * 
-	 * @since 	1.4.0
-	 * @since 	1.5.0  		widget callback can return values rather than just echoing.
+	 * @since 	1.14 (J) - 1.4.0 (WP)
+	 * @since 	1.15 (J) - 1.5.0 (WP)	widget callback can return values rather than just echoing.
+	 * @since 	1.16.5 (J) - 1.6.5 (WP) widgets are rendered within a try-catch statement.
 	 */
 	public function exec_admin_widget()
 	{
+		if (!JSession::checkToken()) {
+			// missing CSRF-proof token
+			VBOHttpDocument::getInstance()->close(403, JText::translate('JINVALID_TOKEN'));
+		}
+
 		$widget_id = VikRequest::getString('widget_id', '', 'request');
 		$call 	   = VikRequest::getString('call', '', 'request');
 		$return	   = VikRequest::getInt('return', 0, 'request');
 		$vbo_page  = VikRequest::getString('vbo_page', '', 'request');
 		$vbo_uri   = VikRequest::getString('vbo_uri', '', 'request');
 		$multitask = VikRequest::getInt('multitask', 0, 'request');
-		
+
 		if (empty($widget_id)) {
 			VBOHttpDocument::getInstance()->close(500, 'Empty Admin Widget ID');
 		}
@@ -12506,7 +13953,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		// invoke admin widgets helper
 		$widgets_helper = VikBooking::getAdminWidgetsInstance();
 		$widget = $widgets_helper->getWidget($widget_id);
-		
+
 		if ($widget === false) {
 			VBOHttpDocument::getInstance()->close(404, 'Requested Admin Widget not found');
 		}
@@ -12515,35 +13962,49 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			VBOHttpDocument::getInstance()->close(403, 'Admin Widget Callback not found or not callable');
 		}
 
+		// get the multitask parser object
+		$parser = VBOMultitaskParser::getInstance($vbo_page, $vbo_uri);
+
 		// check if arguments should be passed
 		$call_args = [];
 		if ($multitask && $call === 'render') {
-			// build the multitask data object and inject it to the args
-			$call_args[] = VBOMultitaskParser::getInstance($vbo_page, $vbo_uri)->getData();
+			// build the multitask data object and inject it to the args as the first index
+			$call_args[] = $parser->getData();
+
+			// bind options within the widget, if any
+			$widget->bindOptions($call_args[0]);
+		} else {
+			// always bind multitask options, if any
+			$widget->bindOptions($parser->getOptions());
 		}
 
-		if ($return) {
-			// invoke the widget's method and get the value returned
-			$widget_response = count($call_args) ? call_user_func_array([$widget, $call], $call_args) : $widget->{$call}();
-		} else {
-			// invoke the widget's method within a buffer
-			ob_start();
-			if (count($call_args)) {
-				$res = call_user_func_array([$widget, $call], $call_args);
+		try {
+			if ($return) {
+				// invoke the widget's method and get the value returned
+				$widget_response = $call_args ? call_user_func_array([$widget, $call], $call_args) : $widget->{$call}();
 			} else {
-				$widget->{$call}();
+				// invoke the widget's method within a buffer
+				ob_start();
+				if ($call_args) {
+					$res = call_user_func_array([$widget, $call], $call_args);
+				} else {
+					$widget->{$call}();
+				}
+				$widget_response = ob_get_contents();
+				ob_end_clean();
 			}
-			$widget_response = ob_get_contents();
-			ob_end_clean();
+		} catch (Throwable $e) {
+			VBOHttpDocument::getInstance()->close($e->getCode() ?: 500, $e->getMessage());
+		} catch (Exception $e) {
+			VBOHttpDocument::getInstance()->close($e->getCode(), $e->getMessage());
 		}
 
 		// prepare response object with a property equal to the called method
 		$response = new stdClass;
 		$response->{$call} = $widget_response;
 
-		// echo the response and exit
-		echo json_encode($response);
-		exit;
+		// output the JSON encoded response and exit
+		VBOHttpDocument::getInstance()->json($response);
 	}
 
 	/**
@@ -12555,14 +14016,19 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 	 */
 	public function save_admin_widgets()
 	{
+		if (!JSession::checkToken()) {
+			// missing CSRF-proof token
+			VBOHttpDocument::getInstance()->close(403, JText::translate('JINVALID_TOKEN'));
+		}
+
 		// make sure permissions are sufficient
 		if (!JFactory::getUser()->authorise('core.vbo.global', 'com_vikbooking')) {
-			throw new Exception("You are not authorized to modify the widgets.", 403);
+			VBOHttpDocument::getInstance()->close(403, 'You are not authorized to modify the widgets.');
 		}
 
 		$psections = VikRequest::getVar('sections', array(), 'request', 'array');
 		if (!is_array($psections) || !count($psections)) {
-			throw new Exception("No sections found in map", 500);
+			VBOHttpDocument::getInstance()->close(500, 'No sections found in map');
 		}
 
 		// request values are all converted to arrays, so restore the object styling
@@ -12574,9 +14040,8 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$response = new stdClass;
 		$response->status = (int)$result;
 
-		// echo the response and exit
-		echo json_encode($response);
-		exit;
+		// output the JSON encoded response and exit
+		VBOHttpDocument::getInstance()->json($response);
 	}
 
 	/**
@@ -12600,6 +14065,11 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 	 */
 	public function admin_widgets_welcome()
 	{
+		if (!JSession::checkToken()) {
+			// missing CSRF-proof token
+			VBOHttpDocument::getInstance()->close(403, JText::translate('JINVALID_TOKEN'));
+		}
+
 		$hide_welcome = VikRequest::getInt('hide_welcome', 0, 'request');
 		// update configuration value
 		VikBooking::getAdminWidgetsInstance()->updateWelcome($hide_welcome);
@@ -12607,9 +14077,8 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$response = new stdClass;
 		$response->status = $hide_welcome;
 
-		// echo the response and exit
-		echo json_encode($response);
-		exit;
+		// output the JSON encoded response and exit
+		VBOHttpDocument::getInstance()->json($response);
 	}
 
 	public function newcondtext()
@@ -12617,7 +14086,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		VikBookingHelper::printHeader("11");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecondtext'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -12630,7 +14099,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		VikBookingHelper::printHeader("11");
 
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'managecondtext'));
-	
+
 		parent::display();
 
 		if (VikBooking::showFooter()) {
@@ -12880,7 +14349,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 
 		// trigger backup/mirroring, if available
-		if (defined('ABSPATH')) {
+		if (VBOPlatformDetection::isWordPress()) {
 			VikBookingUpdateManager::storeTemplateContent($file, $newhtmls[$file]);
 		}
 
@@ -12888,7 +14357,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$output = new stdClass;
 		$output->newhtml = $newhtmls[$file];
 		$output->log = VikBookingHelperConditionalRules::getEditingLog();
-		
+
 		echo json_encode($output);
 		exit;
 	}
@@ -12919,9 +14388,9 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 	public function refundtn()
 	{
 		//modal box, so we do not set menu or footer
-	
+
 		VikRequest::setVar('view', VikRequest::getCmd('view', 'refundtn'));
-	
+
 		parent::display();
 	}
 
@@ -12957,13 +14426,13 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		// get booking history instance
 		$history_obj = VikBooking::getBookingHistoryInstance();
 		$history_obj->setBid($row['id']);
-		
+
 		// get payment information
 		$payment = VikBooking::getPayment($row['idpayment']);
 		$tn_driver = is_array($payment) ? $payment['file'] : null;
 
 		// transaction data validation callback
-		$tn_data_callback = function($data) use ($tn_driver) {
+		$tn_data_callback = function ($data) use ($tn_driver) {
 			return (is_object($data) && isset($data->driver) && basename($data->driver, '.php') == basename($tn_driver, '.php'));
 		};
 		// get previous transactions
@@ -13073,8 +14542,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		$result = new stdClass;
 		$result->status = 0;
 
-		try
-		{
+		try {
 			// get file from request
 			$file = $input->files->get('file', array(), 'array');
 
@@ -13084,9 +14552,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 
 			$result->size = JHtml::fetch('number.bytes', filesize($result->path), 'auto', 0);
 			$result->url  = str_replace(DIRECTORY_SEPARATOR, '/', str_replace(VBO_MEDIA_PATH . DIRECTORY_SEPARATOR, VBO_MEDIA_URI, $result->path));
-		}
-		catch (Exception $e)
-		{
+		} catch (Exception $e) {
 			$result->error = $e->getMessage();
 			$result->code  = $e->getCode();
 		}
@@ -13150,9 +14616,15 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 	 * @see 	this is an AJAX endpoint.
 	 * 
 	 * @since 	1.15.0 (J) - 1.5.0 (WP)
+	 * @since 	1.16.5 (J) - 1.6.5 (WP) widgets are rendered within a try-catch statement.
 	 */
 	public function exec_multitask_widgets()
 	{
+		if (!JSession::checkToken()) {
+			// missing CSRF-proof token
+			VBOHttpDocument::getInstance()->close(403, JText::translate('JINVALID_TOKEN'));
+		}
+
 		$call = VikRequest::getString('call', '', 'request');
 		$call_args = VikRequest::getVar('call_args', array(), 'request', 'array');
 
@@ -13167,11 +14639,17 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			VBOHttpDocument::getInstance()->close(403, 'Admin Widgets Callback not found or not callable');
 		}
 
-		// invoke the helper's method and get the value returned
-		if (is_array($call_args) && count($call_args)) {
-			$result = call_user_func_array(array($widgets_helper, $call), $call_args);
-		} else {
-			$result = $widgets_helper->{$call}();
+		try {
+			// invoke the helper's method and get the value returned
+			if (is_array($call_args) && count($call_args)) {
+				$result = call_user_func_array(array($widgets_helper, $call), $call_args);
+			} else {
+				$result = $widgets_helper->{$call}();
+			}
+		} catch (Throwable $e) {
+			VBOHttpDocument::getInstance()->close($e->getCode() ?: 500, $e->getMessage());
+		} catch (Exception $e) {
+			VBOHttpDocument::getInstance()->close($e->getCode(), $e->getMessage());
 		}
 
 		// prepare response object with a property equal to the called method
@@ -13211,7 +14689,14 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		}
 
 		// compose the notification display data object
-		$notif_data = $displayer->getData();
+		try {
+			$notif_data = $displayer->getData();
+			if (!$notif_data) {
+				throw new Exception('Error building the notification display data', 500);
+			}
+		} catch (Exception $e) {
+			VBOHttpDocument::getInstance()->close($e->getCode(), $e->getMessage());
+		}
 
 		// output the JSON response and exit
 		VBOHttpDocument::getInstance()->json($notif_data);
@@ -13227,7 +14712,15 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 	 */
 	public function widgets_watch_data()
 	{
-		$watch_data_str = VikRequest::getString('watch_data', '', 'request', VIKREQUEST_ALLOWRAW);
+		if (!JSession::checkToken()) {
+			// missing CSRF-proof token
+			VBOHttpDocument::getInstance()->close(403, JText::translate('JINVALID_TOKEN'));
+		}
+
+		$app = JFactory::getApplication();
+
+		$watch_data_str  = $app->input->get('watch_data', '', 'raw');
+		$pushed_data_str = $app->input->get('pushed_data', '[]', 'raw');
 
 		if (empty($watch_data_str)) {
 			VBOHttpDocument::getInstance()->close(500, 'Empty watch-data payload');
@@ -13236,9 +14729,12 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 		// attempt to decode the watch-data payload
 		$watch_data = json_decode($watch_data_str, true);
 
-		if (!is_array($watch_data) || !count($watch_data)) {
+		if (!$watch_data) {
 			VBOHttpDocument::getInstance()->close(500, 'Could not decode watch-data payload: ' . $watch_data_str);
 		}
+
+		// check if any pushed data was set
+		$pushed_data = (array)json_decode($pushed_data_str, true);
 
 		// container for new notifications
 		$notifs_pool = [];
@@ -13254,7 +14750,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 			}
 
 			// build the widget watch data object
-			$widget_watch_data = VBONotificationWatchdata::getInstance($data);
+			$widget_watch_data = VBONotificationWatchdata::getInstance($data)->setPushedData($pushed_data);
 
 			// check if the widget needs to emit browser notifications
 			list($watch_next, $notifications) = $widget_instance->getNotifications($widget_watch_data);
@@ -13264,7 +14760,7 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 				$watch_data[$widget_id] = $watch_next;
 			}
 
-			if (is_array($notifications) && count($notifications)) {
+			if (is_array($notifications) && $notifications) {
 				$notifs_pool = array_merge($notifs_pool, $notifications);
 			}
 		}
@@ -13276,5 +14772,63 @@ jQuery(".vbo-custsearchres-entry").hover(function() {
 
 		// output the JSON response and exit
 		VBOHttpDocument::getInstance()->json($response);
+	}
+
+	/**
+	 * Outputs a list of CSS assets required to render the admin widgets
+	 * externally from Vik Booking. Useful i.e. to Vik Channel Manager.
+	 * 
+	 * @see 	this is an AJAX endpoint.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function widgets_get_assets()
+	{
+		// list of needed CSS asset details
+		$assets_pool = [];
+
+		// appearance preference assets (one or none)
+		$app_pref_asset = VikBooking::loadAppearancePreferenceAssets($get_info = true);
+
+		if (VBOPlatformDetection::isWordPress()) {
+			// WordPress (main CSS)
+			$assets_pool[] = [
+				'rel' 	=> 'stylesheet',
+				'id' 	=> 'vbo-style-css',
+				'href' 	=> VIKBOOKING_ADMIN_ASSETS_URI . 'vikbooking.css?ver=' . VIKBOOKING_SOFTWARE_VERSION,
+				'media' => 'all',
+			];
+
+			if (is_array($app_pref_asset) && !empty($app_pref_asset['href'])) {
+				// appearance preference CSS
+				$assets_pool[] = [
+					'rel' 	=> 'stylesheet',
+					'id' 	=> (!empty($app_pref_asset['id']) ? $app_pref_asset['id'] : rand()),
+					'href' 	=> $app_pref_asset['href'] . '?ver=' . VIKBOOKING_SOFTWARE_VERSION,
+					'media' => 'all',
+				];
+			}
+		} else {
+			// Joomla (main CSS)
+			$assets_pool[] = [
+				'rel' 	=> 'stylesheet',
+				'id' 	=> 'vbo-style-css',
+				'href' 	=> VBO_ADMIN_URI . 'vikbooking.css?' . VIKBOOKING_SOFTWARE_VERSION,
+				'media' => 'all',
+			];
+
+			if (is_array($app_pref_asset) && !empty($app_pref_asset['href'])) {
+				// appearance preference CSS
+				$assets_pool[] = [
+					'rel' 	=> 'stylesheet',
+					'id' 	=> (!empty($app_pref_asset['id']) ? $app_pref_asset['id'] : rand()),
+					'href' 	=> $app_pref_asset['href'] . '?' . VIKBOOKING_SOFTWARE_VERSION,
+					'media' => 'all',
+				];
+			}
+		}
+
+		// output the JSON response and exit
+		VBOHttpDocument::getInstance()->json($assets_pool);
 	}
 }

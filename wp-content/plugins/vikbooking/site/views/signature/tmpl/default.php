@@ -227,6 +227,7 @@ if ($ptmpl == 'component') {
 <script type="text/javascript">
 	/* Global Variables and Functions */
 	var vbo_overlay_on = false;
+
 	function vboOpenModal() {
 		jQuery("#vbdialog-overlay").fadeIn(400, function() {
 			if (jQuery("#vbdialog-overlay").is(":visible")) {
@@ -237,10 +238,12 @@ if ($ptmpl == 'component') {
 			}
 		});
 	}
+
 	function vboCloseModal() {
 		jQuery("#vbdialog-overlay").fadeOut();
 		vbo_overlay_on = false;
 	}
+
 	function vboUpdateModal(title, body, call_toggle) {
 		jQuery('#vbo-overlay-title').text(title);
 		if (body.substr(0, 1) == '.') {
@@ -255,18 +258,16 @@ if ($ptmpl == 'component') {
 			vboOpenModal();
 		}
 	}
+
 	function vboShowSignPad() {
 		jQuery('#fake-signature-container').remove();
 		document.getElementById('real-signature-container').style.display = 'flex';
 		vboResizeCanvas();
 	}
-	/* ---------------- */
-	/* Canvas initialization */
-	var sign_wrapper = document.getElementById("vbo-signature-pad");
-	var canvas = sign_wrapper.querySelector("canvas");
-	var signaturePad = new SignaturePad(canvas, {
-		backgroundColor: 'rgba(0, 0, 0, 0)'
-	});
+
+	/* Canvas global vars */
+	var canvas, signaturePad;
+
 	function vboResizeCanvas() {
 		var ratio =  Math.max(window.devicePixelRatio || 1, 1);
 		canvas.width = canvas.offsetWidth * ratio;
@@ -276,9 +277,11 @@ if ($ptmpl == 'component') {
 		document.getElementById('pad_width').value = canvas.width;
 		document.getElementById('pad_ratio').value = ratio;
 	}
+
 	function vboClearSignPad() {
 		signaturePad.clear();
 	}
+
 	function vboConfirmGenerate(action) {
 		if (action > 0) {
 			if (signaturePad.isEmpty()) {
@@ -296,9 +299,23 @@ if ($ptmpl == 'component') {
 			return false;
 		}
 	}
+
 	window.onresize = vboResizeCanvas;
-	/* ---------------- */
-	jQuery(document).ready(function() {
+
+	jQuery(function() {
+		/* Canvas initialization */
+		var sign_wrapper = document.getElementById("vbo-signature-pad");
+		// set global vars
+		canvas = sign_wrapper.querySelector("canvas");
+		signaturePad = new SignaturePad(canvas, {
+			backgroundColor: 'rgba(0, 0, 0, 0)'
+		});
+
+		/* Canvas adjust rendering */
+		setTimeout(() => {
+			vboResizeCanvas();
+		}, 200);
+
 		/* Overlay for Terms and Conds - Start */
 		jQuery(document).mouseup(function(e) {
 			if (!vbo_overlay_on) {
@@ -309,14 +326,12 @@ if ($ptmpl == 'component') {
 				vboCloseModal();
 			}
 		});
+
 		jQuery(document).keyup(function(e) {
 			if (e.keyCode == 27 && vbo_overlay_on) {
 				vboCloseModal();
 			}
 		});
 		/* Overlay for Terms and Conds - End */
-		/* Canvas adjust rendering */
-		vboResizeCanvas();
-		/* ---- */
 	});
 </script>

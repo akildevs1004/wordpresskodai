@@ -51,7 +51,7 @@ defined('_VIKBOOKINGEXEC') OR die('Restricted Area');
 
 ?>
 
-<center style="background: #fdfdfd; padding: 40px 0; color: #666; width: 100%; table-layout: fixed;">
+<center class="text-direction-{lang_direction}" style="background: #fdfdfd; padding: 40px 0; color: #666; width: 100%; table-layout: fixed; direction: {lang_direction};">
 	<div style="text-align: center;">
 			<p>{logo}</p>
 	</div>
@@ -71,7 +71,7 @@ defined('_VIKBOOKINGEXEC') OR die('Restricted Area');
 						<tr>
 						<td width="50%" valign="top">
 						<![endif]-->
-						<div style="width: 100%; max-width: 365px; display: inline-block; vertical-align: top; text-align: left;">
+						<div style="width: 100%; max-width: 355px; display: inline-block; vertical-align: top; text-align: {text_natural_direction};">
 							<table width="90%" style="margin: 10px auto 0; padding: 5px; font-size: 14px; background:#f2f3f7;">
 								<tr>
 									<td style="padding: 10px; line-height: 1.4em;">
@@ -99,7 +99,7 @@ defined('_VIKBOOKINGEXEC') OR die('Restricted Area');
 						<!--[if (gte mso 9)|(IE)]>
 						</td><td width="50%" valign="top">
 						<![endif]-->
-						<div style="width: 100%; max-width: 365px; display: inline-block; vertical-align: top; text-align: left;">
+						<div style="width: 100%; max-width: 355px; display: inline-block; vertical-align: top; text-align: {text_natural_direction};">
 							<table width="90%" style="margin: 10px auto 0; padding: 5px; font-size: 14px; background:#f2f3f7;">
 								<tr>
 									<td style="padding: 10px; line-height: 1.4em;">
@@ -125,12 +125,12 @@ defined('_VIKBOOKINGEXEC') OR die('Restricted Area');
 						<tr>
 						<td width="50%" valign="top">
 						<![endif]-->
-						<div style="width: 100%; max-width: 365px; display: inline-block; vertical-align: top; text-align: left;">
+						<div style="width: 100%; max-width: 355px; display: inline-block; vertical-align: top; text-align: {text_natural_direction};">
 							<table width="90%" style="background:#f2f3f7; margin: 10px auto 0; padding: 5px; font-size: 14px;">
 								<tr>
 									<td style="padding: 10px; line-height: 1.4em;">
 										<div>
-											<div><strong><?php echo JText::translate('VBLIBTEN'); ?>:</strong><span> {rooms_count}</span></div>
+											<div><strong><?php echo JText::translate('VBLIBTEN'); ?></strong><span> {rooms_count}</span></div>
 											<div>
 												{rooms_info}
 												<?php
@@ -158,7 +158,7 @@ defined('_VIKBOOKINGEXEC') OR die('Restricted Area');
 						<!--[if (gte mso 9)|(IE)]>
 						</td><td width="50%" valign="top">
 						<![endif]-->
-						<div style="width: 100%; max-width: 365px; display: inline-block; vertical-align: top; text-align: left;">
+						<div style="width: 100%; max-width: 355px; display: inline-block; vertical-align: top; text-align: {text_natural_direction};">
 							<table width="90%" style="margin: 10px auto 0; padding: 5px; font-size: 14px; background:#f2f3f7;">
 								<tr>
 									<td style="padding: 10px; line-height: 1.4em;">
@@ -189,7 +189,7 @@ defined('_VIKBOOKINGEXEC') OR die('Restricted Area');
 					<td style="padding: 0; text-align: center;">
 						<table width="95%" style="border-spacing: 0; margin: 10px auto 0; padding: 15px; font-size: 14px; background: #fff;">
 							<tr>
-								<td style="padding: 10px; line-height: 1.4em; text-align: left;">
+								<td style="padding: 10px; line-height: 1.4em; text-align: {text_natural_direction};">
 									<div>
 										<h3 style="background:#78B8C4; display:inline-block; padding:5px 10px; text-transform:uppercase; font-size:16px; color:#fff;"><?php echo JText::translate('VBORDERDETAILS'); ?></h3>
 										<div style="padding:10px; margin:2px 0;">
@@ -198,7 +198,7 @@ defined('_VIKBOOKINGEXEC') OR die('Restricted Area');
 											</div>
 											<div style="padding:10px; background:#f2f3f7; border:1px solid #45C29D; margin:10px 0;">
 												<span><?php echo JText::translate('VBLIBSIX'); ?></span>
-												<span style="float:right;">
+												<span style="float: {text_opposite_direction};">
 													<strong>{order_total}</strong>
 												</span>
 											</div>
@@ -215,11 +215,11 @@ defined('_VIKBOOKINGEXEC') OR die('Restricted Area');
 					<td style="padding: 0; text-align: center;">
 						<table width="95%" style="border-spacing: 0; margin: 0 auto; font-size: 14px; background: #fff;">
 							<tr>
-								<td style="line-height: 1.4em; text-align: left;">
+								<td style="line-height: 1.4em; text-align: {text_natural_direction};">
 									<div>
-										<strong><?php echo JText::translate('VBLIBTENTHREE'); ?>:</strong><br/>
+										<strong><?php echo JText::translate('VBLIBTENTHREE'); ?></strong><br/>
 										{order_link}
-									</div>	
+									</div>
 									<div>
 										<div>{footer_emailtext}</div>
 									</div>
@@ -246,5 +246,7 @@ defined('_VIKBOOKINGEXEC') OR die('Restricted Area');
 .confirmed {color: #009900;}
 .standby {color: #cc9a04;}
 .cancelled {color: #ff0000;}
+.text-direction-ltr .service-amount {float: right;}
+.text-direction-rtl .service-amount {display: inline-block; margin-right: 5px;}
 -->
 </style>

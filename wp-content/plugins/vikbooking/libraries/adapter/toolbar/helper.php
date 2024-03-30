@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.toolbar
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -333,14 +333,11 @@ abstract class JToolbarHelper
 		$uri 	= JUri::current();
 		$return = urlencode(base64_encode($uri));
 
-		$bar = JToolbar::getInstance();
-
-		// Add a button linking to ACL config for component
-		$bar->appendButton(
-			'Link',
-			'options',
+		// Add a button linking to the ACL configuration page of the component
+		static::link(
+			'admin.php?option=' . $component . '&amp;view=acl&amp;return=' . $return,
 			'JTOOLBAR_OPTIONS',
-			'admin.php?option=' . $component . '&amp;view=acl&amp;return=' . $return
+			'options'
 		);
 	}
 
@@ -358,14 +355,34 @@ abstract class JToolbarHelper
 		$uri 	= JUri::current();
 		$return = urlencode(base64_encode($uri));
 
-		$bar = JToolbar::getInstance();
-
-		// Add a button linking to ACL config for component
-		$bar->appendButton(
-			'Link',
-			'codes',
+		// Add a button linking to the shortcodes management page of the component
+		static::link(
+			'admin.php?option=' . $component . '&amp;view=shortcodes&amp;return=' . $return,
 			'JTOOLBAR_SHORTCODES',
-			'admin.php?option=' . $component . '&amp;view=shortcodes&amp;return=' . $return
+			'codes'
 		);
 	}
+
+	/**
+     * Creates a button to redirect to a link.
+     *
+     * @param   string  $url   The link url.
+     * @param   string  $text  The Bìbutton text.
+     * @param   string  $name  Name to be used as apart of the id.
+     *
+     * @return  void
+     *
+     * @since   10.1.48
+     */
+    public static function link($url, $text, $name = 'link')
+    {
+        $bar = JToolbar::getInstance();
+
+        $bar->appendButton(
+        	'Link',
+        	$name,
+        	$text,
+        	$url
+        );
+    }
 }

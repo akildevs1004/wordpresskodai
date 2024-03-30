@@ -39,13 +39,13 @@ if (empty($fpath) || $fp === false) {
 			 * @wponly
 			 */
 			try {
-				echo $editor->display("cont", $fcode, '100%', 300, 70, 20);
+				echo $editor->display("cont", $fcode, '100%', 300, 70, 20, $buttons = false, $id = "vik_editor_cont", $asset = null, $author = null, $params = ['syntax' => 'php']);
 			} catch (Throwable $t) {
 				echo $t->getMessage() . ' in ' . $t->getFile() . ':' . $t->getLine() . '<br/>';
 			}
 		} else {
 			// we cannot catch Fatal Errors in PHP 5.x
-			echo $editor->display("cont", $fcode, '100%', 300, 70, 20);
+			echo $editor->display("cont", $fcode, '100%', 300, 70, 20, $buttons = false, $id = "vik_editor_cont", $asset = null, $author = null, $params = ['syntax' => 'php']);
 		}
 		?>
 		<br clear="all" />
@@ -56,6 +56,7 @@ if (empty($fpath) || $fp === false) {
 	<input type="hidden" name="path" value="<?php echo $fpath; ?>">
 	<input type="hidden" name="option" value="com_vikbooking" />
 	<input type="hidden" name="task" value="savetmplfile" />
+	<?php echo JHtml::fetch('form.token'); ?>
 </form>
 
 <script type="text/javascript">
@@ -65,7 +66,7 @@ if (empty($fpath) || $fp === false) {
 		 * 			and so we force the update of the textarea before submitting the form.
 		 */
 		try {
-			document.getElementById('cont').value = Joomla.editors.instances['cont'].getValue();
+			Joomla.editors.instances['vik_editor_cont'].element.codemirror.save();
 		} catch (err) {
 			console.error(err);
 		}

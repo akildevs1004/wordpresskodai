@@ -60,7 +60,7 @@ abstract class VBOMvcModel extends JObject
 		 * 
 		 * @return  mixed
 		 */
-		$results = JFactory::getApplication()->triggerEvent('onBeforeCreateModelVikBooking', [&$name, &$options]);
+		$results = VBOFactory::getPlatform()->getDispatcher()->filter('onBeforeCreateModelVikBooking', [&$name, &$options]);
 
 		// filter the returned values to take only the first valid instance
 		$results = array_filter($results, function($data)

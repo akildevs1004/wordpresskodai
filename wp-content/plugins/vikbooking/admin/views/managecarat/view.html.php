@@ -72,9 +72,9 @@ class VikBookingViewManagecarat extends JViewVikBooking {
 		}
 		$preset_icons = VikBookingIcons::loadCharacteristicsPreset($exclude_html);
 		
-		$this->row = &$row;
-		$this->allrooms = &$allrooms;
-		$this->preset_icons = &$preset_icons;
+		$this->row = $row;
+		$this->allrooms = $allrooms;
+		$this->preset_icons = $preset_icons;
 		
 		// Display the template
 		parent::display($tpl);

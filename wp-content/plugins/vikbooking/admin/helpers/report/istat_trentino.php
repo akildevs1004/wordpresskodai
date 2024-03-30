@@ -197,7 +197,6 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 	);
 
 	private $map_prov_codes = array(
-
 		"Torino" => "TO",
 		"Vercelli" => "VC",
 		"Novara" => "NO",
@@ -469,6 +468,8 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 
 		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
 
+		$this->registerExportFileName();
+
 		parent::__construct();
 	}
 
@@ -720,28 +721,22 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 			return false;
 		}
 		
-		
 		//Query to obtain the records (all check-ins within the dates filter)
 		$records = array();
 		$q = "SELECT `o`.`id`,`o`.`custdata`,`o`.`ts`,`o`.`days`,`o`.`checkin`,`o`.`checkout`,`o`.`totpaid`,`o`.`roomsnum`,`o`.`total`,`o`.`idorderota`,`o`.`channel`,`o`.`country`,".
 			"`or`.`idorder`,`or`.`idroom`,`or`.`adults`,`or`.`children`,`or`.`t_first_name`,`or`.`t_last_name`,`or`.`cust_cost`,`or`.`cust_idiva`,`or`.`extracosts`,`or`.`room_cost`,".
-			"`co`.`idcustomer`,`co`.`pax_data`,`c`.`first_name`,`c`.`last_name`,`c`.`country` AS `customer_country`,`c`.`city`,`c`.`doctype`,`c`.`docnum`,`c`.`gender`,`c`.`bdate`,`c`.`pbirth`,`cy`.`country_name`,".
+			"`co`.`idcustomer`,`co`.`pax_data`,`c`.`first_name`,`c`.`last_name`,`c`.`country` AS `customer_country`,`c`.`city`,`c`.`state`,`c`.`doctype`,`c`.`docnum`,`c`.`gender`,`c`.`bdate`,`c`.`pbirth`,`cy`.`country_name`,".
 			"(SELECT `h`.`dt` FROM `#__vikbooking_orderhistory` AS `h` WHERE `h`.`idorder`=`o`.`id` AND `h`.`type`='RP' AND `h`.`descr`=".$this->dbo->quote($this->reportName)." ORDER BY `h`.`dt` DESC LIMIT 1) AS `history_last` ".
 			"FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_ordersrooms` AS `or` ON `or`.`idorder`=`o`.`id` ".
 			"LEFT JOIN `#__vikbooking_customers_orders` AS `co` ON `co`.`idorder`=`o`.`id` LEFT JOIN `#__vikbooking_customers` AS `c` ON `c`.`id`=`co`.`idcustomer` LEFT JOIN `#__vikbooking_countries` AS `cy` ON `cy`.`country_3_code`=`c`.`country` ".
 			"WHERE `o`.`status`='confirmed' AND `o`.`closure`=0 AND ((`o`.`checkin`>=".$from_ts." AND `o`.`checkin`<=".$to_ts.") OR (`o`.`checkout`>=".$from_ts." AND `o`.`checkout`<=".$to_ts.")) ".
 			"ORDER BY `o`.`checkin` ASC, `o`.`id` ASC;";
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		if ($this->dbo->getNumRows() > 0) {
-			$records = $this->dbo->loadAssocList();
-		}
-		if (!count($records)) {
+		$records = $this->dbo->loadAssocList();
+		if (!$records) {
 			$this->setError(JText::translate('VBOREPORTSERRNORESERV'));
 			return false;
 		}
-
-
 
 		//nest records with multiple rooms booked inside sub-array
 		$bookings = array();
@@ -1041,7 +1036,11 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 
 		if ($country3 == 'ITA') {
 			// Italian customer
-			if (!empty($booking['city'])) {
+			if (!empty($booking['state'])) {
+				// provincia is set
+				$city = array_search($booking['state'], $this->map_prov_codes);
+				return $city !== false ? $city : -1;
+			} elseif (!empty($booking['city'])) {
 				foreach ($this->map_regioni_prov as $tipo => $cities) {
 					foreach ($cities as $city) {
 						if (stripos($city, $booking['city']) !== false) {
@@ -1090,6 +1089,7 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 		if (!$this->getReportData()) {
 			return false;
 		}
+
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$pcodstru = VikRequest::getString('codstru', '', 'request');
 		$ddopen = VikRequest::getInt('ddopen', '', 'request');
@@ -1105,13 +1105,11 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 			return false;
 		}
 		//
-		$q="SELECT SUM(`units`) FROM `#__vikbooking_rooms` WHERE `avail`= '1';";
+		$q = "SELECT SUM(`units`) FROM `#__vikbooking_rooms` WHERE `avail`= '1';";
 		$this->dbo->setQuery($q);
 		$this->dbo->execute();
 		$totalRooms= $this->dbo->loadResult();
-		
-		
-	
+
 		// pool of booking IDs to update their history
 		$booking_ids = array();
 		// update the history for all bookings affected
@@ -1154,7 +1152,6 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 			foreach ($row as $field) {
 				$arrcode = 0;
 
-				
 				if (isset($field['ignore_export'])) {
 					continue;
 				}
@@ -1179,7 +1176,6 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 				}
 				$export_value = isset($field['callback']) && is_callable($field['callback']) ? $field['callback']($field['value']) : $field['value'];
 				
-				
 				if ($field['key'] == 'italia') {
 					if ($export_value == "1") {
 						$italia = 1;
@@ -1193,6 +1189,8 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 						$arrcode = $this->map_country_codes_transfer[$export_value];
 					} elseif (isset($this->map_prov_codes[$export_value])) {
 						$arrcode = $this->map_prov_codes[$export_value];
+					} elseif (in_array($export_value, $this->map_prov_codes)) {
+						$arrcode = array_search($export_value, $this->map_prov_codes);
 					}
 
 					if ($italia == 1 && !isset($arr['italia'][$idswh])) {
@@ -1202,7 +1200,6 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 							'presenti' => 0,
 							'code' => 0	,
 							'checkin' => 0
-							
 						);
 					} elseif(!isset($arr['estero'][$idswh])) {
 						$arr['estero'][$idswh] = array(
@@ -1211,19 +1208,17 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 							'presenti' => 0,
 							'code' => 0,
 							'checkin' => 0
-
 						);
 					}
 					foreach ($this->bookings as $gbook) {
-							$guestsnum = 0;
+						$guestsnum = 0;
 						foreach ($gbook as $book) {
 							$guestsnum += $book['adults'] + $book['children'];
 						}
-						
-					
-						if($italia == 1){
 
-							if($idswh == $gbook[0]['id'] && $arrcode == $this->map_prov_codes[$export_value] && !in_array($gbook[0]['id'], $arr['idres'])){
+						if ($italia == 1) {
+
+							if ($idswh == $gbook[0]['id'] && $arrcode == $this->map_prov_codes[$export_value] && !in_array($gbook[0]['id'], $arr['idres'])){
 								array_push($arr['idres'], $gbook[0]['id']);
 								$arr['italia'][$idswh]['code'] = $arrcode; 
 								if (date('Y-m-d',$gbook[0]['checkin']) == date('Y-m-d',$this->from_ts) || date('Y-m-d',$gbook[0]['checkin']) == date('Y-m-d',$this->to_ts) ) {
@@ -1281,10 +1276,7 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 		$txt = ',u_abitative,'.$numOccupiedrooms."\n";
 
 		foreach ($arr['italia'] as $key => $value) {
-
-				
-			if($arr['italia'][$key]['arrivi'] > 0 || $arr['italia'][$key]['partiti'] > 0){	
-	
+			if ($arr['italia'][$key]['arrivi'] > 0 || $arr['italia'][$key]['partiti'] > 0) {
 				$txt .= ",".$pcodstru.",";
 				$txt .= $data. "," ;
 				$txt .= $arr['italia'][$key]['code'].",";
@@ -1292,13 +1284,10 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 				$txt .= $arr['italia'][$key]['partiti'];
 				$txt .= "\n";
 			}
-
 		}
 
 		foreach ($arr['estero'] as $key => $value) {
-
-			if ($arr['estero'][$key]['arrivi'] > 0 || $arr['estero'][$key]['partiti'] > 0) {		
-			
+			if ($arr['estero'][$key]['arrivi'] > 0 || $arr['estero'][$key]['partiti'] > 0) {
 				$txt .= ",".$pcodstru.",";
 				$txt .= $data. "," ;
 				$txt .= $arr['estero'][$key]['code'].",";
@@ -1308,21 +1297,43 @@ class VikBookingReportIstatTrentino extends VikBookingReport
 			}
 		}
 
-		$filename = $pcodstru.$data.'.txt';
-		$filepath = dirname(__FILE__) . DIRECTORY_SEPARATOR . $filename;
-		$handle = fopen($filepath, "w+");
-   		fwrite($handle, $txt);
-    	fclose($handle);
-    	header('Content-Type: application/octet-stream');
-	    header('Content-Disposition: attachment; filename='.basename($filepath));
-	    header('Expires: 0');
-	    header('Cache-Control: must-revalidate');
-	    header('Pragma: public');
-	    header('Content-Length: ' . filesize($filepath));
-	    readfile($filepath);
-	    @unlink($filepath);
+		/**
+		 * Custom export method supports a custom export handler, if previously set.
+		 * 
+		 * @since 	1.16.1 (J) - 1.6.1 (WP)
+		 */
+		if ($this->hasExportHandler()) {
+			// write data onto the custom file handler
+			$fp = $this->getExportCSVHandler();
+			fwrite($fp, $txt);
+			fclose($fp);
 
-	    exit;
+			return true;
+		}
+
+		// force text file download
+		header("Content-type: text/plain");
+		header("Cache-Control: no-store, no-cache");
+		header('Content-Disposition: attachment; filename="' . $this->getExportCSVFileName() . '"');
+		echo $txt;
+
+		exit;
 	}
 
+	/**
+	 * Registers the name to give to the file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	protected function registerExportFileName()
+	{
+		$pfromdate = VikRequest::getString('fromdate', '', 'request');
+		$pcodstru = VikRequest::getString('codstru', '', 'request');
+
+		$data = str_replace(['/', '-'], '', $pfromdate);
+
+		$this->setExportCSVFileName($pcodstru . $data . '.txt');
+	}
 }

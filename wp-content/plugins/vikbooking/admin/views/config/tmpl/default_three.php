@@ -10,17 +10,19 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-$vbo_app = new VboApplication();
-/**
- * @wponly - cannot load iFrame with FancyBox, so we use the BS's Modal
- */
-if (function_exists('wp_enqueue_code_editor')) {
-	// WP >= 4.9.0
+$vbo_app = VikBooking::getVboApplication();
+
+if (VBOPlatformDetection::isWordPress() && function_exists('wp_enqueue_code_editor')) {
+	/**
+	 * @wponly - cannot load iFrame with FancyBox, so we use the BS's Modal
+	 * WP >= 4.9.0
+	 */
 	wp_enqueue_code_editor(array('type' => 'php'));
 }
-$vbo_app->getJmodalScript();
-echo $vbo_app->getJmodalHtml('vbo-tplfiles', JText::translate('VBOCONFIGEDITTMPLFILE'));
-//
+
+echo $vbo_app->getJmodalScript($suffix = 'VboTplfiles', $hide_js = "VBOCore.emitEvent('vbo-dismiss-modal-tmplfile');");
+echo $vbo_app->getJmodalHtml('VboTplfiles', JText::translate('VBOCONFIGEDITTMPLFILE'));
+
 $editor = JEditor::getInstance(JFactory::getApplication()->get('editor'));
 $document = JFactory::getDocument();
 $document->addStyleSheet(VBO_SITE_URI.'resources/jquery.fancybox.css');
@@ -46,7 +48,7 @@ if (count($themes) > 0) {
 	}
 }
 $themesel .= '</select>';
-$firstwday = VikBooking::getFirstWeekDay(true);
+$firstwday = VikBooking::getFirstWeekDay();
 ?>
 <div class="vbo-config-maintab-left">
 	<fieldset class="adminform">
@@ -80,7 +82,7 @@ $firstwday = VikBooking::getFirstWeekDay(true);
 						<div class="btn-wrapper input-append">
 							<button type="button" class="btn vbo-edit-tmpl" data-tmpl-path="<?php echo urlencode(VBO_SITE_PATH.DS.'helpers'.DS.'email_tmpl.php'); ?>"><i class="icon-edit"></i> <?php echo JText::translate('VBOCONFIGEDITTMPLFILE'); ?></button>
 							<button type="button" class="btn vbo-inspector-btn" title="<?php echo addslashes(JText::translate('VBO_INSPECTOR_START')); ?>" data-inspectfile="email_tmpl.php"><?php VikBookingIcons::e('paint-brush'); ?></button>
-							<button type="button" class="btn vbo-edit-tmpl vbo-preview-btn" title="<?php echo addslashes(JText::translate('VBOPREVIEW')); ?>" data-prew-path="<?php echo urlencode(VBO_SITE_PATH.DS.'helpers'.DS.'email_tmpl.php'); ?>"><?php VikBookingIcons::e('eye'); ?></button>
+							<button type="button" class="btn vbo-edit-tmpl vbo-preview-btn" title="<?php echo addslashes(JText::translate('VBOPREVIEW')); ?>" data-prew-type="email_tmpl.php" data-prew-path="<?php echo urlencode(VBO_SITE_PATH.DS.'helpers'.DS.'email_tmpl.php'); ?>"><?php VikBookingIcons::e('eye'); ?></button>
 						</div>
 					</div>
 				</div>
@@ -108,8 +110,22 @@ $firstwday = VikBooking::getFirstWeekDay(true);
 				</div>
 				<div class="vbo-param-container">
 					<div class="vbo-param-label"><?php echo JText::translate('VBOCONFIGCUSTCSSTPL'); ?></div>
-					<!-- @wponly  the path of the file is different in WP, it's inside /resources -->
-					<div class="vbo-param-setting"><button type="button" class="btn vbo-edit-tmpl" data-tmpl-path="<?php echo urlencode(VBO_SITE_PATH.DS.'resources'.DS.'vikbooking_custom.css'); ?>"><i class="icon-edit"></i> <?php echo JText::translate('VBOCONFIGEDITTMPLFILE'); ?></button></div>
+					<div class="vbo-param-setting">
+					<?php
+					if (VBOPlatformDetection::isWordPress()) {
+						/**
+						 * @wponly  the path of the file is different in WP, it's inside /resources
+						 */
+						?>
+						<button type="button" class="btn vbo-edit-tmpl" data-tmpl-path="<?php echo urlencode(VBO_SITE_PATH.DS.'resources'.DS.'vikbooking_custom.css'); ?>"><i class="icon-edit"></i> <?php echo JText::translate('VBOCONFIGEDITTMPLFILE'); ?></button>
+						<?php
+					} else {
+						?>
+						<button type="button" class="btn vbo-edit-tmpl" data-tmpl-path="<?php echo urlencode(VBO_SITE_PATH.DS.'vikbooking_custom.css'); ?>"><i class="icon-edit"></i> <?php echo JText::translate('VBOCONFIGEDITTMPLFILE'); ?></button>
+						<?php
+					}
+					?>
+					</div>
 				</div>
 				<div class="vbo-param-container">
 					<div class="vbo-param-label"><?php echo JText::translate('VBOCONFIGCUSTBACKCSSTPL'); ?></div>
@@ -130,10 +146,8 @@ $firstwday = VikBooking::getFirstWeekDay(true);
 						if (interface_exists('Throwable')) {
 							/**
 							 * With PHP >= 7 supporting throwable exceptions for Fatal Errors
-							 * we try to avoid issues with third party plugins that make use
-							 * of the WP native function get_current_screen().
-							 * 
-							 * @wponly
+							 * we try to avoid issues with third party plugins that make use of
+							 * the WP native function get_current_screen() or any Joomla plugin.
 							 */
 							try {
 								echo $editor->display( "intromain", VikBooking::getIntroMain(), '100%', 350, 70, 20 );
@@ -157,7 +171,7 @@ $firstwday = VikBooking::getFirstWeekDay(true);
 </div>
 
 <div class="vbo-config-maintab-right">
-	
+
 	<?php
 	/**
 	 * Preferred colors for CSS styling
@@ -258,7 +272,7 @@ $firstwday = VikBooking::getFirstWeekDay(true);
 			jQuery('#vbo-pref-color-examples').append(style).show();
 		}
 
-		jQuery(document).ready(function() {
+		jQuery(function() {
 			/**
 			 * Register color-picker for preferred colors.
 			 */
@@ -358,7 +372,8 @@ function vboHex(x) {
 	return isNaN(x) ? "00" : vboHexDigits[(x - x % 16) / 16] + vboHexDigits[x % 16];
 }
 
-jQuery(document).ready(function() {
+jQuery(function() {
+
 	jQuery(".vbo-edit-tmpl").click(function() {
 		var vbo_tmpl_path = jQuery(this).attr("data-tmpl-path");
 		var vbo_prew_path = jQuery(this).attr("data-prew-path");
@@ -367,9 +382,10 @@ jQuery(document).ready(function() {
 		}
 		var basetask = !vbo_tmpl_path ? 'tmplfileprew' : 'edittmplfile';
 		var basepath = !vbo_tmpl_path ? vbo_prew_path : vbo_tmpl_path;
-		// @wponly - we use the BS's Modal to open the template files editing page
-		vboOpenJModal('vbo-tplfiles', "index.php?option=com_vikbooking&task=" + basetask + "&path=" + basepath + "&tmpl=component");
+		// we use the BS's Modal to open the template files editing page
+		vboOpenJModalVboTplfiles('VboTplfiles', "index.php?option=com_vikbooking&task=" + basetask + "&path=" + basepath + "&tmpl=component");
 	});
+
 	jQuery(".vbo-colortag-add").click(function() {
 		jQuery("#vbo-colortag-lasttr").before(
 			"<div class=\"vbo-param-container\">"+
@@ -401,9 +417,11 @@ jQuery(document).ready(function() {
 			},
 		});
 	});
+
 	jQuery(document.body).on('click', '.vbo-colortag-rm', function() {
 		jQuery(this).closest('.vbo-param-container').remove();
 	});
+
 	jQuery('.vbo-colortag-square').ColorPicker({
 		color: '#ffffff',
 		onShow: function (colpkr, el) {

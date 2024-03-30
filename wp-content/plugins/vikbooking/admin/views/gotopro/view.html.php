@@ -17,9 +17,10 @@ defined('ABSPATH') or die('No script kiddies please!');
 // import Joomla view library
 jimport('joomla.application.component.view');
 
-class VikBookingViewGotopro extends JViewVikBooking {
-	
-	function display($tpl = null) {
+class VikBookingViewGotopro extends JViewVikBooking
+{
+	public function display($tpl = null)
+	{
 		// Set the toolbar
 		$this->addToolBar();
 
@@ -38,9 +39,9 @@ class VikBookingViewGotopro extends JViewVikBooking {
 			$tpl = 'pro';
 		}
 		
-		$this->lic_key = &$lic_key;
-		$this->lic_date = &$lic_date;
-		$this->is_pro = &$is_pro;
+		$this->lic_key = $lic_key;
+		$this->lic_date = $lic_date;
+		$this->is_pro = $is_pro;
 		
 		// Display the template
 		parent::display($tpl);
@@ -49,8 +50,8 @@ class VikBookingViewGotopro extends JViewVikBooking {
 	/**
 	 * Sets the toolbar
 	 */
-	protected function addToolBar() {
+	protected function addToolBar()
+	{
 		JToolBarHelper::title(JText::translate('VBMAINGOTOPROTITLE'), 'vikbooking');
 	}
-
 }

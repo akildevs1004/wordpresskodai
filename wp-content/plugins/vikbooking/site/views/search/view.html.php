@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     VikBooking
  * @subpackage  com_vikbooking
@@ -12,8 +13,11 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 jimport('joomla.application.component.view');
 
-class VikbookingViewSearch extends JViewVikBooking {
-	function display($tpl = null) {
+class VikbookingViewSearch extends JViewVikBooking
+{
+	public function display($tpl = null)
+	{
+		$dbo = JFactory::getDbo();
 		if (VikBooking::allowBooking()) {
 			$session = JFactory::getSession();
 			$mainframe = JFactory::getApplication();
@@ -93,7 +97,7 @@ class VikbookingViewSearch extends JViewVikBooking {
 			 * completion of a reservation by the guest, which would be booking a greater
 			 * room. In terms of pricing and availability nothing changes of course.
 			 * 
-			 * @since 	1.4.3
+			 * @since 	1.14.3 (J) - 1.4.3 (WP)
 			 */
 			$booking_suggestion = VikRequest::getInt('suggestion', 0, 'request');
 			//
@@ -199,14 +203,14 @@ class VikbookingViewSearch extends JViewVikBooking {
 							if (array_key_exists($restrcheckin['mon'], $restrictions)) {
 								//restriction found for this month, checking:
 								$restrictions_affcount++;
-								if (strlen($restrictions[$restrcheckin['mon']]['wday']) > 0) {
+								if (strlen((string)$restrictions[$restrcheckin['mon']]['wday'])) {
 									$rvalidwdays = array($restrictions[$restrcheckin['mon']]['wday']);
-									if (strlen($restrictions[$restrcheckin['mon']]['wdaytwo']) > 0) {
+									if (strlen((string)$restrictions[$restrcheckin['mon']]['wdaytwo'])) {
 										$rvalidwdays[] = $restrictions[$restrcheckin['mon']]['wdaytwo'];
 									}
 									if (!in_array($restrcheckin['wday'], $rvalidwdays)) {
 										$restrictionsvalid = false;
-										$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYARRIVAL', VikBooking::sayMonth($restrcheckin['mon']), VikBooking::sayWeekDay($restrictions[$restrcheckin['mon']]['wday']).(strlen($restrictions[$restrcheckin['mon']]['wdaytwo']) > 0 ? '/'.VikBooking::sayWeekDay($restrictions[$restrcheckin['mon']]['wdaytwo']) : ''));
+										$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYARRIVAL', VikBooking::sayMonth($restrcheckin['mon']), VikBooking::sayWeekDay($restrictions[$restrcheckin['mon']]['wday']) . (strlen($restrictions[$restrcheckin['mon']]['wdaytwo']) > 0 ? '/' . VikBooking::sayWeekDay($restrictions[$restrcheckin['mon']]['wdaytwo']) : ''));
 									} elseif ($restrictions[$restrcheckin['mon']]['multiplyminlos'] == 1) {
 										if (($daysdiff % $restrictions[$restrcheckin['mon']]['minlos']) != 0) {
 											$restrictionsvalid = false;
@@ -218,21 +222,21 @@ class VikbookingViewSearch extends JViewVikBooking {
 										if (array_key_exists($restrcheckin['wday'], $comborestr)) {
 											if (!in_array($restrcheckout['wday'], $comborestr[$restrcheckin['wday']])) {
 												$restrictionsvalid = false;
-												$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYCOMBO', VikBooking::sayMonth($restrcheckin['mon']), VikBooking::sayWeekDay($comborestr[$restrcheckin['wday']][0]).(count($comborestr[$restrcheckin['wday']]) == 2 ? '/'.VikBooking::sayWeekDay($comborestr[$restrcheckin['wday']][1]) : ''), VikBooking::sayWeekDay($restrcheckin['wday']));
+												$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYCOMBO', VikBooking::sayMonth($restrcheckin['mon']), VikBooking::sayWeekDay($comborestr[$restrcheckin['wday']][0]) . (count($comborestr[$restrcheckin['wday']]) == 2 ? '/' . VikBooking::sayWeekDay($comborestr[$restrcheckin['wday']][1]) : ''), VikBooking::sayWeekDay($restrcheckin['wday']));
 											}
 										}
 									}
 								} elseif (!empty($restrictions[$restrcheckin['mon']]['ctad']) || !empty($restrictions[$restrcheckin['mon']]['ctdd'])) {
 									if (!empty($restrictions[$restrcheckin['mon']]['ctad'])) {
 										$ctarestrictions = explode(',', $restrictions[$restrcheckin['mon']]['ctad']);
-										if (in_array('-'.$restrcheckin['wday'].'-', $ctarestrictions)) {
+										if (in_array('-' . $restrcheckin['wday'] . '-', $ctarestrictions)) {
 											$restrictionsvalid = false;
 											$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYCTAMONTH', VikBooking::sayWeekDay($restrcheckin['wday']), VikBooking::sayMonth($restrcheckin['mon']));
 										}
 									}
 									if (!empty($restrictions[$restrcheckin['mon']]['ctdd'])) {
 										$ctdrestrictions = explode(',', $restrictions[$restrcheckin['mon']]['ctdd']);
-										if (in_array('-'.$restrcheckout['wday'].'-', $ctdrestrictions)) {
+										if (in_array('-' . $restrcheckout['wday'] . '-', $ctdrestrictions)) {
 											$restrictionsvalid = false;
 											$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYCTDMONTH', VikBooking::sayWeekDay($restrcheckout['wday']), VikBooking::sayMonth($restrcheckin['mon']));
 										}
@@ -253,7 +257,7 @@ class VikbookingViewSearch extends JViewVikBooking {
 								 * We use this map to know which restriction IDs are okay or not okay with the Min LOS.
 								 * The most recent restrictions will have a higher priority over the oldest ones.
 								 * 
-								 * @since 	1.3.6
+								 * @since 	1.13.5 (J) - 1.3.6 (WP)
 								 */
 								$minlos_priority = array(
 									'ok'  => array(),
@@ -266,21 +270,21 @@ class VikbookingViewSearch extends JViewVikBooking {
 									 * because if they only last for one day (like a Saturday), then $restr['dto']
 									 * will be already set to the time 23:59:59.
 									 * 
-									 * @since 	1.13
+									 * @since 	1.13 (J) - 1.3.0 (WP)
 									 */
 									$end_operator = date('Y-m-d', $restr['dfrom']) != date('Y-m-d', $restr['dto']) ? 82799 : 0;
 									//
-									if ($restr['dfrom'] <= $first && ($restr['dto'] + $end_operator) >= $first) {
-										//restriction found for this date range, checking:
+									if ($restr['dfrom'] <= $restrcheckin[0] && ($restr['dto'] + $end_operator) >= $restrcheckin[0]) {
+										// restriction found for this date range based on arrival date, check if compliant
 										$restrictions_affcount++;
-										if (strlen($restr['wday']) > 0) {
+										if (strlen((string)$restr['wday'])) {
 											$rvalidwdays = array($restr['wday']);
-											if (strlen($restr['wdaytwo']) > 0) {
+											if (strlen((string)$restr['wdaytwo'])) {
 												$rvalidwdays[] = $restr['wdaytwo'];
 											}
 											if (!in_array($restrcheckin['wday'], $rvalidwdays)) {
 												$restrictionsvalid = false;
-												$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYARRIVALRANGE', VikBooking::sayWeekDay($restr['wday']).(strlen($restr['wdaytwo']) > 0 ? '/'.VikBooking::sayWeekDay($restr['wdaytwo']) : ''));
+												$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYARRIVALRANGE', VikBooking::sayWeekDay($restr['wday']) . (strlen((string)$restr['wdaytwo']) ? '/' . VikBooking::sayWeekDay($restr['wdaytwo']) : ''));
 											} elseif ($restr['multiplyminlos'] == 1) {
 												if (($daysdiff % $restr['minlos']) != 0) {
 													$restrictionsvalid = false;
@@ -288,25 +292,25 @@ class VikbookingViewSearch extends JViewVikBooking {
 												}
 											}
 											$comborestr = VikBooking::parseJsDrangeWdayCombo($restr);
-											if (count($comborestr) > 0) {
+											if ($comborestr) {
 												if (array_key_exists($restrcheckin['wday'], $comborestr)) {
 													if (!in_array($restrcheckout['wday'], $comborestr[$restrcheckin['wday']])) {
 														$restrictionsvalid = false;
-														$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYCOMBORANGE', VikBooking::sayWeekDay($comborestr[$restrcheckin['wday']][0]).(count($comborestr[$restrcheckin['wday']]) == 2 ? '/'.VikBooking::sayWeekDay($comborestr[$restrcheckin['wday']][1]) : ''), VikBooking::sayWeekDay($restrcheckin['wday']));
+														$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYCOMBORANGE', VikBooking::sayWeekDay($comborestr[$restrcheckin['wday']][0]) . (count($comborestr[$restrcheckin['wday']]) == 2 ? '/' . VikBooking::sayWeekDay($comborestr[$restrcheckin['wday']][1]) : ''), VikBooking::sayWeekDay($restrcheckin['wday']));
 													}
 												}
 											}
 										} elseif (!empty($restr['ctad']) || !empty($restr['ctdd'])) {
 											if (!empty($restr['ctad'])) {
 												$ctarestrictions = explode(',', $restr['ctad']);
-												if (in_array('-'.$restrcheckin['wday'].'-', $ctarestrictions)) {
+												if (in_array('-' . $restrcheckin['wday'] . '-', $ctarestrictions)) {
 													$restrictionsvalid = false;
 													$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYCTARANGE', VikBooking::sayWeekDay($restrcheckin['wday']));
 												}
 											}
 											if (!empty($restr['ctdd'])) {
 												$ctdrestrictions = explode(',', $restr['ctdd']);
-												if (in_array('-'.$restrcheckout['wday'].'-', $ctdrestrictions)) {
+												if (in_array('-' . $restrcheckout['wday'] . '-', $ctdrestrictions) && $restrcheckout[0] <= ($restr['dto'] + $end_operator)) {
 													$restrictionsvalid = false;
 													$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYCTDRANGE', VikBooking::sayWeekDay($restrcheckout['wday']));
 												}
@@ -325,12 +329,24 @@ class VikbookingViewSearch extends JViewVikBooking {
 										} else {
 											array_push($minlos_priority['ok'], (int)$restr['id']);
 										}
+									} elseif ($restr['dfrom'] <= $restrcheckout[0] && ($restr['dto'] + $end_operator) >= $restrcheckout[0] && !empty($restr['ctdd'])) {
+										/**
+										 * We validate the CTD restrictions depending on the check-out date.
+										 * 
+										 * @since 	1.16.3 (J) - 1.6.3 (WP)
+										 */
+										$ctdrestrictions = explode(',', $restr['ctdd']);
+										if (in_array('-' . $restrcheckout['wday'] . '-', $ctdrestrictions)) {
+											$restrictions_affcount++;
+											$restrictionsvalid = false;
+											$restrictionerrmsg = JText::sprintf('VBRESTRERRWDAYCTDRANGE', VikBooking::sayWeekDay($restrcheckout['wday']));
+										}
 									}
 								}
 								/**
 								 * We give priority to more recent restrictions to override MinLOS.
 								 * 
-								 * @since 	1.3.6
+								 * @since 	1.13.5 (J) - 1.3.6 (WP)
 								 */
 								if (!$restrictionsvalid && count($minlos_priority['ok']) && count($minlos_priority['nok']) && max($minlos_priority['ok']) > max($minlos_priority['nok'])) {
 									// we unset the error message and we reset the validity because a more recent restriction is allowing this MinLOS
@@ -391,12 +407,10 @@ class VikbookingViewSearch extends JViewVikBooking {
 						//
 						if ($restrictionsvalid === true) {
 							$hoursdiff = VikBooking::countHoursToArrival($first);
-							$dbo = JFactory::getDBO();
-							$q = "SELECT `p`.*,`r`.`id` AS `r_reference_id`,`r`.`name`,`r`.`img`,`r`.`idcat`,`r`.`idcarat`,`r`.`units`,`r`.`moreimgs`,`r`.`fromadult`,`r`.`toadult`,`r`.`fromchild`,`r`.`tochild`,`r`.`smalldesc`,`r`.`totpeople`,`r`.`params`,`r`.`imgcaptions`,`rp`.`name` AS `rpname`,`rp`.`minlos`,`rp`.`minhadv` FROM `#__vikbooking_dispcost` AS `p`, `#__vikbooking_rooms` AS `r`, `#__vikbooking_prices` AS `rp` WHERE `p`.`days`=".(int)$daysdiff." AND `p`.`idroom`=`r`.`id` AND `p`.`idprice`=`rp`.`id` AND `r`.`avail`='1' AND (".implode(" OR ", $arradultsclause).") ORDER BY `p`.`cost` ASC, `p`.`idprice` DESC, `p`.`idroom` ASC;";
+							$q = "SELECT `p`.*,`r`.`id` AS `r_reference_id`,`r`.`name`,`r`.`img`,`r`.`idcat`,`r`.`idcarat`,`r`.`units`,`r`.`moreimgs`,`r`.`fromadult`,`r`.`toadult`,`r`.`fromchild`,`r`.`tochild`,`r`.`smalldesc`,`r`.`totpeople`,`r`.`params`,`r`.`imgcaptions`,`rp`.`name` AS `rpname`,`rp`.`minlos`,`rp`.`minhadv` FROM `#__vikbooking_dispcost` AS `p`, `#__vikbooking_rooms` AS `r`, `#__vikbooking_prices` AS `rp` WHERE `p`.`days`=" . (int)$daysdiff . " AND `p`.`idroom`=`r`.`id` AND `p`.`idprice`=`rp`.`id` AND `r`.`avail`='1' AND (" . implode(" OR ", $arradultsclause) . ") ORDER BY `p`.`cost` ASC, `p`.`idprice` DESC, `p`.`idroom` ASC;";
 							$dbo->setQuery($q);
-							$dbo->execute();
-							if ($dbo->getNumRows() > 0) {
-								$tars = $dbo->loadAssocList();
+							$tars = $dbo->loadAssocList();
+							if ($tars) {
 								$vbo_tn->translateContents($tars, '#__vikbooking_rooms', array('id' => 'r_reference_id'));
 								$arrtar = array();
 								foreach ($tars as $tar) {
@@ -472,9 +486,9 @@ class VikbookingViewSearch extends JViewVikBooking {
 										}
 									}
 									$arrtar[$kk][0]['unitsavail'] = $tt[0]['units'];
-									if (count($allbusy) > 0 && array_key_exists($kk, $allbusy) && count($allbusy[$kk]) > 0) {
-										$units_booked = array();
-										$check_locked = (bool)(count($all_locked) > 0 && array_key_exists($kk, $all_locked) && count($all_locked[$kk]) > 0);
+									if ($allbusy && isset($allbusy[$kk]) && $allbusy[$kk]) {
+										$units_booked = [];
+										$check_locked = (bool)($all_locked && isset($all_locked[$kk]) && $all_locked[$kk]);
 										foreach ($groupdays as $gday) {
 											$bfound = 0;
 											foreach ($allbusy[$kk] as $bu) {
@@ -500,20 +514,42 @@ class VikbookingViewSearch extends JViewVikBooking {
 													if ($bfound >= $tt[0]['units']) {
 														unset($arrtar[$kk]);
 														break;
+													} else {
+														// push peak to properly calculate the units left by considering the locked records
+														$units_booked[] = $bfound;
 													}
 												}
 											}
 										}
-										if (isset($arrtar[$kk]) && count($units_booked) > 0) {
+										if (isset($arrtar[$kk]) && $units_booked) {
 											$tot_u_booked = max($units_booked);
 											$tot_u_left = ($tt[0]['units'] - $tot_u_booked);
 											$arrtar[$kk][0]['unitsavail'] = $tot_u_left >= 0 ? $tot_u_left : 0;
 										}
 									} elseif (!VikBooking::roomNotLocked($kk, $tt[0]['units'], $first, $second)) {
+										// room is fully locked
 										unset($arrtar[$kk]);
+									} elseif ($all_locked && isset($all_locked[$kk]) && $all_locked[$kk]) {
+										// update number of units left by counting the units temporary locked
+										$units_booked = [];
+										foreach ($groupdays as $gday) {
+											$bfound = 0;
+											foreach ($all_locked[$kk] as $bu) {
+												if ($gday >= $bu['checkin'] && $gday <= $bu['realback']) {
+													$bfound++;
+												}
+											}
+											// push peak to properly calculate the units left
+											$units_booked[] = $bfound;
+										}
+										if (isset($arrtar[$kk]) && $units_booked) {
+											$tot_u_booked = max($units_booked);
+											$tot_u_left = ($tt[0]['units'] - $tot_u_booked);
+											$arrtar[$kk][0]['unitsavail'] = $tot_u_left >= 0 ? $tot_u_left : 0;
+										}
 									}
-									//single room restrictions
-									if (count($allrestrictions) > 0 && array_key_exists($kk, $arrtar)) {
+									// single room restrictions
+									if (isset($arrtar[$kk]) && $allrestrictions) {
 										$roomrestr = VikBooking::roomRestrictions($kk, $allrestrictions);
 										if (count($roomrestr) > 0) {
 											$restrictionerrmsg = VikBooking::validateRoomRestriction($roomrestr, $restrcheckin, $restrcheckout, $daysdiff);
@@ -537,12 +573,24 @@ class VikbookingViewSearch extends JViewVikBooking {
 										}
 									}
 									//end single room restrictions
+
+									/**
+									 * Room-level maximum advance booking notice validation.
+									 * 
+									 * @since 	1.16.3 (J) - 1.6.3 (WP)
+									 */
+									$err_maxdatefuture_room = VikBooking::validateMaxDateBookings($first, $kk);
+									if (!empty($err_maxdatefuture_room)) {
+										// unset non-compliant room and register last error
+										unset($arrtar[$kk]);
+										$restrictionerrmsg = JText::sprintf('VBOERRMAXDATEBOOKINGS', $err_maxdatefuture_room);
+									}
 								}
-								if (@count($arrtar) > 0) {
+								if (is_array($arrtar) && $arrtar) {
 									/**
 									 * Despite of the higher resources needed, we parse all rate plans for all rooms.
 									 * 
-									 * @since 	1.3.0
+									 * @since 	1.13 (J) - 1.3.0 (WP)
 									 */
 									$arrtar = VikBooking::applySeasonalPrices($arrtar, $first, $second);
 									$multi_rates = 1;
@@ -560,7 +608,7 @@ class VikbookingViewSearch extends JViewVikBooking {
 													}
 												}
 											}
-											if (!count($deeper_rates) > 0) {
+											if (!$deeper_rates) {
 												continue;
 											}
 											$deeper_rates = VikBooking::applySeasonalPrices($deeper_rates, $first, $second);
@@ -654,13 +702,13 @@ class VikbookingViewSearch extends JViewVikBooking {
 																	//fixed value
 																	$arrtar[$kk][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
 																	$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $arrtar[$kk][$kpr]['days'] : $diffusageprice['value'];
-																	$arrtar[$kk][$kpr]['diffusagecost'] = "+".$aduseval;
+																	$arrtar[$kk][$kpr]['diffusagecost'] = "+" . $aduseval;
 																	$arrtar[$kk][$kpr]['cost'] = $vpr['cost'] + $aduseval;
 																} else {
 																	//percentage value
 																	$arrtar[$kk][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
 																	$aduseval = $diffusageprice['pernight'] == 1 ? round(($vpr['cost'] * $diffusageprice['value'] / 100) * $arrtar[$kk][$kpr]['days'] + $vpr['cost'], 2) : round(($vpr['cost'] * (100 + $diffusageprice['value']) / 100), 2);
-																	$arrtar[$kk][$kpr]['diffusagecost'] = "+".$diffusageprice['value']."%";
+																	$arrtar[$kk][$kpr]['diffusagecost'] = "+" . $diffusageprice['value'] . "%";
 																	$arrtar[$kk][$kpr]['cost'] = $aduseval;
 																}
 															} else {
@@ -669,13 +717,13 @@ class VikbookingViewSearch extends JViewVikBooking {
 																	//fixed value
 																	$arrtar[$kk][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
 																	$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $arrtar[$kk][$kpr]['days'] : $diffusageprice['value'];
-																	$arrtar[$kk][$kpr]['diffusagecost'] = "-".$aduseval;
+																	$arrtar[$kk][$kpr]['diffusagecost'] = "-" . $aduseval;
 																	$arrtar[$kk][$kpr]['cost'] = $vpr['cost'] - $aduseval;
 																} else {
 																	//percentage value
 																	$arrtar[$kk][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
 																	$aduseval = $diffusageprice['pernight'] == 1 ? round($vpr['cost'] - ((($vpr['cost'] / $arrtar[$kk][$kpr]['days']) * $diffusageprice['value'] / 100) * $arrtar[$kk][$kpr]['days']), 2) : round(($vpr['cost'] * (100 - $diffusageprice['value']) / 100), 2);
-																	$arrtar[$kk][$kpr]['diffusagecost'] = "-".$diffusageprice['value']."%";
+																	$arrtar[$kk][$kpr]['diffusagecost'] = "-" . $diffusageprice['value'] . "%";
 																	$arrtar[$kk][$kpr]['cost'] = $aduseval;
 																}
 															}
@@ -689,7 +737,7 @@ class VikbookingViewSearch extends JViewVikBooking {
 													}
 													$multiroomcount[$arrtar[$kk][0]['idroom']]['count'] += 1;
 													$multiroomcount[$arrtar[$kk][0]['idroom']]['unitsavail'] = (int)$arrtar[$kk][0]['unitsavail'];
-													$multiroomcount[$arrtar[$kk][0]['idroom']]['diffusage_r'.$numroom] = 0;
+													$multiroomcount[$arrtar[$kk][0]['idroom']]['diffusage_r' . $numroom] = 0;
 												} elseif (($tt[0]['fromadult'] <= $aduchild['adults'] || $booking_suggestion) && $tt[0]['toadult'] > $aduchild['adults']) {
 													//different usage
 													$diffusageprice = VikBooking::loadAdultsDiff($kk, $aduchild['adults']);
@@ -708,13 +756,13 @@ class VikbookingViewSearch extends JViewVikBooking {
 																	//fixed value
 																	$arrtar[$kk][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
 																	$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $arrtar[$kk][$kpr]['days'] : $diffusageprice['value'];
-																	$arrtar[$kk][$kpr]['diffusagecost'] = "+".$aduseval;
+																	$arrtar[$kk][$kpr]['diffusagecost'] = "+" . $aduseval;
 																	$arrtar[$kk][$kpr]['cost'] = $vpr['cost'] + $aduseval;
 																} else {
 																	//percentage value
 																	$arrtar[$kk][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
 																	$aduseval = $diffusageprice['pernight'] == 1 ? round(($vpr['cost'] * $diffusageprice['value'] / 100) * $arrtar[$kk][$kpr]['days'] + $vpr['cost'], 2) : round(($vpr['cost'] * (100 + $diffusageprice['value']) / 100), 2);
-																	$arrtar[$kk][$kpr]['diffusagecost'] = "+".$diffusageprice['value']."%";
+																	$arrtar[$kk][$kpr]['diffusagecost'] = "+" . $diffusageprice['value'] . "%";
 																	$arrtar[$kk][$kpr]['cost'] = $aduseval;
 																}
 															} else {
@@ -723,13 +771,13 @@ class VikbookingViewSearch extends JViewVikBooking {
 																	//fixed value
 																	$arrtar[$kk][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
 																	$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $arrtar[$kk][$kpr]['days'] : $diffusageprice['value'];
-																	$arrtar[$kk][$kpr]['diffusagecost'] = "-".$aduseval;
+																	$arrtar[$kk][$kpr]['diffusagecost'] = "-" . $aduseval;
 																	$arrtar[$kk][$kpr]['cost'] = $vpr['cost'] - $aduseval;
 																} else {
 																	//percentage value
 																	$arrtar[$kk][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
 																	$aduseval = $diffusageprice['pernight'] == 1 ? round($vpr['cost'] - ((($vpr['cost'] / $arrtar[$kk][$kpr]['days']) * $diffusageprice['value'] / 100) * $arrtar[$kk][$kpr]['days']), 2) : round(($vpr['cost'] * (100 - $diffusageprice['value']) / 100), 2);
-																	$arrtar[$kk][$kpr]['diffusagecost'] = "-".$diffusageprice['value']."%";
+																	$arrtar[$kk][$kpr]['diffusagecost'] = "-" . $diffusageprice['value'] . "%";
 																	$arrtar[$kk][$kpr]['cost'] = $aduseval;
 																}
 															}
@@ -743,7 +791,7 @@ class VikbookingViewSearch extends JViewVikBooking {
 													}
 													$multiroomcount[$arrtar[$kk][0]['idroom']]['count'] += 1;
 													$multiroomcount[$arrtar[$kk][0]['idroom']]['unitsavail'] = (int)$arrtar[$kk][0]['unitsavail'];
-													$multiroomcount[$arrtar[$kk][0]['idroom']]['diffusage_r'.$numroom] = 1;
+													$multiroomcount[$arrtar[$kk][0]['idroom']]['diffusage_r' . $numroom] = 1;
 												}
 											}
 										}
@@ -751,7 +799,7 @@ class VikbookingViewSearch extends JViewVikBooking {
 										if (count($diffusage) > 0) {
 											foreach ($diffusage as $nr => $du) {
 												foreach ($du as $duroom) {
-													$results[$nr][]=$duroom;
+													$results[$nr][] = $duroom;
 												}
 											}
 										}
@@ -880,7 +928,7 @@ class VikbookingViewSearch extends JViewVikBooking {
 													 * for some room parties when there should be actually no availability for booking multiple times.
 													 * This room in excess may be removed only for the parties with different usage, and this is incorrect.
 													 */
-													if (true || (array_key_exists('diffusage_r'.$z, $info) && $info['diffusage_r'.$z] == 1)) {
+													if (true || (array_key_exists('diffusage_r' . $z, $info) && $info['diffusage_r' . $z] == 1)) {
 														//remove repeated room where diffusage and excessnum still exceeds
 														if ($excessnum > 0 && count($js_overcounter) == 0) {
 															foreach ($results[$z] as $kres => $res) {
@@ -938,7 +986,7 @@ class VikbookingViewSearch extends JViewVikBooking {
 																//check if the second, third.. cheapest room(s) is compatible
 																if ($rr[0]['fromadult'] <= $arrpeople[$nroom]['adults'] && $rr[0]['toadult'] >= $arrpeople[$nroom]['adults'] && $rr[0]['fromchild'] <= $arrpeople[$nroom]['children'] && $rr[0]['tochild'] >= $arrpeople[$nroom]['children']) {
 																	$results[$nroom][] = $results[$oknroom][$kr];
-																	$moved[] = $oknroom.'_'.$nroom;
+																	$moved[] = $oknroom . '_' . $nroom;
 																	unset($results[$oknroom][$kr]);
 																	unset($critic[$kcr]);
 																	break 2;
@@ -1021,13 +1069,13 @@ class VikbookingViewSearch extends JViewVikBooking {
 																		//fixed value
 																		$results[$movedata[1]][0][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
 																		$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $results[$movedata[1]][0][$kpr]['days'] : $diffusageprice['value'];
-																		$results[$movedata[1]][0][$kpr]['diffusagecost'] = "+".$aduseval;
+																		$results[$movedata[1]][0][$kpr]['diffusagecost'] = "+" . $aduseval;
 																		$results[$movedata[1]][0][$kpr]['cost'] = $vpr['cost'] + $aduseval;
 																	} else {
 																		//percentage value
 																		$results[$movedata[1]][0][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
 																		$aduseval = $diffusageprice['pernight'] == 1 ? round(($vpr['cost'] * $diffusageprice['value'] / 100) * $results[$movedata[1]][0][$kpr]['days'] + $vpr['cost'], 2) : round(($vpr['cost'] * (100 + $diffusageprice['value']) / 100), 2);
-																		$results[$movedata[1]][0][$kpr]['diffusagecost'] = "+".$diffusageprice['value']."%";
+																		$results[$movedata[1]][0][$kpr]['diffusagecost'] = "+" . $diffusageprice['value'] . "%";
 																		$results[$movedata[1]][0][$kpr]['cost'] = $aduseval;
 																	}
 																} else {
@@ -1036,13 +1084,13 @@ class VikbookingViewSearch extends JViewVikBooking {
 																		//fixed value
 																		$results[$movedata[1]][0][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
 																		$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $results[$movedata[1]][0][$kpr]['days'] : $diffusageprice['value'];
-																		$results[$movedata[1]][0][$kpr]['diffusagecost'] = "-".$aduseval;
+																		$results[$movedata[1]][0][$kpr]['diffusagecost'] = "-" . $aduseval;
 																		$results[$movedata[1]][0][$kpr]['cost'] = $vpr['cost'] - $aduseval;
 																	} else {
 																		//percentage value
 																		$results[$movedata[1]][0][$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
 																		$aduseval = $diffusageprice['pernight'] == 1 ? round($vpr['cost'] - ((($vpr['cost'] / $results[$movedata[1]][0][$kpr]['days']) * $diffusageprice['value'] / 100) * $results[$movedata[1]][0][$kpr]['days']), 2) : round(($vpr['cost'] * (100 - $diffusageprice['value']) / 100), 2);
-																		$results[$movedata[1]][0][$kpr]['diffusagecost'] = "-".$diffusageprice['value']."%";
+																		$results[$movedata[1]][0][$kpr]['diffusagecost'] = "-" . $diffusageprice['value'] . "%";
 																		$results[$movedata[1]][0][$kpr]['cost'] = $aduseval;
 																	}
 																}
@@ -1092,8 +1140,8 @@ class VikbookingViewSearch extends JViewVikBooking {
 											$totroomres = count($res);
 											foreach ($res as $kr => $rr) {
 												if ($oknroom > 1) {
-													$ppricefrom = VikRequest::getInt('r'.$oknroom.'pricefrom', '', 'request');
-													$ppriceto = VikRequest::getInt('r'.$oknroom.'priceto', '', 'request');
+													$ppricefrom = VikRequest::getInt('r' . $oknroom . 'pricefrom', '', 'request');
+													$ppriceto = VikRequest::getInt('r' . $oknroom . 'priceto', '', 'request');
 												}
 												if (!empty($ppricefrom) && !empty($ppriceto)) {
 													if ($rr[0]['cost'] < $ppricefrom || $rr[0]['cost'] > $ppriceto) {
@@ -1161,16 +1209,15 @@ class VikbookingViewSearch extends JViewVikBooking {
 											if (!empty($pitemid)) {
 												$url_query_args['Itemid'] = $pitemid;
 											}
-											
+
 											$mainframe->redirect(JRoute::rewrite('index.php?' . http_build_query($url_query_args), false));
 											exit;
 										} else {
 											if (!empty($proomdetail) && $proomsnum == 1) {
-												$q = "SELECT `id`,`name` FROM `#__vikbooking_rooms` WHERE `id`=".intval($proomdetail).";";
+												$q = "SELECT `id`,`name` FROM `#__vikbooking_rooms` WHERE `id`=" . intval($proomdetail) . ";";
 												$dbo->setQuery($q);
-												$dbo->execute();
-												if ($dbo->getNumRows() > 0) {
-													$cdet = $dbo->loadAssocList();
+												$cdet = $dbo->loadAssocList();
+												if ($cdet) {
 													$vbo_tn->translateContents($cdet, '#__vikbooking_rooms');
 													$msg = JText::sprintf('VBDETAILCNOTAVAIL', $cdet[0]['name'], $daysdiff);
 													VikError::raiseWarning('', $msg);
@@ -1197,26 +1244,25 @@ class VikbookingViewSearch extends JViewVikBooking {
 												if ($room_missing === false) {
 													$aduchild_str = '';
 													foreach ($arrpeople as $people) {
-														$aduchild_str .= '&adults[]='.$people['adults'].'&children[]='.$people['children'];
+														$aduchild_str .= '&adults[]=' . $people['adults'] . '&children[]=' . $people['children'];
 													}
 													$roomopt_str = '';
-													for ($ri = 0; $ri < $proomsnum; $ri++) { 
-														$roomopt_str .= '&roomopt[]='.$proomdetail;
+													for ($ri = 0; $ri < $proomsnum; $ri++) {
+														$roomopt_str .= '&roomopt[]=' . $proomdetail;
 													}
 													// store in the session that we are coming from the room details page
 													$session->set('vboSearchRoomId', $proomdetail);
 													//
-													$mainframe->redirect(JRoute::rewrite("index.php?option=com_vikbooking&task=showprc&roomsnum=".$proomsnum.$roomopt_str.$aduchild_str."&days=".$daysdiff."&checkin=".$first."&checkout=".$second.(!empty($ppkg_id) ? "&pkg_id=" . $ppkg_id : "").(!empty($pitemid) ? "&Itemid=" . $pitemid : ""), false));
+													$mainframe->redirect(JRoute::rewrite("index.php?option=com_vikbooking&task=showprc&roomsnum=" . $proomsnum . $roomopt_str . $aduchild_str . "&days=" . $daysdiff . "&checkin=" . $first . "&checkout=" . $second . (!empty($ppkg_id) ? "&pkg_id=" . $ppkg_id : "") . (!empty($pitemid) ? "&Itemid=" . $pitemid : ""), false));
 													// VBO 1.11 - push data to tracker and close
 													VikBooking::getTracker()->pushRooms(array_fill(0, $proomsnum, $proomdetail))->closeTrack();
 													//
 													exit;
 												} else {
-													$q = "SELECT `id`,`name` FROM `#__vikbooking_rooms` WHERE `id`=".intval($proomdetail).";";
+													$q = "SELECT `id`,`name` FROM `#__vikbooking_rooms` WHERE `id`=" . intval($proomdetail) . ";";
 													$dbo->setQuery($q);
-													$dbo->execute();
-													if ($dbo->getNumRows() > 0) {
-														$cdet = $dbo->loadAssocList();
+													$cdet = $dbo->loadAssocList();
+													if ($cdet) {
 														$vbo_tn->translateContents($cdet, '#__vikbooking_rooms');
 														$msg = JText::sprintf('VBDETAILMULTIRNOTAVAIL', $proomsnum, $cdet[0]['name'], $daysdiff);
 														VikError::raiseWarning('', $msg);
@@ -1226,23 +1272,23 @@ class VikbookingViewSearch extends JViewVikBooking {
 													}
 												}
 											}
-											$this->res = &$results;
-											$this->days = &$daysdiff;
-											$this->checkin = &$first;
-											$this->checkout = &$second;
-											$this->roomsnum = &$proomsnum;
-											$this->arrpeople = &$arrpeople;
+											$this->res = $results;
+											$this->days = $daysdiff;
+											$this->checkin = $first;
+											$this->checkout = $second;
+											$this->roomsnum = $proomsnum;
+											$this->arrpeople = $arrpeople;
 											$showchildren = $showchildren ? 1 : 0;
-											$this->showchildren = &$showchildren;
-											$this->js_overcounter = &$js_overcounter;
-											$this->mod_booking = &$mod_booking;
-											$this->vbo_tn = &$vbo_tn;
+											$this->showchildren = $showchildren;
+											$this->js_overcounter = $js_overcounter;
+											$this->mod_booking = $mod_booking;
+											$this->vbo_tn = $vbo_tn;
 											//theme
 											$theme = VikBooking::getTheme();
 											if ($theme != 'default') {
-												$thdir = VBO_SITE_PATH.DS.'themes'.DS.$theme.DS.'search';
+												$thdir = VBO_SITE_PATH . DS . 'themes' . DS . $theme . DS . 'search';
 												if (is_dir($thdir)) {
-													$this->_setPath('template', $thdir.DS);
+													$this->_setPath('template', $thdir . DS);
 												}
 											}
 											//
@@ -1263,7 +1309,7 @@ class VikbookingViewSearch extends JViewVikBooking {
 										$errmess = array();
 										if (isset($critic) && count($critic) > 0) {
 											foreach ($critic as $nroom) {
-												$errmess[] = $arrpeople[$nroom]['adults']." ".($arrpeople[$nroom]['adults'] == 1 ? JText::translate('VBSEARCHRESADULT') : JText::translate('VBSEARCHRESADULTS')).($arrpeople[$nroom]['children'] > 0 ? ", ".$arrpeople[$nroom]['children']." ".($arrpeople[$nroom]['children'] == 1 ? JText::translate('VBSEARCHRESCHILD') : JText::translate('VBSEARCHRESCHILDREN')) : "");
+												$errmess[] = $arrpeople[$nroom]['adults'] . " " . ($arrpeople[$nroom]['adults'] == 1 ? JText::translate('VBSEARCHRESADULT') : JText::translate('VBSEARCHRESADULTS')) . ($arrpeople[$nroom]['children'] > 0 ? ", " . $arrpeople[$nroom]['children'] . " " . ($arrpeople[$nroom]['children'] == 1 ? JText::translate('VBSEARCHRESCHILD') : JText::translate('VBSEARCHRESCHILDREN')) : "");
 											}
 											$errmess = array_unique($errmess);
 										} else {
@@ -1302,9 +1348,9 @@ class VikbookingViewSearch extends JViewVikBooking {
 							} else {
 								$sayerr = JText::translate('VBNOROOMAVFOR') . " " . $daysdiff . " " . ($daysdiff > 1 ? JText::translate('VBDAYS') : JText::translate('VBDAY'));
 								if (count($padults) == 1) {
-									$sayerr .= ", ".$arrpeople[1]['adults']." ".($arrpeople[1]['adults'] > 1 ? JText::translate('VBSEARCHRESADULTS') : JText::translate('VBSEARCHRESADULT'));
+									$sayerr .= ", " . $arrpeople[1]['adults'] . " " . ($arrpeople[1]['adults'] > 1 ? JText::translate('VBSEARCHRESADULTS') : JText::translate('VBSEARCHRESADULT'));
 									if ($arrpeople[1]['children'] > 0) {
-										$sayerr .= ", ".$arrpeople[1]['children']." ".($arrpeople[1]['children'] > 1 ? JText::translate('VBSEARCHRESCHILDREN') : JText::translate('VBSEARCHRESCHILD'));
+										$sayerr .= ", " . $arrpeople[1]['children'] . " " . ($arrpeople[1]['children'] > 1 ? JText::translate('VBSEARCHRESCHILDREN') : JText::translate('VBSEARCHRESCHILD'));
 									}
 								}
 								$err_code_info = array(
@@ -1346,16 +1392,20 @@ class VikbookingViewSearch extends JViewVikBooking {
 		}
 	}
 
-	protected function setVboError($err, $err_code_info = array()) {
+	protected function setVboError($err, $err_code_info = [])
+	{
+		$app = JFactory::getApplication();
+
 		$ppkg_id = VikRequest::getInt('pkg_id', '', 'request');
 		$pitemid = VikRequest::getInt('Itemid', '', 'request');
-		$mainframe = JFactory::getApplication();
+
 		if (!empty($ppkg_id)) {
 			if (!empty($err)) {
 				VikError::raiseWarning('', $err);
 			}
-			$mainframe->redirect(JRoute::rewrite("index.php?option=com_vikbooking&view=packagedetails&pkgid=".$ppkg_id.(!empty($pitemid) ? "&Itemid=".$pitemid : ""), false));
-			exit;
+
+			$app->redirect(JRoute::rewrite("index.php?option=com_vikbooking&view=packagedetails&pkgid=" . $ppkg_id . (!empty($pitemid) ? "&Itemid=" . $pitemid : ""), false));
+			$app->close();
 		} else {
 			showSelectVb($err, $err_code_info);
 		}

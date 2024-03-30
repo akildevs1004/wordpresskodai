@@ -40,37 +40,79 @@ $pitemid = VikRequest::getString('Itemid', '', 'request');
 </form>
 
 <?php
-
-if (is_array($userorders) && count($userorders) > 0) {
+if ($userorders) {
 	?>
-<div class="table-responsive vbo-bookings-list-container">
-	<table class="table vborderslisttable">
-		<thead>
-			<tr><td class="vborderslisttdhead vborderslisttdhead-first">&nbsp;</td><td class="vborderslisttdhead"><?php echo JText::translate('VBCONFIRMNUMB'); ?></td><td class="vborderslisttdhead"><?php echo JText::translate('VBBOOKINGDATE'); ?></td><td class="vborderslisttdhead"><?php echo JText::translate('VBPICKUP'); ?></td><td class="vborderslisttdhead"><?php echo JText::translate('VBRETURN'); ?></td><td class="vborderslisttdhead"><?php echo JText::translate('VBDAYS'); ?></td></tr>
-		</thead>
-		<tbody>
+<div class="vbo-bookings-list-container">
+	<div class="vbo-bookings-list-table">
+		<div class="vbo-bookings-list-table-head">
+			<div class="vbo-bookings-list-table-row vbo-bookings-list-table-head-row">
+				<div class="vbo-bookings-list-table-cell">
+					&nbsp;
+				</div>
+				<div class="vbo-bookings-list-table-cell">
+					<span><?php echo JText::translate('VBCONFIRMNUMB'); ?></span>
+				</div>
+				<div class="vbo-bookings-list-table-cell">
+					<span><?php echo JText::translate('VBBOOKINGDATE'); ?></span>
+				</div>
+				<div class="vbo-bookings-list-table-cell">
+					<span><?php echo JText::translate('VBPICKUP'); ?></span>
+				</div>
+				<div class="vbo-bookings-list-table-cell">
+					<span><?php echo JText::translate('VBRETURN'); ?></span>
+				</div>
+				<div class="vbo-bookings-list-table-cell">
+					<span><?php echo JText::translate('VBDAYS'); ?></span>
+				</div>
+			</div>
+		</div>
+		<div class="vbo-bookings-list-table-body">
 	<?php
 	foreach ($userorders as $ord) {
-		$bstatus = 'confirmed';
+		$status_icn = VikBookingIcons::i('check-circle');
 		if ($ord['status'] == 'standby') {
-			$bstatus = 'standby';
-		} elseif ($ord['status'] != 'confirmed') {
-			$bstatus = 'cancelled';
+			$status_icn = VikBookingIcons::i('exclamation-circle');
+		} elseif ($ord['status'] == 'cancelled') {
+			$status_icn = VikBookingIcons::i('times-circle');
 		}
 		?>
-		<tr><td class="vborder-status-cell vborder-status-cell-<?php echo $bstatus; ?>"></td><td><a href="<?php echo JRoute::rewrite('index.php?option=com_vikbooking&view=booking&sid='.(!empty($ord['sid']) ? $ord['sid'] : $ord['idorderota']).'&ts='.$ord['ts'].(!empty($pitemid) ? '&Itemid='.$pitemid : '')); ?>"><?php echo (!empty($ord['confirmnumber']) ? $ord['confirmnumber'] : ($ord['status'] == 'standby' ? JText::translate('VBINATTESA') : '--------')); ?></a></td><td><?php echo date(str_replace("/", $datesep, $df).' H:i', $ord['ts']); ?></td><td><?php echo date(str_replace("/", $datesep, $df), $ord['checkin']); ?></td><td><?php echo date(str_replace("/", $datesep, $df), $ord['checkout']); ?></td><td><?php echo $ord['days']; ?></td></tr>
+		<div class="vbo-bookings-list-table-row vbo-bookings-list-table-body-row vbo-bookings-list-table-body-row-<?php echo $ord['status']; ?>">
+			<div class="vbo-bookings-list-table-cell vbo-bookings-list-table-cell-bstatus">
+				<span><i class="<?php echo $status_icn; ?>"></i></span>
+			</div>
+			<div class="vbo-bookings-list-table-cell">
+				<span class="vbo-bookings-list-table-cell-lbl"><?php echo JText::translate('VBCONFIRMNUMB'); ?></span>
+				<span><a href="<?php echo JRoute::rewrite('index.php?option=com_vikbooking&view=booking&sid='.(!empty($ord['sid']) ? $ord['sid'] : $ord['idorderota']).'&ts='.$ord['ts'].(!empty($pitemid) ? '&Itemid='.$pitemid : '')); ?>"><?php echo (!empty($ord['confirmnumber']) ? $ord['confirmnumber'] : ($ord['status'] == 'standby' ? JText::translate('VBINATTESA') : '--------')); ?></a></span>
+			</div>
+			<div class="vbo-bookings-list-table-cell">
+				<span class="vbo-bookings-list-table-cell-lbl"><?php echo JText::translate('VBBOOKINGDATE'); ?></span>
+				<span><?php echo date(str_replace("/", $datesep, $df).' H:i', $ord['ts']); ?></span>
+			</div>
+			<div class="vbo-bookings-list-table-cell">
+				<span class="vbo-bookings-list-table-cell-lbl"><?php echo JText::translate('VBPICKUP'); ?></span>
+				<span><?php echo date(str_replace("/", $datesep, $df), $ord['checkin']); ?></span>
+			</div>
+			<div class="vbo-bookings-list-table-cell">
+				<span class="vbo-bookings-list-table-cell-lbl"><?php echo JText::translate('VBRETURN'); ?></span>
+				<span><?php echo date(str_replace("/", $datesep, $df), $ord['checkout']); ?></span>
+			</div>
+			<div class="vbo-bookings-list-table-cell">
+				<span class="vbo-bookings-list-table-cell-lbl"><?php echo JText::translate('VBDAYS'); ?></span>
+				<span><?php echo $ord['days']; ?></span>
+			</div>
+		</div>
 		<?php
 	}
 	?>
-		</tbody>
-	</table>
+		</div>
+	</div>
 </div>
 	<?php
 }
 
-//pagination
+// pagination
 if (strlen($navig) > 0) {
 	?>
-	<div class="pagination"><?php echo $navig; ?></div>
+<div class="pagination"><?php echo $navig; ?></div>
 	<?php
 }

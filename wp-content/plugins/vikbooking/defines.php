@@ -12,7 +12,7 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 // Software version
-define('VIKBOOKING_SOFTWARE_VERSION', '1.5.11');
+define('VIKBOOKING_SOFTWARE_VERSION', '1.6.6');
 
 // Base path
 define('VIKBOOKING_BASE', dirname(__FILE__));
@@ -45,17 +45,40 @@ defined('VBO_BASE_URI') or define('VBO_BASE_URI', plugin_dir_url(__FILE__));
 defined('VBO_MODULES_URI') or define('VBO_MODULES_URI', plugin_dir_url(__FILE__));
 defined('VBO_ADMIN_URI_REL') or define('VBO_ADMIN_URI_REL', plugin_dir_url(__FILE__).'admin/');
 defined('VBO_SITE_URI_REL') or define('VBO_SITE_URI_REL', plugin_dir_url(__FILE__).'site/');
-defined('VCM_ADMIN_URI') or define('VCM_ADMIN_URI', str_replace('vikbooking', 'vikchannelmanager', VBO_ADMIN_URI));
-defined('VCM_SITE_URI') or define('VCM_SITE_URI', str_replace('vikbooking', 'vikchannelmanager', VBO_SITE_URI));
+defined('VCM_ADMIN_URI') or define('VCM_ADMIN_URI', str_replace('vikbooking/admin', 'vikchannelmanager/admin', VBO_ADMIN_URI));
+defined('VCM_SITE_URI') or define('VCM_SITE_URI', str_replace('vikbooking/site', 'vikchannelmanager/site', VBO_SITE_URI));
 
 // Path Constants for admin and site sections (with NO trailing directory separator)
 defined('VBO_ADMIN_PATH') or define('VBO_ADMIN_PATH', dirname(__FILE__) . DIRECTORY_SEPARATOR . 'admin');
 defined('VBO_SITE_PATH') or define('VBO_SITE_PATH', dirname(__FILE__) . DIRECTORY_SEPARATOR . 'site');
-defined('VCM_ADMIN_PATH') or define('VCM_ADMIN_PATH', str_replace('vikbooking', 'vikchannelmanager', VBO_ADMIN_PATH));
-defined('VCM_SITE_PATH') or define('VCM_SITE_PATH', str_replace('vikbooking', 'vikchannelmanager', VBO_SITE_PATH));
+defined('VCM_ADMIN_PATH') or define('VCM_ADMIN_PATH', str_replace('vikbooking' . DIRECTORY_SEPARATOR . 'admin', 'vikchannelmanager' . DIRECTORY_SEPARATOR . 'admin', VBO_ADMIN_PATH));
+defined('VCM_SITE_PATH') or define('VCM_SITE_PATH', str_replace('vikbooking' . DIRECTORY_SEPARATOR . 'site', 'vikchannelmanager' . DIRECTORY_SEPARATOR . 'site', VBO_SITE_PATH));
 
 // Other Constants that may not be available in the framework
 defined('DS') or define('DS', DIRECTORY_SEPARATOR);
+
+// default paths and URIs
+$customer_upload_base_path = VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'resources';
+$customer_upload_base_uri  = VBO_ADMIN_URI . 'resources/';
+$media_upload_base_path    = $customer_upload_base_path;
+$media_upload_base_uri 	   = $customer_upload_base_uri;
+$media_assets_base_path    = $customer_upload_base_path;
+$media_assets_base_uri 	   = $customer_upload_base_uri;
+
+$upload_dir = wp_upload_dir();
+if (is_array($upload_dir) && !empty($upload_dir['basedir']) && !empty($upload_dir['baseurl'])) {
+	// define proper values for the customer documents
+	$customer_upload_base_path = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'vikbooking' . DIRECTORY_SEPARATOR . 'customerdocs';
+	$customer_upload_base_uri  = rtrim($upload_dir['baseurl'], '/') . '/' . 'vikbooking' . '/' . 'customerdocs' . '/';
+
+	// define proper values for the media directory
+	$media_upload_base_path = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'vikbooking' . DIRECTORY_SEPARATOR . 'media';
+	$media_upload_base_uri 	= rtrim($upload_dir['baseurl'], '/') . '/' . 'vikbooking' . '/' . 'media' . '/';
+
+	// define proper values for the media assets (i.e. Web App Manifest)
+	$media_assets_base_path = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'vikbooking';
+	$media_assets_base_uri  = rtrim($upload_dir['baseurl'], '/') . '/' . 'vikbooking' . '/';
+}
 
 /**
  * We define the base path constant for the upload dir
@@ -63,18 +86,6 @@ defined('DS') or define('DS', DIRECTORY_SEPARATOR);
  * 
  * @since 	1.3.0
  */
-$customer_upload_base_path = VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'resources';
-$customer_upload_base_uri  = VBO_ADMIN_URI . 'resources/';
-$media_upload_base_path    = $customer_upload_base_path;
-$media_upload_base_uri 	   = $customer_upload_base_uri;
-$upload_dir = wp_upload_dir();
-if (is_array($upload_dir) && !empty($upload_dir['basedir']) && !empty($upload_dir['baseurl'])) {
-	$customer_upload_base_path = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'vikbooking' . DIRECTORY_SEPARATOR . 'customerdocs';
-	$customer_upload_base_uri  = rtrim($upload_dir['baseurl'], '/') . '/' . 'vikbooking' . '/' . 'customerdocs' . '/';
-	// define proper values for the media directory
-	$media_upload_base_path = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'vikbooking' . DIRECTORY_SEPARATOR . 'media';
-	$media_upload_base_uri 	= rtrim($upload_dir['baseurl'], '/') . '/' . 'vikbooking' . '/' . 'media' . '/';
-}
 defined('VBO_CUSTOMERS_PATH') or define('VBO_CUSTOMERS_PATH', $customer_upload_base_path);
 defined('VBO_CUSTOMERS_URI') or define('VBO_CUSTOMERS_URI', $customer_upload_base_uri);
 
@@ -85,6 +96,14 @@ defined('VBO_CUSTOMERS_URI') or define('VBO_CUSTOMERS_URI', $customer_upload_bas
  */
 defined('VBO_MEDIA_PATH') or define('VBO_MEDIA_PATH', $media_upload_base_path);
 defined('VBO_MEDIA_URI') or define('VBO_MEDIA_URI', $media_upload_base_uri);
+
+/**
+ * We define the base path and URI for the media assets.
+ * 
+ * @since 	1.6.5
+ */
+defined('VBO_MEDIA_ASSETS_PATH') or define('VBO_MEDIA_ASSETS_PATH', $media_assets_base_path);
+defined('VBO_MEDIA_ASSETS_URI') or define('VBO_MEDIA_ASSETS_URI', $media_assets_base_uri);
 
 /**
  * Site pre-process flag.

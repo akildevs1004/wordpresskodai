@@ -204,7 +204,7 @@ JText::script('VBO_PLEASE_FILL_FIELDS');
 						}
 					}).done(function(response) {
 						try {
-							var obj_res = JSON.parse(response);
+							var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 							if (!obj_res.hasOwnProperty(call_method)) {
 								console.error('initRoomGeoTransient unexpected JSON response', obj_res);
 							} else {

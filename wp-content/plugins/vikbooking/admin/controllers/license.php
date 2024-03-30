@@ -32,7 +32,7 @@ class VikBookingControllerLicense extends JControllerAdmin
 		if (!JFactory::getUser()->authorise('core.admin', 'com_vikbooking'))
 		{
 			// not authorised to view this resource
-			throw new Exception(JText::translate('RESOURCE_AUTH_ERROR'), 403);
+			VBOHttpDocument::getInstance()->close(403, JText::translate('RESOURCE_AUTH_ERROR'));
 		}
 
 		$input = JFactory::getApplication()->input;
@@ -53,11 +53,10 @@ class VikBookingControllerLicense extends JControllerAdmin
 			$error = $model->getError(null, $toString = false);
 
 			// an error will be always an exception
-			throw $error;
+			VBOHttpDocument::getInstance()->close($error->getCode(), $error->getMessage());
 		}
 
-		echo json_encode($response);
-		exit;
+		VBOHttpDocument::getInstance()->json($response);
 	}
 
 	/**
@@ -70,7 +69,7 @@ class VikBookingControllerLicense extends JControllerAdmin
 		if (!JFactory::getUser()->authorise('core.admin', 'com_vikbooking'))
 		{
 			// not authorised to view this resource
-			throw new Exception(JText::translate('RESOURCE_AUTH_ERROR'), 403);
+			VBOHttpDocument::getInstance()->close(403, JText::translate('RESOURCE_AUTH_ERROR'));
 		}
 
 		$input = JFactory::getApplication()->input;
@@ -100,7 +99,6 @@ class VikBookingControllerLicense extends JControllerAdmin
 		}
 
 		// downloaded successfully
-		echo 'e4j.OK';
-		exit;
+		VBOHttpDocument::getInstance()->close(200, 'e4j.OK');
 	}
 }

@@ -29,7 +29,7 @@ class VikBookingFeedback
 	 */
 	public static function deactivate($actions, $plugin)
 	{
-		// make sure the plugin is recaptcha and the deactivation link is available
+		// make sure the plugin is the correct one and the deactivation link is available
 		if ($plugin != 'vikbooking/vikbooking.php' || !isset($actions['deactivate']))
 		{
 			return $actions;

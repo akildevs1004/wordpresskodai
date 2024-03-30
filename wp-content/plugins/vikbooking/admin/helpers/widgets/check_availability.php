@@ -160,7 +160,7 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 			$av_helper->setRoomParty($num_adults, $num_children);
 		}
 
-		if (count($room_ids)) {
+		if ($room_ids) {
 			$av_helper->setRoomIds($room_ids);
 		}
 
@@ -198,6 +198,9 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 			unset($split_room_rates);
 		}
 
+		// list of eligible and available room IDs
+		$eligible_rids = [];
+
 		// start output buffering
 		ob_start();
 
@@ -225,7 +228,7 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 		<?php
 		
 		// check if there is availability
-		if (!is_array($room_rates) || !count($room_rates) || $has_av_error) {
+		if (!is_array($room_rates) || !$room_rates || $has_av_error) {
 			$explain_err = $av_helper->explainErrorCode();
 			$say_error 	 = !empty($explain_err) ? $explain_err : $av_helper->getError();
 			$say_error 	 = empty($say_error) ? JText::translate('VBOVERVIEWLEGRED') : $say_error;
@@ -239,6 +242,8 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 					// this is to prevent reserved keys from being displayed
 					continue;
 				}
+				// push room ID as eligible and available
+				$eligible_rids[] = $rid;
 				?>
 			<div class="vbo-widget-checkav-result-room-rates">
 				<div class="vbo-widget-checkav-result-room-name">
@@ -247,7 +252,8 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 				<div class="vbo-widget-checkav-result-rates-list">
 				<?php
 				foreach ($rates as $rplan) {
-					$net_price = $rplan['cost'] - $rplan['taxes'];
+					$rplan_taxes  = isset($rplan['taxes']) ? $rplan['taxes'] : 0;
+					$net_price    = $rplan['cost'] - $rplan_taxes;
 					$js_book_args = "'$wrapper', '{$rid}', '{$checkin_date}', '{$checkout_date}', '{$num_adults}', '{$num_children}', '{$rplan['idprice']}'";
 					?>
 					<div class="vbo-widget-checkav-result-room-rate">
@@ -265,7 +271,7 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 							</span>
 							<span class="vbo-widget-checkav-result-rate-price vbo-widget-checkav-result-rate-tax">
 								<span><?php echo JText::translate('VBCALCRATESTAX'); ?></span>
-								<?php echo $currency . ' ' . VikBooking::numberFormat($rplan['taxes']); ?>
+								<?php echo $currency . ' ' . VikBooking::numberFormat($rplan_taxes); ?>
 							</span>
 							<?php
 						}
@@ -314,27 +320,192 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 			<?php
 		}
 
-		if (!is_array($room_rates) || !count($room_rates) || $has_av_error) {
-			// try to get the suggestions when no availability
-			list($alternative_dates, $alternative_parties) = $av_helper->findSuggestions();
+		// default pool of suggestions
+		$alternative_dates 	 = [];
+		$alternative_parties = [];
+		$split_stay_sols 	 = [];
 
-			// parse alrernative dates
-			if (count($alternative_dates)) {
-				// we've got some alternative dates to suggest for some rooms
+		if (!is_array($room_rates) || !$room_rates || $has_av_error) {
+			// try to get the suggestions when no availability
+			list($alternative_dates, $alternative_parties, $split_stay_sols) = $av_helper->findSuggestions();
+		} elseif ($eligible_rids) {
+			/**
+			 * We did return some available rooms, but we still want to calculate if some
+			 * split-stay solutions are also available for some rooms that were left unsold.
+			 * 
+			 * @since 	1.16.3 (J) - 1.6.3 (WP)
+			 */
+			$parsable_rids = array_diff(array_keys($av_helper->filterPublishedRooms()), $eligible_rids);
+			if ($parsable_rids) {
+				// try to suggest split stay solutions by using the room IDs that were not available
+				$split_stay_sols = $av_helper->findSplitStays($parsable_rids);
+			}
+		}
+
+		// parse booking split stays
+		if ($split_stay_sols) {
+			// we've got booking split stays to suggest
+			?>
+			<p class="info"><?php VikBookingIcons::e('random'); ?> <?php echo JText::translate('VBO_SPLIT_STAYS'); ?></p>
+			<div class="vbo-widget-checkav-result-splitstays-wrap">
+			<?php
+			foreach ($split_stay_sols as $split_stay_sol) {
 				?>
-				<p class="info"><?php echo JText::translate('VBO_ALT_STAY_DATES'); ?></p>
-				<div class="vbo-widget-checkav-result-altdates-wrap">
+				<div class="vbo-widget-checkav-splitstay-rooms">
+					<div class="vbo-widget-checkav-splitstay-rooms-inner">
+					<?php
+					// start args for booking this split stay solution
+					$first_rid = $split_stay_sol[0]['idroom'];
+					$split_stay_values = [
+						'checkin'  	 => $checkin_date, 
+						'checkout' 	 => $checkout_date,
+						'split_stay' => [],
+					];
+					// parse rooms for the split stay
+					foreach ($split_stay_sol as $split_k => $split_stay_room) {
+						// parse stay dates into DateTime objects
+						$checkin_dt_obj  = new JDate($split_stay_room['checkin']);
+						$checkout_dt_obj = new JDate($split_stay_room['checkout']);
+						// push split stay data for booking
+						$split_stay_values['split_stay'][] = [
+							'idroom'   => $split_stay_room['idroom'],
+							'checkin'  => $split_stay_room['checkin'],
+							'checkout' => $split_stay_room['checkout'],
+							'nights'   => $split_stay_room['nights'],
+						];
+						?>
+						<div class="vbo-widget-checkav-splitstay-room">
+							<div class="vbo-widget-checkav-result-room-name">
+								<span><?php VikBookingIcons::e(($split_k > 0 ? 'random' : 'arrow-right')); ?> <?php echo $split_stay_room['room_name']; ?></span>
+							</div>
+							<div class="vbo-widget-checkav-result-altdates-info">
+								<div class="vbo-widget-checkav-result-alt-date">
+									<span class="vbo-widget-checkav-result-split-nights"><?php VikBookingIcons::e('moon'); ?> <?php echo $split_stay_room['nights']; ?> <?php echo $split_stay_room['nights'] > 1 ? JText::translate('VBDAYS') : JText::translate('VBDAY'); ?></span>
+									<span class="vbo-widget-checkav-result-alt-date-in"><?php VikBookingIcons::e('plane-arrival'); ?> <?php echo $checkin_dt_obj->format('D, d M Y', true); ?></span>
+									<span class="vbo-widget-checkav-result-alt-date-out"><?php VikBookingIcons::e('plane-departure'); ?> <?php echo $checkout_dt_obj->format('D, d M Y', true); ?></span>
+								</div>
+							</div>
+						</div>
+						<?php
+					}
+					// finalize args for booking this split stay
+					$split_stay_qstring = http_build_query($split_stay_values);
+					$js_book_args = "'{$first_rid}', '{$num_adults}', '{$num_children}', '{$split_stay_qstring}'";
+					?>
+					</div>
+					<div class="vbo-widget-checkav-splitstay-rooms-book">
+						<button type="button" class="btn btn-primary" onclick="vboWidgetCheckAvailabilityBookSplitStay(<?php echo $js_book_args; ?>);"><?php echo JText::translate('VBO_BOOKNOW'); ?></button>
+					</div>
+				</div>
 				<?php
-				$alt_displayed = 0;
-				foreach ($alternative_dates as $arrive_dt => $alt_rooms) {
-					$alt_displayed++;
-					foreach ($alt_rooms as $rid => $alt_room) {
-						if (empty($alt_room['days_av_left'])) {
-							continue;
+			}
+			?>
+			</div>
+			<?php
+		}
+
+		// parse alrernative dates (if any)
+		if ($alternative_dates) {
+			// we've got some alternative dates to suggest for some rooms
+			?>
+			<p class="info"><?php echo JText::translate('VBO_ALT_STAY_DATES'); ?></p>
+			<div class="vbo-widget-checkav-result-altdates-wrap">
+			<?php
+			$alt_displayed = 0;
+			foreach ($alternative_dates as $arrive_dt => $alt_rooms) {
+				$alt_displayed++;
+				foreach ($alt_rooms as $rid => $alt_room) {
+					if (empty($alt_room['days_av_left'])) {
+						continue;
+					}
+					$sugg_checkin_dt  = null;
+					$sugg_checkout_dt = null;
+					foreach ($alt_room['days_av_left'] as $dayk => $uleft) {
+						if (empty($sugg_checkin_dt)) {
+							// grab the first date
+							$sugg_checkin_dt = $dayk;
 						}
+						// always overwrite until last date
+						$sugg_checkout_dt = $dayk;
+					}
+					// increase check-out date by one day (day after last night of stay)
+					$sugg_out_info = getdate(strtotime($sugg_checkout_dt));
+					$sugg_checkout_dt = date('Y-m-d', mktime(0, 0, 0, $sugg_out_info['mon'], ($sugg_out_info['mday'] + 1), $sugg_out_info['year']));
+					// parse stay dates into DateTime objects
+					$checkin_dt_obj  = new JDate($sugg_checkin_dt);
+					$checkout_dt_obj = new JDate($sugg_checkout_dt);
+					// count total nights of stay
+					$sug_tot_nights = count($alt_room['days_av_left']);
+					// format suggested check-in date for datepicker
+					$cal_checkin_dt = date($df, strtotime($sugg_checkin_dt));
+					// js arguments
+					$js_pick_args = "'$wrapper', '{$rid}', '{$cal_checkin_dt}', '{$sug_tot_nights}', '{$num_adults}', '{$num_children}'";
+					?>
+				<div class="vbo-widget-checkav-result-room-rates vbo-widget-checkav-result-altdates">
+					<div class="vbo-widget-checkav-result-room-name">
+						<span><?php echo $alt_room['name']; ?></span>
+					</div>
+					<div class="vbo-widget-checkav-result-altdates-info">
+						<div class="vbo-widget-checkav-result-alt-date">
+							<span class="vbo-widget-checkav-result-alt-date-in"><?php VikBookingIcons::e('plane-arrival'); ?> <?php echo $checkin_dt_obj->format('D, d M Y', true); ?></span>
+							<span class="vbo-widget-checkav-result-alt-date-out"><?php VikBookingIcons::e('plane-departure'); ?> <?php echo $checkout_dt_obj->format('D, d M Y', true); ?></span>
+						</div>
+						<div class="vbo-widget-checkav-result-alt-choose">
+							<button type="button" class="btn btn-primary" onclick="vboWidgetCheckAvailabilityPickRoom(<?php echo $js_pick_args; ?>);"><?php echo JText::translate('VBO_SELECT'); ?></button>
+						</div>
+					</div>
+				</div>
+					<?php
+				}
+				// check limit of alternative dates
+				if ($alt_displayed >= $this->max_alternative_dates) {
+					break;
+				}
+			}
+			?>
+			</div>
+			<?php
+		}
+
+		// parse alrernative parties (if any)
+		if ($alternative_parties) {
+			// we've got some alternative combinations of rooms to suggest to fit the party
+			?>
+			<p class="info"><?php echo JText::translate('VBO_ALT_ROOM_PARTIES'); ?></p>
+			<div class="vbo-widget-checkav-result-altparties-wrap">
+			<?php
+			$alt_displayed = 0;
+			foreach ($alternative_parties as $arrive_dt => $alt_parties) {
+				$alt_displayed++;
+				$alt_dates_displayed = false;
+				?>
+				<div class="vbo-widget-checkav-result-room-rates vbo-widget-checkav-result-altparty">
+				<?php
+				foreach ($alt_parties as $alt_party) {
+					if (empty($alt_party['days_av_left']) || empty($alt_party['guests_allocation'])) {
+						continue;
+					}
+					// room ID
+					$rid = $alt_party['id'];
+					// count total nights of stay
+					$sug_tot_nights = count($alt_party['days_av_left']);
+					// party info
+					$party_info_parts = array();
+					// adults information
+					$adults_lbl = $alt_party['guests_allocation']['adults'] == 1 ? JText::translate('VBMAILADULT') : JText::translate('VBEDITORDERADULTS');
+					$party_info_parts[] = $alt_party['guests_allocation']['adults'] . ' ' . $adults_lbl;
+					// children information
+					$children_lbl = isset($alt_party['guests_allocation']['children']) && $alt_party['guests_allocation']['children'] == 1 ? JText::translate('VBMAILCHILD') : JText::translate('VBEDITORDERCHILDREN');
+					if (!empty($alt_party['guests_allocation']['children'])) {
+						$party_info_parts[] = $alt_party['guests_allocation']['children'] . ' ' . $children_lbl;
+					}
+					if (!$alt_dates_displayed) {
+						// display the stay dates once per alternative party
+						$alt_dates_displayed = true;
+						// calculate suggested stay dates
 						$sugg_checkin_dt  = null;
 						$sugg_checkout_dt = null;
-						foreach ($alt_room['days_av_left'] as $dayk => $uleft) {
+						foreach ($alt_party['days_av_left'] as $dayk => $uleft) {
 							if (empty($sugg_checkin_dt)) {
 								// grab the first date
 								$sugg_checkin_dt = $dayk;
@@ -348,123 +519,37 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 						// parse stay dates into DateTime objects
 						$checkin_dt_obj  = new JDate($sugg_checkin_dt);
 						$checkout_dt_obj = new JDate($sugg_checkout_dt);
-						// count total nights of stay
-						$sug_tot_nights = count($alt_room['days_av_left']);
-						// format suggested check-in date for datepicker
-						$cal_checkin_dt = date($df, strtotime($sugg_checkin_dt));
-						// js arguments
-						$js_pick_args = "'$wrapper', '{$rid}', '{$cal_checkin_dt}', '{$sug_tot_nights}', '{$num_adults}', '{$num_children}'";
 						?>
-					<div class="vbo-widget-checkav-result-room-rates vbo-widget-checkav-result-altdates">
+					<div class="vbo-widget-checkav-result-altparty-dates">
+						<div class="vbo-widget-checkav-result-altparty-stay">
+							<span class="vbo-widget-checkav-result-alt-date-in"><?php VikBookingIcons::e('plane-arrival'); ?> <?php echo $checkin_dt_obj->format('D, d M Y', true); ?></span>
+							<span class="vbo-widget-checkav-result-alt-date-out"><?php VikBookingIcons::e('plane-departure'); ?> <?php echo $checkout_dt_obj->format('D, d M Y', true); ?></span>
+						</div>
+					</div>
+						<?php
+					}
+					?>
+					<div class="vbo-widget-checkav-result-altparty-room">
 						<div class="vbo-widget-checkav-result-room-name">
-							<span><?php echo $alt_room['name']; ?></span>
+							<span><?php echo $alt_party['name']; ?></span>
 						</div>
-						<div class="vbo-widget-checkav-result-altdates-info">
-							<div class="vbo-widget-checkav-result-alt-date">
-								<span class="vbo-widget-checkav-result-alt-date-in"><?php VikBookingIcons::e('plane-arrival'); ?> <?php echo $checkin_dt_obj->format('D, d M Y', true); ?></span>
-								<span class="vbo-widget-checkav-result-alt-date-out"><?php VikBookingIcons::e('plane-departure'); ?> <?php echo $checkout_dt_obj->format('D, d M Y', true); ?></span>
-							</div>
-							<div class="vbo-widget-checkav-result-alt-choose">
-								<button type="button" class="btn btn-primary" onclick="vboWidgetCheckAvailabilityPickRoom(<?php echo $js_pick_args; ?>);"><?php echo JText::translate('VBO_SELECT'); ?></button>
-							</div>
+						<div class="vbo-widget-checkav-result-alt-guests-rparty">
+							<span><?php VikBookingIcons::e('users'); ?> <?php echo implode(', ', $party_info_parts); ?></span>
 						</div>
 					</div>
-						<?php
-					}
-					// check limit of alternative dates
-					if ($alt_displayed >= $this->max_alternative_dates) {
-						break;
-					}
+					<?php
 				}
 				?>
 				</div>
 				<?php
-			}
-
-			// parse alrernative parties
-			if (count($alternative_parties)) {
-				// we've got some alternative combinations of rooms to suggest to fit the party
-				?>
-				<p class="info"><?php echo JText::translate('VBO_ALT_ROOM_PARTIES'); ?></p>
-				<div class="vbo-widget-checkav-result-altparties-wrap">
-				<?php
-				$alt_displayed = 0;
-				foreach ($alternative_parties as $arrive_dt => $alt_parties) {
-					$alt_displayed++;
-					$alt_dates_displayed = false;
-					?>
-					<div class="vbo-widget-checkav-result-room-rates vbo-widget-checkav-result-altparty">
-					<?php
-					foreach ($alt_parties as $alt_party) {
-						if (empty($alt_party['days_av_left']) || empty($alt_party['guests_allocation'])) {
-							continue;
-						}
-						// room ID
-						$rid = $alt_party['id'];
-						// count total nights of stay
-						$sug_tot_nights = count($alt_party['days_av_left']);
-						// party info
-						$party_info_parts = array();
-						// adults information
-						$adults_lbl = $alt_party['guests_allocation']['adults'] == 1 ? JText::translate('VBMAILADULT') : JText::translate('VBEDITORDERADULTS');
-						$party_info_parts[] = $alt_party['guests_allocation']['adults'] . ' ' . $adults_lbl;
-						// children information
-						$children_lbl = isset($alt_party['guests_allocation']['children']) && $alt_party['guests_allocation']['children'] == 1 ? JText::translate('VBMAILCHILD') : JText::translate('VBEDITORDERCHILDREN');
-						if (!empty($alt_party['guests_allocation']['children'])) {
-							$party_info_parts[] = $alt_party['guests_allocation']['children'] . ' ' . $children_lbl;
-						}
-						if (!$alt_dates_displayed) {
-							// display the stay dates once per alternative party
-							$alt_dates_displayed = true;
-							// calculate suggested stay dates
-							$sugg_checkin_dt  = null;
-							$sugg_checkout_dt = null;
-							foreach ($alt_party['days_av_left'] as $dayk => $uleft) {
-								if (empty($sugg_checkin_dt)) {
-									// grab the first date
-									$sugg_checkin_dt = $dayk;
-								}
-								// always overwrite until last date
-								$sugg_checkout_dt = $dayk;
-							}
-							// increase check-out date by one day (day after last night of stay)
-							$sugg_out_info = getdate(strtotime($sugg_checkout_dt));
-							$sugg_checkout_dt = date('Y-m-d', mktime(0, 0, 0, $sugg_out_info['mon'], ($sugg_out_info['mday'] + 1), $sugg_out_info['year']));
-							// parse stay dates into DateTime objects
-							$checkin_dt_obj  = new JDate($sugg_checkin_dt);
-							$checkout_dt_obj = new JDate($sugg_checkout_dt);
-							?>
-						<div class="vbo-widget-checkav-result-altparty-dates">
-							<div class="vbo-widget-checkav-result-altparty-stay">
-								<span class="vbo-widget-checkav-result-alt-date-in"><?php VikBookingIcons::e('plane-arrival'); ?> <?php echo $checkin_dt_obj->format('D, d M Y', true); ?></span>
-								<span class="vbo-widget-checkav-result-alt-date-out"><?php VikBookingIcons::e('plane-departure'); ?> <?php echo $checkout_dt_obj->format('D, d M Y', true); ?></span>
-							</div>
-						</div>
-							<?php
-						}
-						?>
-						<div class="vbo-widget-checkav-result-altparty-room">
-							<div class="vbo-widget-checkav-result-room-name">
-								<span><?php echo $alt_party['name']; ?></span>
-							</div>
-							<div class="vbo-widget-checkav-result-alt-guests-rparty">
-								<span><?php VikBookingIcons::e('users'); ?> <?php echo implode(', ', $party_info_parts); ?></span>
-							</div>
-						</div>
-						<?php
-					}
-					?>
-					</div>
-					<?php
-					// check limit of alternative parties
-					if ($alt_displayed >= $this->max_alternative_parties) {
-						break;
-					}
+				// check limit of alternative parties
+				if ($alt_displayed >= $this->max_alternative_parties) {
+					break;
 				}
-				?>
-				</div>
-				<?php
 			}
+			?>
+			</div>
+			<?php
 		}
 
 		// get the HTML buffer
@@ -525,14 +610,19 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 
 		// check multitask data
 		$page_bid = 0;
-		if ($data !== null) {
+		$modal_load_bid = '';
+		if ($data) {
 			$page_bid = $data->getBookingID();
+			if ($page_bid && $data->isModalRendering()) {
+				// immediately load contents according to injected multitask data
+				$modal_load_bid = $page_bid;
+			}
 		}
 
 		?>
 		<div class="vbo-admin-widget-wrapper">
 			<div class="vbo-admin-widget-head">
-				<h4><?php echo $this->widgetIcon; ?> <?php echo JText::translate('VBO_W_CHECKAV_TITLE'); ?></h4>
+				<h4><?php echo $this->widgetIcon; ?> <span><?php echo $this->widgetName; ?></span></h4>
 			</div>
 			<div id="<?php echo $wrapper_id; ?>" class="vbo-widget-checkav-wrap" data-instance="<?php echo $wrapper_instance; ?>" data-pagebid="<?php echo $page_bid; ?>" data-offset="0" data-length="<?php echo $this->res_per_page; ?>">
 				<div class="vbo-widget-checkav-filters">
@@ -578,6 +668,7 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 			 */
 			?>
 		<a class="vbo-widget-checkav-basenavuri" href="index.php?option=com_vikbooking&task=calendar&cid[]=%d&checkin=%s&checkout=%s&adults=%d&children=%d&idprice=%d&booknow=1" style="display: none;"></a>
+		<a class="vbo-widget-checkav-splitstayuri" href="index.php?option=com_vikbooking&task=calendar&cid[]=%d&adults=%d&children=%d" style="display: none;"></a>
 
 		<script type="text/javascript">
 
@@ -654,7 +745,7 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 					},
 					function(response) {
 						try {
-							var obj_res = JSON.parse(response);
+							var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 							if (!obj_res.hasOwnProperty(call_method) || !obj_res[call_method]) {
 								console.error('Unexpected JSON response', obj_res);
 								return false;
@@ -783,6 +874,19 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 			}
 
 			/**
+			 * Book a split stay.
+			 */
+			function vboWidgetCheckAvailabilityBookSplitStay(rid, adults, children, split_qstring) {
+				var open_url = jQuery('.vbo-widget-checkav-splitstayuri').first().attr('href');
+				open_url = open_url.replace('%d', rid);
+				open_url = open_url.replace('%d', adults);
+				open_url = open_url.replace('%d', children);
+				open_url += '&' + split_qstring;
+				// navigate
+				document.location.href = open_url;
+			}
+
+			/**
 			 * Pick alternative stay dates suggested for calculation.
 			 */
 			function vboWidgetCheckAvailabilityPickRoom(wrapper, rid, din, nights, adults, children) {
@@ -816,7 +920,7 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 
 		<script type="text/javascript">
 
-			jQuery(document).ready(function() {
+			jQuery(function() {
 
 				// render datepicker calendar for dates navigation
 				jQuery('#<?php echo $wrapper_id; ?>').find('.vbo-widget-checkav-checkindt').datepicker({
@@ -841,6 +945,15 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 					vboWidgetCheckAvailabilityMultitaskOpen('<?php echo $wrapper_id; ?>');
 				});
 
+			<?php
+			if ($modal_load_bid) {
+				// immediately fire the adaptive rendering according to multitask data
+				?>
+				vboWidgetCheckAvailabilityMultitaskOpen('<?php echo $wrapper_id; ?>');
+				<?php
+			}
+			?>
+
 			});
 			
 		</script>
@@ -862,9 +975,8 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 
 		$q = "SELECT SUM(`toadult`) AS `max_adults`, SUM(`tochild`) AS `max_children` FROM `#__vikbooking_rooms`;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows()) {
-			$record = $dbo->loadAssoc();
+		$record = $dbo->loadAssoc();
+		if ($record) {
 			$maxest = array($record['max_adults'], $record['max_children']);
 		}
 
@@ -922,9 +1034,14 @@ class VikBookingAdminWidgetCheckAvailability extends VikBookingAdminWidget
 			$arr_adults[] 	= $roomres['adults'];
 			$arr_children[] = $roomres['children'];
 			$room_ids[] 	= $roomres['idroom'];
+			if ($booking['split_stay']) {
+				// do not sum the guests in case of split stay
+				$num_adults   = $roomres['adults'];
+				$num_children = $roomres['children'];
+			}
 		}
 
-		if (count($book_rooms) > 1 && $multi_rooms === true) {
+		if (count($book_rooms) > 1 && $multi_rooms === true && !$booking['split_stay']) {
 			// return the adults and children as array rather than as integers
 			$num_adults = $arr_adults;
 			$num_children = $arr_children;

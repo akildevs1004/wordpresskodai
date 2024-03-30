@@ -10,8 +10,10 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-$vbo_app = new VboApplication();
 JHtml::fetch('behavior.tooltip');
+
+$vbo_app = VikBooking::getVboApplication();
+
 $nowdf = VikBooking::getDateFormat(true);
 if ($nowdf == "%d/%m/%Y") {
 	$df = 'd/m/Y';
@@ -21,33 +23,47 @@ if ($nowdf == "%d/%m/%Y") {
 	$df = 'Y/m/d';
 }
 ?>
+
 <form action="index.php?option=com_vikbooking" method="post" name="adminForm" id="adminForm">
-	<h3><?php echo JText::translate('VBICSEXPORT'); ?></h3>
-	<table cellspacing="1" class="admintable table">
-		<tbody>
-			<tr>
-				<td width="200" class="vbo-config-param-cell"> <b><?php echo JText::translate('VBCSVEXPFILTDATES'); ?></b> </td>
-				<td><?php echo $vbo_app->getCalendar('', 'checkindate', 'checkindate', $nowdf, array('class'=>'', 'size'=>'10', 'maxlength'=>'19', 'todayBtn' => 'true')); ?> &nbsp;-&nbsp; <?php echo $vbo_app->getCalendar('', 'checkoutdate', 'checkoutdate', $nowdf, array('class'=>'', 'size'=>'10', 'maxlength'=>'19', 'todayBtn' => 'true')); ?></td>
-			</tr>
-			<tr>
-				<td width="200" class="vbo-config-param-cell"> <b><?php echo JText::translate('VBCSVEXPFILTBSTATUS'); ?></b> </td>
-				<td>
-					<select name="status">
-						<option value="">----------</option>
-						<option value="confirmed"><?php echo JText::translate('VBCSVSTATUSCONFIRMED'); ?></option>
-						<option value="standby"><?php echo JText::translate('VBCSVSTATUSSTANDBY'); ?></option>
-						<option value="cancelled"><?php echo JText::translate('VBCSVSTATUSCANCELLED'); ?></option>
-					</select>
-				</td>
-			</tr>
-			<tr>
-				<td>&nbsp;</td>
-				<td style="text-align: left;">
-					<button type="button" class="btn" name="csvsubmit" onclick="document.getElementById('adminForm').submit();"><i class="vboicn-cloud-download"></i> <?php echo JText::translate('VBICSGENERATE'); ?></button>
-				</td>
-			</tr>
-		</tbody>
-	</table>
+	<div class="vbo-admin-container">
+		<div class="vbo-config-maintab-left">
+			<fieldset class="adminform">
+				<div class="vbo-params-wrap">
+					<legend class="adminlegend"><?php echo JText::translate('VBICSEXPORT'); ?></legend>
+					<div class="vbo-params-container">
+						<div class="vbo-param-container">
+							<div class="vbo-param-label"><?php echo JText::translate('VBCSVEXPFILTDATES'); ?></div>
+							<div class="vbo-param-setting">
+								<?php echo $vbo_app->getCalendar('', 'checkindate', 'checkindate', $nowdf, array('class'=>'', 'size'=>'10', 'maxlength'=>'19', 'todayBtn' => 'true')); ?>
+							</div>
+						</div>
+						<div class="vbo-param-container">
+							<div class="vbo-param-label"><?php echo JText::translate('VBNEWRESTRICTIONDTORANGE'); ?></div>
+							<div class="vbo-param-setting">
+								<?php echo $vbo_app->getCalendar('', 'checkoutdate', 'checkoutdate', $nowdf, array('class'=>'', 'size'=>'10', 'maxlength'=>'19', 'todayBtn' => 'true')); ?>
+							</div>
+						</div>
+						<div class="vbo-param-container">
+							<div class="vbo-param-label"><?php echo JText::translate('VBCSVEXPFILTBSTATUS'); ?></div>
+							<div class="vbo-param-setting">
+								<select name="status">
+									<option value="">----------</option>
+									<option value="confirmed"><?php echo JText::translate('VBCSVSTATUSCONFIRMED'); ?></option>
+									<option value="standby"><?php echo JText::translate('VBCSVSTATUSSTANDBY'); ?></option>
+									<option value="cancelled"><?php echo JText::translate('VBCSVSTATUSCANCELLED'); ?></option>
+								</select>
+							</div>
+						</div>
+						<div class="vbo-param-container">
+							<div class="vbo-param-setting">
+								<button type="button" class="btn" name="csvsubmit" onclick="document.getElementById('adminForm').submit();"><i class="vboicn-cloud-download"></i> <?php echo JText::translate('VBICSGENERATE'); ?></button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</fieldset>
+		</div>
+	</div>
 	<input type="hidden" name="task" value="icsexportlaunch" />
 	<input type="hidden" name="option" value="com_vikbooking" />
 </form>

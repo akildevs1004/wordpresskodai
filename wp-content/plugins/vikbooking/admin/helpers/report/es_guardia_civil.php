@@ -51,6 +51,8 @@ class VikBookingReportEsGuardiaCivil extends VikBookingReport
 
 		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
 
+		$this->registerExportFileName();
+
 		parent::__construct();
 	}
 
@@ -87,7 +89,7 @@ class VikBookingReportEsGuardiaCivil extends VikBookingReport
 		}
 
 		//get VBO Application Object
-		$vbo_app = new VboApplication();
+		$vbo_app = VikBooking::getVboApplication();
 
 		//load the jQuery UI Datepicker
 		$this->loadDatePicker();
@@ -759,12 +761,12 @@ class VikBookingReportEsGuardiaCivil extends VikBookingReport
 				}
 				if (!empty($citizenval) && isset($this->nazioni[$citizenval])) {
 					$citizenval = $this->nazioni[$citizenval]['name'];
-				} else {
-					$pax_citizen = $this->getGuestPaxDataValue($use_pax_data, $room_guests, $guest_ind, 'country');
-					if (!empty($pax_citizen)) {
-						$pax_citizen = strlen($pax_citizen) == 3 ? $this->checkCountry($pax_citizen) : $pax_citizen;
-						$citizenval = isset($this->nazioni[$pax_citizen]) ? $this->nazioni[$pax_citizen]['name'] : $pax_citizen;
-					}
+				}
+				// give higher important to info collected through custom fields
+				$pax_citizen = $this->getGuestPaxDataValue($use_pax_data, $room_guests, $guest_ind, 'country');
+				if (!empty($pax_citizen)) {
+					$pax_citizen = strlen($pax_citizen) == 3 ? $this->checkCountry($pax_citizen) : $pax_citizen;
+					$citizenval = isset($this->nazioni[$pax_citizen]) ? $this->nazioni[$pax_citizen]['name'] : $pax_citizen;
 				}
 				array_push($insert_row, array(
 					'key' => 'country',
@@ -890,8 +892,7 @@ class VikBookingReportEsGuardiaCivil extends VikBookingReport
 		if (!$this->getReportData()) {
 			return false;
 		}
-		$pfromdate = VikRequest::getString('fromdate', '', 'request');
-		$ptodate = VikRequest::getString('todate', '', 'request');
+
 		$photelname = VikRequest::getString('hotelname', '', 'request');
 		$photelcode = VikRequest::getString('hotelcode', '', 'request');
 		$pfiller = VikRequest::getString('filler', '', 'request', VIKREQUEST_ALLOWRAW);
@@ -964,7 +965,14 @@ class VikBookingReportEsGuardiaCivil extends VikBookingReport
 		}
 
 		$separator = '|';
-		$line_cont = '1' . $separator . $photelcode . $separator . $photelname . $separator . date('Ymd') . $separator . date('Hi') . $separator . count($customers);
+		$line_cont = implode($separator, [
+			'1',
+			$photelcode,
+			$photelname,
+			date('Ymd'),
+			date('Hi'),
+			str_pad((string)count($customers), 5, '0', STR_PAD_LEFT),
+		]);
 		array_push($lines, $line_cont);
 		foreach ($customers as $customer) {
 			$line_cont = '2|';
@@ -987,10 +995,24 @@ class VikBookingReportEsGuardiaCivil extends VikBookingReport
 			VikBooking::getBookingHistoryInstance()->setBid($bid)->store('RP', $this->reportName);
 		}
 
-		//Force text file download
+		/**
+		 * Custom export method supports a custom export handler, if previously set.
+		 * 
+		 * @since 	1.16.1 (J) - 1.6.1 (WP)
+		 */
+		if ($this->hasExportHandler()) {
+			// write data onto the custom file handler
+			$fp = $this->getExportCSVHandler();
+			fwrite($fp, implode("\r\n", $lines));
+			fclose($fp);
+
+			return true;
+		}
+
+		// force text file download
 		header('Content-Type: text/plain; charset=utf-8');
 		header('Cache-Control: no-store, no-cache');
-		header('Content-Disposition: attachment; filename="'.$this->reportName.'-'.str_replace('/', '_', $pfromdate).'-'.str_replace('/', '_', $ptodate).'.txt"');
+		header('Content-Disposition: attachment; filename="' . $this->getExportCSVFileName() . '"');
 		echo implode("\r\n", $lines);
 		exit;
 	}
@@ -1005,19 +1027,19 @@ class VikBookingReportEsGuardiaCivil extends VikBookingReport
 	 */
 	public function updatePaxData($manual_data = array())
 	{
-		if (!is_array($manual_data) || !count($manual_data)) {
+		if (!is_array($manual_data) || !$manual_data) {
 			VBOHttpDocument::getInstance()->close(400, 'Nothing to save!');
 		}
 
 		// re-build manual entries object representation
 		$bids_guests = array();
 		foreach ($manual_data as $guest_ind => $guest_data) {
-			if (!is_numeric($guest_ind) || !is_array($guest_data) || empty($guest_data['bid']) || empty($guest_data['bid_index']) || count($guest_data) < 2) {
+			if (!is_numeric($guest_ind) || !is_array($guest_data) || empty($guest_data['bid']) || !isset($guest_data['bid_index']) || count($guest_data) < 2) {
 				// empty or invalid manual entries array
 				continue;
 			}
 			// the guest index in the reportObj starts from 0
-			$use_guest_ind = ($guest_ind + 1 - $guest_data['bid_index']);
+			$use_guest_ind = ($guest_ind + 1 - (int)$guest_data['bid_index']);
 			if (!isset($bids_guests[$guest_data['bid']])) {
 				$bids_guests[$guest_data['bid']] = array();
 			}
@@ -1102,6 +1124,21 @@ class VikBookingReportEsGuardiaCivil extends VikBookingReport
 			"N" => "Permiso de Residencia Español",
 			"X" => "Permiso de Residencia de otro Estado Miembro de la Unión Europea",
 		];
+	}
+
+	/**
+	 * Registers the name to give to the file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	private function registerExportFileName()
+	{
+		$pfromdate = VikRequest::getString('fromdate', '', 'request');
+		$ptodate = VikRequest::getString('todate', '', 'request');
+
+		$this->setExportCSVFileName($this->reportName . '-' . str_replace('/', '_', $pfromdate) . '-' . str_replace('/', '_', $ptodate) . '.txt');
 	}
 
 	/**

@@ -72,11 +72,11 @@ class VBOConfigRegistryDatabase extends VBOConfigRegistry
 			->where($db->qn($this->options['key']) . ' = ' . $db->q($key));
 
 		$db->setQuery($q, 0, 1);
-		$db->execute();
+		$record = $db->loadObject();
 
-		if ($db->getNumRows())
+		if ($record)
 		{
-			return $db->loadResult();
+			return $record->{$this->options['value']};
 		}
 
 		return false;
@@ -121,5 +121,29 @@ class VBOConfigRegistryDatabase extends VBOConfigRegistry
 		}
 
 		return $result;
+	}
+
+	/**
+	 * @override
+	 * Deletes the setting from the instance where it's stored.
+	 *
+	 * @param   string   $key  The name of the setting.
+	 *
+	 * @return  boolean  True in case of success, otherwise false.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	protected function delete($key)
+	{
+		$db = $this->options['db'];
+
+		$query = $db->getQuery(true)
+			->delete($db->qn($this->options['table']))
+			->where($db->qn('param') . '=' . $db->q($key));
+
+		$db->setQuery($query);
+		$db->execute();
+
+		return (bool) $db->getAffectedRows();
 	}
 }

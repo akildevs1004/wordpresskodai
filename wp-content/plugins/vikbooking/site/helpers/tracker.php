@@ -521,9 +521,8 @@ class VikBookingTracker
 
 		$q = "SELECT `trkdata` FROM `#__vikbooking_tracking_infos` WHERE `id`=".(int)$track_info_id.";";
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		if ($this->dbo->getNumRows()) {
-			$prev_trackdata = $this->dbo->loadResult();
+		$prev_trackdata = $this->dbo->loadResult();
+		if ($prev_trackdata) {
 			$prev_trackdata = json_decode($prev_trackdata);
 			if (!is_object($prev_trackdata)) {
 				return static::$trackdata;
@@ -758,7 +757,7 @@ class VikBookingTracker
 				// abort, tracking for this ID is disabled
 				return 0;
 			}
-			if (count($prev_tracking)) {
+			if ($prev_tracking) {
 				$id_tracking = $prev_tracking['id'];
 			}
 			if (!$id_tracking) {
@@ -821,6 +820,14 @@ class VikBookingTracker
 				$trk_info_record->idorder = isset(static::$trackdata->idorder) ? (int)static::$trackdata->idorder : 0;
 				$trk_info_record->referrer = !empty(static::$referrer) ? static::$referrer : null;
 
+				/**
+				 * Trigger event for the tracking information being saved.
+				 * 
+				 * @since 	1.16.2 (J) - 1.6.2 (WP)
+				 */
+				VBOFactory::getPlatform()->getDispatcher()->trigger('onBeforeSaveTrackingInformationVikBooking', [$trk_info_record, (int)$id_tracking, $this]);
+
+				// store record
 				$this->dbo->insertObject('#__vikbooking_tracking_infos', $trk_info_record, 'id');
 
 				$trkinfo_id = isset($trk_info_record->id) ? (int)$trk_info_record->id : 0;
@@ -850,6 +857,14 @@ class VikBookingTracker
 					$trk_info_record->idorder = (int)static::$trackdata->idorder;
 				}
 
+				/**
+				 * Trigger event for the tracking information being saved.
+				 * 
+				 * @since 	1.16.2 (J) - 1.6.2 (WP)
+				 */
+				VBOFactory::getPlatform()->getDispatcher()->trigger('onBeforeSaveTrackingInformationVikBooking', [$trk_info_record, (int)$id_tracking, $this]);
+
+				// update record
 				$this->dbo->updateObject('#__vikbooking_tracking_infos', $trk_info_record, 'id');
 			}
 
@@ -890,6 +905,80 @@ class VikBookingTracker
 		$session->set('vboTinfoId', '');
 		$session->set('vboTidentifier', '');
 		$session->set('vboTreferrer', '');
+	}
+
+	/**
+	 * Returns the current tracking data object.
+	 * 
+	 * @return 	object 	the current track data.
+	 * 
+	 * @since 	1.16.3 (J) - 1.6.3 (WP)
+	 */
+	public function getTrackData()
+	{
+		return static::$trackdata;
+	}
+
+	/**
+	 * Runs when visiting the booking details page in case conversion must be triggered.
+	 * 
+	 * @param 	array 	$booking 	the booking record for conversion.
+	 * 
+	 * @return 	self
+	 * 
+	 * @since 	1.16.3 (J) - 1.6.3 (WP)
+	 */
+	public function triggerBookingConversion(array $booking)
+	{
+		$fingerprint = $this->getFingerprint();
+
+		$q = $this->dbo->getQuery(true);
+
+		$q->select($this->dbo->qn([
+			'i.id',
+			'i.trkdata',
+			'i.checkin',
+			'i.checkout',
+			'i.idorder',
+			'i.referrer',
+			't.geo',
+			't.country',
+			't.idcustomer',
+		]));
+		$q->from($this->dbo->qn('#__vikbooking_tracking_infos', 'i'));
+		$q->leftJoin($this->dbo->qn('#__vikbooking_trackings', 't') . ' ON ' . $this->dbo->qn('t.id') . ' = ' . $this->dbo->qn('i.idtracking'));
+		$q->where($this->dbo->qn('t.fingerprint') . ' = ' . $this->dbo->q($fingerprint));
+		$q->where($this->dbo->qn('i.idorder') . ' = ' . (int)$booking['id']);
+		$q->order($this->dbo->qn('i.trackingdt') . ' DESC');
+
+		$this->dbo->setQuery($q, 0, 1);
+
+		$last_tracking_record = $this->dbo->loadObject();
+
+		if (!$last_tracking_record) {
+			return $this;
+		}
+
+		$prev_trackdata = json_decode($last_tracking_record->trkdata);
+		if (!is_object($prev_trackdata)) {
+			return $this;
+		}
+
+		if (!isset($prev_trackdata->converted)) {
+			// make sure to set this value
+			$prev_trackdata->converted = 1;
+
+			$upd_record = new stdClass;
+			$upd_record->id = $last_tracking_record->id;
+			$upd_record->trkdata = json_encode($prev_trackdata);
+
+			$this->dbo->updateObject('#__vikbooking_tracking_infos', $upd_record, 'id');
+
+			// trigger event to allow third party plugins to perform a tracking of the booking conversion only once
+			VBOFactory::getPlatform()->getDispatcher()->trigger('onBookingConversionTrackingVikBooking', [$booking, $last_tracking_record]);
+		}
+
+		return $this;
 	}
 
 	/**

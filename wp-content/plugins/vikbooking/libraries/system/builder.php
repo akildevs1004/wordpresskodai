@@ -136,8 +136,10 @@ class VikBookingBuilder
 				// include only once
 				$loaded = 1;
 
-				JHtml::fetch('script', VBO_ADMIN_URI . 'resources/js/system.js');
-				JHtml::fetch('stylesheet', VBO_ADMIN_URI . 'resources/css/system.css');
+				$internalFilesOptions = array('version' => VIKBOOKING_SOFTWARE_VERSION);
+
+				JHtml::fetch('script', VBO_ADMIN_URI . 'resources/js/system.js', $internalFilesOptions, array('id' => 'vbo-sys-script'));
+				JHtml::fetch('stylesheet', VBO_ADMIN_URI . 'resources/css/system.css', $internalFilesOptions, array('id' => 'vbo-sys-style'));
 
 				/**
 				 * The CSS/JS files of Bootstrap may disturb the styles of the Theme, and so
@@ -153,9 +155,9 @@ class VikBookingBuilder
 					 * 
 					 * @since 	1.3.5
 					 */
-					JHtml::fetch('script', VBO_ADMIN_URI . 'resources/js/bootstrap.min.js');
+					JHtml::fetch('script', VBO_ADMIN_URI . 'resources/js/bootstrap.min.js', $internalFilesOptions, array('id' => 'bootstrap-script'));
 
-					JHtml::fetch('stylesheet', VBO_ADMIN_URI . 'resources/css/bootstrap.lite.css');
+					JHtml::fetch('stylesheet', VBO_ADMIN_URI . 'resources/css/bootstrap.lite.css', $internalFilesOptions, array('id' => 'bootstrap-lite-style'));
 				}
 			}
 		});
@@ -194,6 +196,31 @@ class VikBookingBuilder
 		{
 			return esc_textarea($str);
 		});
+
+		/**
+		 * Attempt to turn on the SQL_BIG_SELECTS setting at runtime, to avoid
+		 * SQL errors like "The SELECT would examine more than MAX_JOIN_SIZE rows;".
+		 * This has affected several clients with the Channel Manager for the Guest Messages
+		 * downloaded by OTAs like Booking.com or Airbnb. Since we do this operation at runtime,
+		 * we attempt to suppress the DB errors in case the user does not have enough permissions
+		 * to run queries of type "SET". Once executed, we restore the original value for DB errors.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		add_action('plugins_loaded', function()
+		{
+			$dbo = JFactory::getDbo();
+
+			// suppress temporarily any database error
+			$dbo->suppress_errors(true);
+
+			// turn on the required SQL setting
+			$dbo->setQuery('SET SQL_BIG_SELECTS=1');
+			$dbo->execute();
+
+			// restore the default SQL display errors setting
+			$dbo->suppress_errors(false);
+		});
 	}
 
 	/**
@@ -226,6 +253,10 @@ class VikBookingBuilder
 			{
 				case 'paypal':
 					$classname = 'VikBookingPayPalPayment';
+					break;
+
+				case 'paypal_checkout':
+					$classname = 'VikBookingPayPalCheckoutPayment';
 					break;
 
 				case 'offline_credit_card':
@@ -282,6 +313,25 @@ class VikBookingBuilder
 				'verified' 		=> (int) $status->isVerified(),
 				'tot_refunded' 	=> $status->amount,
 				'log'	   		=> $status->log,
+			);
+		}, 10, 3);
+
+		// manipulate response to be compliant with direct charge transaction
+		add_action('payment_after_direct_charge_vikbooking', function($payment, $status, &$response)
+		{
+			/**
+			 * Transactions of type direct charge need to unify the response
+			 * to be compliant with all platforms.
+			 * 
+			 * @since 	1.6.4
+			 */
+
+			// manipulate the response to be compliant with any platform
+			$response = array(
+				'verified' 	  => (int) $status->isVerified(),
+				'tot_paid' 	  => $status->amount,
+				'log'	   	  => $status->log,
+				'transaction' => $status->transaction,
 			);
 		}, 10, 3);
 	}
@@ -472,7 +522,6 @@ class VikBookingBuilder
 		 * 
 		 * Uninstalls all the pages that have been assigned to the existing shortcodes.
 		 * 
-		 * @param 	mixed   $status    Internal environment variable.
 		 * @param 	object  $manifest  The backup manifest.
 		 * @param 	string  $path      The path of the backup archive (uncompressed).
 		 * 
@@ -480,7 +529,7 @@ class VikBookingBuilder
 		 * 
 		 * @throws 	Exception
 		 */
-		add_action('vikbooking_before_import_backup', function($status, $manifest, $path) use ($hasShortcodes)
+		add_action('vikbooking_before_import_backup', function($manifest, $path) use ($hasShortcodes)
 		{
 			// check whether the manifest includes the shortcodes installation
 			$manifest->shortcodes = $hasShortcodes($manifest);
@@ -519,7 +568,7 @@ class VikBookingBuilder
 					}
 				}
 			}
-		}, 10, 3);
+		}, 10, 2);
 
 		/**
 		 * Trigger event to allow third party plugins to extend the backup import.
@@ -529,7 +578,6 @@ class VikBookingBuilder
 		 * 
 		 * Assigns all the newly created shortcodes to new pages.
 		 * 
-		 * @param 	mixed   $status    Internal environment variable.
 		 * @param 	object  $manifest  The backup manifest.
 		 * @param 	string  $path      The path of the backup archive (uncompressed).
 		 * 
@@ -537,7 +585,7 @@ class VikBookingBuilder
 		 * 
 		 * @throws 	Exception
 		 */
-		add_action('vikbooking_after_import_backup', function($status, $manifest, $path)
+		add_action('vikbooking_after_import_backup', function($manifest, $path)
 		{
 			if (empty($manifest->shortcodes))
 			{
@@ -563,7 +611,7 @@ class VikBookingBuilder
 
 			// trigger full files mirroring
 			VikBookingUpdateManager::triggerUploadFullMirroring();
-		}, 10, 3);
+		}, 10, 2);
 
 		/**
 		 * Trigger event to allow third party plugins to choose what are the columns to dump
@@ -597,5 +645,56 @@ class VikBookingBuilder
 
 			return $include;
 		}, 10, 3);
+	}
+
+	/**
+	 * Implements the tools needed to manage the overrides
+	 * without having to use a FTP client.
+	 *
+	 * @return 	void
+	 *
+	 * @since 	1.6.5
+	 */
+	public static function setupOverridesManager()
+	{
+		/**
+		 * Trigger event to allow the plugins to include custom HTML within the view. 
+		 * It is possible to return an associative array to group the HTML strings
+		 * under different fieldsets. Plain/html string will be always pushed within
+		 * the "custom" fieldset instead.
+		 *
+		 * Displays the overrides configuration.
+		 *
+		 * @param  mixed  $forms  The HTML to display.
+		 * @param  mixed  $view   The current view instance.
+		 *
+		 * @since  1.6.5
+		 */
+		add_filter('vikbooking_display_view_config_global', function($forms, $view)
+		{
+			if (!$forms)
+			{
+				// init forms array
+				$forms = [];
+			}
+
+			// render configuration layout
+			$html = JLayoutHelper::render('html.overrides.config', [
+				'view' => $view,
+			]);
+
+			// add fieldset to forms
+			$forms[__('Page Overrides', 'vikbooking')] = $html;
+
+			return $forms;
+		}, 8, 2);
+
+		/**
+		 * Hook used to display a list of breaking changes after completing an update of the plugin.
+		 * The message will be displayed only once within the dashboard of VikBooking.
+		 *
+		 * @since 1.6.5
+		 */
+		add_action('vikbooking_before_display_dashboard', array('VikBookingInstaller', 'showBreakingChanges'));
 	}
 }

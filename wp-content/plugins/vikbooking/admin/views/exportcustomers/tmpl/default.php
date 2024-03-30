@@ -13,7 +13,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 $cid = $this->cid;
 $countries = $this->countries;
 
-$vbo_app = new VboApplication();
+$vbo_app = VikBooking::getVboApplication();
 $nowdf = VikBooking::getDateFormat(true);
 if ($nowdf == "%d/%m/%Y") {
 	$df = 'd/m/Y';

@@ -28,6 +28,7 @@ JText::script('VBPICKUP');
 JText::script('VBRETURN');
 JText::script('VBSEARCHRESROOM');
 JText::script('VBOEXTRASERVICES');
+JText::script('VBO_PETS');
 
 $nowdf = VikBooking::getDateFormat();
 if ($nowdf == "%d/%m/%Y") {
@@ -463,11 +464,15 @@ foreach ($rooms_busy as $rid => $busy) {
 										$rooms_loop_count[$rbook['idorder']]++;
 									}
 									$nowdataindex = $rooms_loop_count[$rbook['idorder']];
-									// add data attribute for adults and children
+									// add data attribute for adults, children and pets
 									$adultsinfo = explode(';', $rbook['adults']);
 									$childreninfo = explode(';', $rbook['children']);
+									$petsinfo = explode(';', $rbook['pets']);
 									if (isset($adultsinfo[$nowdataindex]) && isset($childreninfo[$nowdataindex])) {
 										$cont_attrs['party'] = $adultsinfo[$nowdataindex] . ';' . $childreninfo[$nowdataindex];
+										if (isset($petsinfo[$nowdataindex])) {
+											$cont_attrs['party'] .= ';' . $petsinfo[$nowdataindex];
+										}
 									}
 									// add data attribute for traveler first and last name
 									$namesinfo = explode(';', $rbook['tnames']);
@@ -560,7 +565,7 @@ foreach ($rooms_busy as $rid => $busy) {
 											$rooms_features_bookings[$rid.'_'.$rbook['idorder']]++;
 										}
 										$nowfeatindex = $rooms_features_bookings[$rid.'_'.$rbook['idorder']];
-										if (isset($rooms_features_map[$rid][$bookindexes[$nowfeatindex]])) {
+										if (isset($bookindexes[$nowfeatindex]) && isset($rooms_features_map[$rid][$bookindexes[$nowfeatindex]])) {
 											// get this room feature
 											$cellcont .= '<span class="vbo-tableaux-roomindex">'.$rooms_features_map[$rid][$bookindexes[$nowfeatindex]] . '</span> ';
 										}
@@ -900,8 +905,11 @@ jQuery(document).ready(function() {
 		}
 		if (attrs.hasOwnProperty('party')) {
 			var guests = attrs['party'].split(';');
-			ovcont += '<div class="vbo-tableaux-bookdet-entry"><span class="vbo-tableaux-bookdet-lbl">' + Joomla.JText._('VBFORMADULTS') + '</span><span class="vbo-tableaux-bookdet-val">'+guests[0]+'</span></div>';
-			ovcont += '<div class="vbo-tableaux-bookdet-entry"><span class="vbo-tableaux-bookdet-lbl">' + Joomla.JText._('VBFORMCHILDREN') + '</span><span class="vbo-tableaux-bookdet-val">'+guests[1]+'</span></div>';
+			ovcont += '<div class="vbo-tableaux-bookdet-entry"><span class="vbo-tableaux-bookdet-lbl">' + Joomla.JText._('VBFORMADULTS') + '</span><span class="vbo-tableaux-bookdet-val">' + guests[0] + '</span></div>';
+			ovcont += '<div class="vbo-tableaux-bookdet-entry"><span class="vbo-tableaux-bookdet-lbl">' + Joomla.JText._('VBFORMCHILDREN') + '</span><span class="vbo-tableaux-bookdet-val">' + guests[1] + '</span></div>';
+			if (guests.length > 2 && guests[2] > 0) {
+				ovcont += '<div class="vbo-tableaux-bookdet-entry"><span class="vbo-tableaux-bookdet-lbl">' + Joomla.JText._('VBO_PETS') + '</span><span class="vbo-tableaux-bookdet-val">' + guests[2] + '</span></div>';
+			}
 		}
 		if (attrs.hasOwnProperty('checkin')) {
 			ovcont += '<div class="vbo-tableaux-bookdet-entry"><span class="vbo-tableaux-bookdet-lbl">' + Joomla.JText._('VBPICKUP') + '</span><span class="vbo-tableaux-bookdet-val">'+attrs['checkin']+'</span></div>';

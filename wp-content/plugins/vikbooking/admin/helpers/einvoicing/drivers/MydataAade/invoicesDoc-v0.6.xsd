@@ -914,7 +914,7 @@
 			<xs:enumeration value="MMK"/>
 			<xs:enumeration value="MNT"/>
 			<xs:enumeration value="MOP"/>
-			<xs:enumeration value="MRO"/>
+			<xs:enumeration value="MRU"/>
 			<xs:enumeration value="MUR"/>
 			<xs:enumeration value="MVR"/>
 			<xs:enumeration value="MWK"/>

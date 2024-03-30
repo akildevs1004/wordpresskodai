@@ -197,7 +197,7 @@ if (!empty($order['channel'])) {
 			<?php
 			if ($order['checked'] < 0) {
 				//no show
-				$checked_status = '<span class="label label-error" style="background-color: #d9534f;">'.JText::translate('VBOCHECKEDSTATUSNOS').'</span>';
+				$checked_status = '<span class="label label-error">'.JText::translate('VBOCHECKEDSTATUSNOS').'</span>';
 			} elseif ($order['checked'] == 1) {
 				//checked in
 				$checked_status = '<span class="label label-success">'.JText::translate('VBOCHECKEDSTATUSIN').'</span>';
@@ -318,14 +318,30 @@ if (!empty($order['channel'])) {
 	vbo_overlay_data['comments'] = '<pre><?php echo addslashes($customer['comments']); ?></pre>';
 		<?php
 	}
-	/*
-	 * @wponly 	route signature link with the first useful Shortcode for VBO
-	 */
-	$signature_link = 'index.php?option=com_vikbooking&task=signature&sid='.$order['sid'].'&ts='.$order['ts'];
-	$model 			= JModel::getInstance('vikbooking', 'shortcodes');
-	$itemid 		= $model->all('post_id', $full = true);
-	if (count($itemid)) {
-		$signature_link	= JRoute::rewrite($signature_link . "&Itemid={$itemid[0]->post_id}");
+
+	// attempt to rewrite the share signature URL
+	$share_link = JUri::root() . 'index.php?option=com_vikbooking&task=signature&sid=' . (!empty($order['idorderota']) && !empty($order['channel']) ? $order['idorderota'] : $order['sid']) . '&ts=' . $order['ts'];
+	if (VBOPlatformDetection::isWordPress()) {
+		/**
+		 * @wponly 	Rewrite URI for front-end signature
+		 */
+		$share_link = str_replace(JUri::root(), '', $share_link);
+		$model 		= JModel::getInstance('vikbooking', 'shortcodes');
+		$itemid 	= $model->all('post_id', $full = true);
+		if (count($itemid)) {
+			$share_link = JRoute::rewrite($share_link . "&Itemid={$itemid[0]->post_id}", false);
+		}
+	} else {
+		/**
+		 * @joomlaonly
+		 */
+		$best_menuitem_id = VikBooking::findProperItemIdType(['vikbooking', 'booking'], $order['lang']);
+		if ($best_menuitem_id) {
+			$lang_link = !empty($order['lang']) ? "&lang={$order['lang']}" : '';
+			$share_base = str_replace(JUri::root(), '', $share_link);
+			$share_base .= $lang_link;
+			$share_link = VikBooking::externalroute($share_base, $xhtml = false, $best_menuitem_id);
+		}
 	}
 
 	?>
@@ -341,7 +357,7 @@ if (!empty($order['channel'])) {
 			'<button type="button" class="btn btn-primary" onclick="vboSendSignLink(\'sms\');"><i class="vboicn-mobile"></i> <?php echo addslashes(JText::translate('VBOSIGNSENDLINK')); ?></button>'+
 		'</div>'+
 		'<div class="vbo-sign-share-meth">'+
-			'<span><a href="<?php echo $signature_link; ?>" target="_blank"><i class="vboicn-link"></i> <?php echo $signature_link; ?></a></span>'+
+			'<span><a href="<?php echo $share_link; ?>" target="_blank"><i class="vboicn-link"></i> <?php echo $share_link; ?></a></span>'+
 		'</div>'+
 		'<div class="vbo-sign-share-meth vbo-sign-share-meth-close">'+
 			'<span><button type="button" class="btn btn-secondary" onclick="vboCloseModal();"><?php echo addslashes(JText::translate('VBANNULLA')); ?></button></span>'+
@@ -350,8 +366,9 @@ if (!empty($order['channel'])) {
 	<?php
 	if (!$empty_termsconds) {
 		$termsconds = VikBooking::strTrimLiteral($termsconds);
+		$terms_acc_close = VikBooking::strTrimLiteral(JText::translate('VBOTERMSCONDSACCCLOSE'));
 		?>
-	vbo_overlay_data['termsconds'] = '<div><?php echo addslashes($termsconds); ?></div><div class="vbo-center"><br /><button type="button" class="btn btn-large btn-success" onclick="jQuery(\'#termsconds\').prop(\'checked\', true);vboCloseModal();"><?php echo addslashes(JText::translate('VBOTERMSCONDSACCCLOSE')); ?></button></div>';
+	vbo_overlay_data['termsconds'] = '<div><?php echo addslashes($termsconds); ?></div><div class="vbo-center"><br /><button type="button" class="btn btn-large btn-success" onclick="jQuery(\'#termsconds\').prop(\'checked\', true);vboCloseModal();"><?php echo addslashes($terms_acc_close); ?></button></div>';
 		<?php
 	}
 	if ($prefreshing > 0) {
@@ -455,14 +472,10 @@ if (!empty($order['channel'])) {
 	} else {
 		jQuery.fn.tooltip = function(){};
 	}
-	/* ---------------- */
-	/* Canvas initialization */
-	var sign_wrapper = document.getElementById("vbo-signature-pad");
-	var canvas = sign_wrapper.querySelector("canvas");
-	var signaturePad = new SignaturePad(canvas, {
-		//opaque color only needed when saving image as JPEG (rgb(255, 255, 255))
-		backgroundColor: 'rgba(0, 0, 0, 0)'
-	});
+
+	/* Canvas global vars */
+	var canvas, signaturePad;
+
 	function vboResizeCanvas() {
 		var ratio =  Math.max(window.devicePixelRatio || 1, 1);
 		canvas.width = canvas.offsetWidth * ratio;
@@ -472,9 +485,11 @@ if (!empty($order['channel'])) {
 		document.getElementById('pad_width').value = canvas.width;
 		document.getElementById('pad_ratio').value = ratio;
 	}
+
 	function vboClearSignPad() {
 		signaturePad.clear();
 	}
+
 	function vboConfirmGenerate(action) {
 		if (action > 0) {
 			if (signaturePad.isEmpty()) {
@@ -499,10 +514,11 @@ if (!empty($order['channel'])) {
 			}
 		}
 	}
-	//On mobile devices it might make more sense to listen to orientation change, rather than window resize events.
+
+	// On mobile devices it might make more sense to listen to orientation change, rather than window resize events.
 	window.onresize = vboResizeCanvas;
-	/* ---------------- */
-	jQuery(document).ready(function() {
+
+	jQuery(function() {
 		/* Overlay for Customer Notes, Booking Notes, Checkin Comments - Start */
 		jQuery(document).mouseup(function(e) {
 			if (!vbo_overlay_on) {
@@ -513,14 +529,25 @@ if (!empty($order['channel'])) {
 				vboCloseModal();
 			}
 		});
+
 		jQuery(document).keyup(function(e) {
 			if (e.keyCode == 27 && vbo_overlay_on) {
 				vboCloseModal();
 			}
 		});
-		/* Overlay for Customer Notes, Booking Notes, Checkin Comments - End */
+
+		/* Canvas initialization */
+		var sign_wrapper = document.getElementById("vbo-signature-pad");
+		// set global vars
+		canvas = sign_wrapper.querySelector("canvas");
+		signaturePad = new SignaturePad(canvas, {
+			// opaque color only needed when saving image as JPEG (rgb(255, 255, 255))
+			backgroundColor: 'rgba(0, 0, 0, 0)'
+		});
+
 		/* Canvas adjust rendering */
-		vboResizeCanvas();
-		/* ---- */
+		setTimeout(() => {
+			vboResizeCanvas();
+		}, 200);
 	});
 </script>

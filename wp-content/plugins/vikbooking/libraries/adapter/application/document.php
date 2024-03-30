@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.application
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -534,12 +534,12 @@ class JDocument
 	{
 		$output = get_option('blog_charset');
 
-        if (!$output)
-        {
-            $output = 'UTF-8';
-        }
+		if (!$output)
+		{
+			$output = 'UTF-8';
+		}
 
-        return $output;
+		return $output;
 	}
 
 	/**
@@ -565,13 +565,40 @@ class JDocument
 	{
 		if (function_exists('is_rtl'))
 		{
-            $output = is_rtl() ? 'rtl' : 'ltr';
-        }
-        else
-        {
-            $output = 'ltr';
-        }
+			$output = is_rtl() ? 'rtl' : 'ltr';
+		}
+		else
+		{
+			$output = 'ltr';
+		}
 
-        return $output;
+		return $output;
+	}
+
+	/**
+	 * Adds `<link>` tags to the head of the document.
+	 *
+	 * $relType defaults to 'rel' as it is the most common relation type used
+	 * ('rev' refers to reverse relation, 'rel' indicates normal, forward relation).
+	 * Typical tag: `<link href="index.php" rel="Start">`.
+	 *
+	 * @param   string  $href      The link that is being related.
+	 * @param   string  $relation  Relation of link.
+	 * @param   string  $relType   Relation type attribute.  Either rel or rev (default: 'rel').
+	 * @param   array   $attribs   Associative array of remaining attributes.
+	 *
+	 * @return  self    This object to support chaining.
+	 *
+	 * @since   10.1.48
+	 */
+	public function addHeadLink(string $href, string $relation, string $relType = 'rel', array $attribs = [])
+	{
+		$this->attachToHead(function() use ($href, $relation, $relType, $attribs)
+		{
+			JLoader::import('adapter.utilities.array');
+			echo "<link href=\"{$href}\" {$relType}=\"$relation\" " . ArrayHelper::toString($attribs) . " />\n";
+		});
+
+		return $this;
 	}
 }

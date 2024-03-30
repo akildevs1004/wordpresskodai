@@ -13,9 +13,10 @@ defined('ABSPATH') or die('No script kiddies please!');
 // import Joomla view library
 jimport('joomla.application.component.view');
 
-class VikBookingViewTrkconfig extends JViewVikBooking {
-	
-	function display($tpl = null) {
+class VikBookingViewTrkconfig extends JViewVikBooking
+{
+	public function display($tpl = null)
+	{
 		// Set the toolbar
 		$this->addToolBar();
 
@@ -25,7 +26,7 @@ class VikBookingViewTrkconfig extends JViewVikBooking {
 
 		$trksettings = VikBookingTracker::loadSettings();
 		
-		$this->trksettings = &$trksettings;
+		$this->trksettings = $trksettings;
 		
 		// Display the template
 		parent::display($tpl);
@@ -34,7 +35,8 @@ class VikBookingViewTrkconfig extends JViewVikBooking {
 	/**
 	 * Sets the toolbar
 	 */
-	protected function addToolBar() {
+	protected function addToolBar()
+	{
 		JToolBarHelper::title(JText::translate('VBMAINTRACKINGSTITLE'), 'vikbooking');
 		if (JFactory::getUser()->authorise('core.edit', 'com_vikbooking')) {
 			JToolBarHelper::apply( 'savetrkconfigstay', JText::translate('VBSAVE'));
@@ -44,5 +46,4 @@ class VikBookingViewTrkconfig extends JViewVikBooking {
 		JToolBarHelper::cancel( 'canceltrk', JText::translate('VBBACK'));
 		JToolBarHelper::spacer();
 	}
-
 }

@@ -110,7 +110,7 @@ foreach ($rooms as $rk => $room) {
 				<?php
 				if (!empty($room['img'])) {
 					?>
-					<img src="<?php echo VBO_SITE_URI; ?>resources/uploads/<?php echo $room['img']; ?>" alt="<?php echo $room['name']; ?>"/>
+					<img src="<?php echo VBO_SITE_URI; ?>resources/uploads/<?php echo $room['img']; ?>" alt="<?php echo htmlspecialchars($room['name']); ?>"/>
 					<?php
 				}
 				?>
@@ -187,6 +187,7 @@ foreach ($rooms as $rk => $room) {
 					}
 					$useday = ($nowts['mday'] < 10 ? "0".$nowts['mday'] : $nowts['mday']);
 					$dclass .= ($totfound < $room['units'] && $totfound > 0 ? ' vbo-partially-cell' : '');
+
 					// partially reserved days can be disabled from the configuration
 					$dclass = !$showpartlyres && $totfound < $room['units'] && $totfound > 0 ? 'vbo-free-cell' : $dclass;
 					if ($is_checkout && $room['units'] < 2 && !$inonout_allowed) {
@@ -194,6 +195,14 @@ foreach ($rooms as $rk => $room) {
 						$totfound = 1;
 						$dclass = "vbo-occupied-cell";
 					}
+
+					// check if the date is closed at property-level
+					if (!$totfound && VikBooking::validateClosingDates($nowts[0], ($nowts[0] + 86399))) {
+						// this date is closed at property-level
+						$totfound = $room['units'];
+						$dclass = "vbo-occupied-cell";
+					}
+
 					$show_day_units = $totfound;
 					if ($pshowtype == 1) {
 						$show_day_units = '';

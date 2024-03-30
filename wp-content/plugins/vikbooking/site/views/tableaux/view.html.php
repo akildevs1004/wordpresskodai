@@ -75,6 +75,7 @@ class VikbookingViewTableaux extends JViewVikBooking
 			(SELECT GROUP_CONCAT(`or`.`roomindex` SEPARATOR ';') FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`ob`.`idorder`) AS `indexes`, 
 			(SELECT GROUP_CONCAT(`or`.`adults` SEPARATOR ';') FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`ob`.`idorder`) AS `adults`, 
 			(SELECT GROUP_CONCAT(`or`.`children` SEPARATOR ';') FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`ob`.`idorder`) AS `children`, 
+			(SELECT GROUP_CONCAT(`or`.`pets` SEPARATOR ';') FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`ob`.`idorder`) AS `pets`, 
 			(SELECT GROUP_CONCAT(`or`.`t_first_name` SEPARATOR ';') FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`ob`.`idorder`) AS `tnames`, 
 			(SELECT GROUP_CONCAT(`or`.`t_last_name` SEPARATOR ';') FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`ob`.`idorder`) AS `tlnames`, 
 			(SELECT GROUP_CONCAT(`or`.`optionals` SEPARATOR '__') FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`ob`.`idorder`) AS `roptions`, 

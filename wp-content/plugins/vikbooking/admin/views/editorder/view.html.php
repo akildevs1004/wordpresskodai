@@ -13,9 +13,10 @@ defined('ABSPATH') or die('No script kiddies please!');
 // import Joomla view library
 jimport('joomla.application.component.view');
 
-class VikBookingViewEditorder extends JViewVikBooking {
-	
-	function display($tpl = null) {
+class VikBookingViewEditorder extends JViewVikBooking
+{
+	public function display($tpl = null)
+	{
 		// Set the toolbar
 		$this->addToolBar();
 
@@ -34,12 +35,12 @@ class VikBookingViewEditorder extends JViewVikBooking {
 
 		$q = "SELECT * FROM `#__vikbooking_orders` WHERE `id`=" . $dbo->quote($ido);
 		$dbo->setQuery($q, 0, 1);
-		$dbo->execute();
-		if (!$dbo->getNumRows()) {
+		$row = $dbo->loadAssoc();
+		if (!$row) {
 			$app->redirect("index.php?option=com_vikbooking&task=orders");
 			$app->close();
+			return;
 		}
-		$row = $dbo->loadAssoc();
 
 		/**
 		 * Check currency conversion request, if needed and supported.
@@ -58,8 +59,7 @@ class VikBookingViewEditorder extends JViewVikBooking {
 
 		$q = "SELECT `id`,`name` FROM `#__vikbooking_gpayments` ORDER BY `#__vikbooking_gpayments`.`name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		$payments = $dbo->getNumRows() > 0 ? $dbo->loadAssocList() : '';
+		$payments = $dbo->loadAssocList();
 
 		$cpin = VikBooking::getCPinIstance();
 		// VBO 1.11 - change customer assigned to this booking
@@ -70,7 +70,7 @@ class VikBookingViewEditorder extends JViewVikBooking {
 			if (empty($row['custmail']) || empty($row['phone'])) {
 				// get customer information
 				$customer = $cpin->getCustomerByID($pnewcustid);
-				if (count($customer) && (!empty($customer['email']) || !empty($customer['phone']))) {
+				if ($customer && (!empty($customer['email']) || !empty($customer['phone']))) {
 					if (empty($row['custmail']) && !empty($customer['email'])) {
 						$q = "UPDATE `#__vikbooking_orders` SET `custmail`=" . $dbo->quote($customer['email']) . " WHERE `id`=" . $row['id'] . ";";
 						$dbo->setQuery($q);
@@ -88,7 +88,7 @@ class VikBookingViewEditorder extends JViewVikBooking {
 		}
 
 		$customer = $cpin->getCustomerFromBooking($row['id']);
-		if (count($customer) && !empty($customer['country'])) {
+		if ($customer && !empty($customer['country'])) {
 			if (file_exists(VBO_ADMIN_PATH.DIRECTORY_SEPARATOR.'resources'.DIRECTORY_SEPARATOR.'countries'.DIRECTORY_SEPARATOR.$customer['country'].'.png')) {
 				$customer['country_img'] = '<img src="'.VBO_ADMIN_URI.'resources/countries/'.$customer['country'].'.png'.'" title="'.$customer['country'].'" class="vbo-country-flag vbo-country-flag-left"/>';
 			}
@@ -165,12 +165,28 @@ class VikBookingViewEditorder extends JViewVikBooking {
 			$row['payable'] = $pnewamountpayable;
 			// booking history log for new amount payable
 			VikBooking::getBookingHistoryInstance()->setBid($row['id'])->store('PB', JText::sprintf('VBO_NEWPAYABLE_AMOUNT', VikBooking::numberFormat($pnewamountpayable)));
+			// make sure to update the payment counter, or if no payments ever made, the system won't accept a transaction
+			if (!$row['paymcount']) {
+				// turn flag on
+				$pmakepay = 1;
+			}
 		}
 		if ($pmakepay > 0) {
+			// check if the payment counter should be updated
 			$q = "UPDATE `#__vikbooking_orders` SET `paymcount`=" . $pmakepay . " WHERE `id`=" . $row['id'] . ";";
 			$dbo->setQuery($q);
 			$dbo->execute();
 			$row['paymcount'] = 1;
+		}
+		$pnewcancfee = VikRequest::getFloat('newcancfee', -1, 'request');
+		// we update the cancellation fee amount also if the input is 0.0 (float) as the default value is -1 (int)
+		if (($pnewcancfee > 0 || ($pnewcancfee == 0 && is_float($pnewcancfee))) && (float)$row['canc_fee'] != $pnewcancfee) {
+			$q = "UPDATE `#__vikbooking_orders` SET `canc_fee`=" . $dbo->quote($pnewcancfee) . " WHERE `id`=" . $row['id'] . ";";
+			$dbo->setQuery($q);
+			$dbo->execute();
+			$row['canc_fee'] = $pnewcancfee;
+			// booking history log for new cancellation fee amount
+			VikBooking::getBookingHistoryInstance()->setBid($row['id'])->store('MB', sprintf(JText::translate('VBO_CANC_FEE') . ': %s', VikBooking::numberFormat($pnewcancfee)));
 		}
 		if (!empty($padminnotes) || !empty($pupdadmnotes)) {
 			$q = "UPDATE `#__vikbooking_orders` SET `adminnotes`=".$dbo->quote($padminnotes)." WHERE `id`=".$row['id'].";";
@@ -185,7 +201,7 @@ class VikBookingViewEditorder extends JViewVikBooking {
 			$dbo->execute();
 			$row['inv_notes'] = $pinvnotes;
 		}
-		if (!empty($pnewpayment) && is_array($payments)) {
+		if (!empty($pnewpayment) && $payments) {
 			foreach ($payments as $npay) {
 				if ((int)$npay['id'] == (int)$pnewpayment) {
 					$newpayvalid = $npay['id'].'='.$npay['name'];
@@ -260,15 +276,37 @@ class VikBookingViewEditorder extends JViewVikBooking {
 			$row['phone'] = $pcustphone;
 		}
 
+		/**
+		 * Vik Channel Manager booking assignable channels.
+		 * 
+		 * @since 	1.16.3 (J) - 1.6.3 (WP)
+		 */
+		$vcm_assign_channel = VikRequest::getString('vcm_assign_channel', '', 'request');
+		if (!empty($vcm_assign_channel) && class_exists('VCMOtaBooking')) {
+			// current unix timestamp will be used in place of OTA Reservation ID
+			$set_ota_bid = time();
+
+			// update fields on db
+			$q = "UPDATE `#__vikbooking_orders` SET `idorderota`=" . $dbo->quote($set_ota_bid) . ", `channel`=" . $dbo->quote($vcm_assign_channel) . " WHERE `id`=" . $row['id'] . ";";
+			$dbo->setQuery($q);
+			$dbo->execute();
+
+			// overwrite booking properties
+			$row['idorderota'] = $set_ota_bid;
+			$row['channel']    = $vcm_assign_channel;
+
+			// update booking history
+			$user = JFactory::getUser();
+			VikBooking::getBookingHistoryInstance()->setBid($row['id'])->store('CM', "({$user->name}) " . JText::sprintf('VBO_BOOKING_OTA_ASSIGNED', $vcm_assign_channel));
+		}
+
 		// load data
 		$q = "SELECT `or`.*,`r`.`name`,`r`.`fromadult`,`r`.`toadult`,`r`.`params` FROM `#__vikbooking_ordersrooms` AS `or`,`#__vikbooking_rooms` AS `r` WHERE `or`.`idorder`=".(int)$row['id']." AND `or`.`idroom`=`r`.`id` ORDER BY `or`.`id` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		$rooms = $dbo->getNumRows() ? $dbo->loadAssocList() : array();
+		$rooms = $dbo->loadAssocList();
 		$q = "SELECT * FROM `#__vikbooking_ordersbusy` WHERE `idorder`=".(int)$row['id'].";";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		$busy = $dbo->getNumRows() ? $dbo->loadAssocList() : "";
+		$busy = $dbo->loadAssocList();
 
 		// Rooms Specific Unit
 		$proomindex = VikRequest::getVar('roomindex', array());
@@ -282,11 +320,17 @@ class VikBookingViewEditorder extends JViewVikBooking {
 				$dbo->setQuery($q);
 				$dbo->execute();
 				// update global array reference
+				$sub_unit_changed = false;
 				foreach ($rooms as $korr => $orr) {
 					if ((int)$or_id == (int)$orr['id']) {
+						$sub_unit_changed = ((string)$orr['roomindex'] != (string)$rind);
 						$rooms[$korr]['roomindex'] = $rind;
 						break;
 					}
+				}
+				if (!$sub_unit_changed) {
+					// no need to store a booking history record
+					continue;
 				}
 				// try to store a booking history record when switching room sub-unit index
 				if (!empty($rind)) {
@@ -298,7 +342,7 @@ class VikBookingViewEditorder extends JViewVikBooking {
 							continue;
 						}
 						$room_params = json_decode($orr['params'], true);
-						if (is_array($room_params) && isset($room_params['features']) && @count($room_params['features'])) {
+						if (is_array($room_params) && !empty($room_params['features'])) {
 							$prev_subindex = empty($orr['roomindex']) ? '---' : $orr['roomindex'];
 							$new_subindex  = $rind;
 							foreach ($room_params['features'] as $origrind => $rfeatures) {
@@ -325,7 +369,6 @@ class VikBookingViewEditorder extends JViewVikBooking {
 						}
 					}
 				}
-				//
 			}
 		}
 
@@ -348,6 +391,15 @@ class VikBookingViewEditorder extends JViewVikBooking {
 					$row['paymentlog'] = $newlogstr;
 				}
 			}
+		}
+
+		// unset credit card details, if needed, maybe to re-collect them
+		$unset_cc = VikRequest::getInt('unset_cc', 0, 'request');
+		if ($unset_cc && empty($row['idorderota']) && !empty($row['paymentlog'])) {
+			$q = "UPDATE `#__vikbooking_orders` SET `paymentlog` = NULL WHERE `id` = " . $row['id'] . ";";
+			$dbo->setQuery($q);
+			$dbo->execute();
+			$row['paymentlog'] = null;
 		}
 
 		// detect if VCM exists
@@ -451,5 +503,4 @@ class VikBookingViewEditorder extends JViewVikBooking {
 		JToolBarHelper::custom( 'next_booking', 'forward', 'forward', JText::translate('VBJQCALNEXT'), false);
 		JToolBarHelper::spacer();
 	}
-
 }

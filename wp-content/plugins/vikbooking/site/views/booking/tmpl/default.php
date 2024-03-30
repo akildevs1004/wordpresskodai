@@ -17,6 +17,19 @@ $tars = $this->tars;
 $payment = $this->payment;
 $vbo_tn = $this->vbo_tn;
 
+// availability helper
+$av_helper = VikBooking::getAvailabilityInstance();
+
+// room stay dates in case of split stay
+$room_stay_dates = [];
+if ($ord['split_stay']) {
+	if ($ord['status'] == 'confirmed') {
+		$room_stay_dates = $av_helper->loadSplitStayBusyRecords($ord['id']);
+	} else {
+		$room_stay_dates = VBOFactory::getConfig()->getArray('split_stay_' . $ord['id'], []);
+	}
+}
+
 $currencysymb = VikBooking::getCurrencySymb();
 $nowdf = VikBooking::getDateFormat();
 if ($nowdf == "%d/%m/%Y") {
@@ -27,13 +40,12 @@ if ($nowdf == "%d/%m/%Y") {
 	$df = 'Y/m/d';
 }
 $datesep 	= VikBooking::getDateSeparator();
-$pnodep 	= VikRequest::getInt('nodep', '', 'request');
 $ptmpl 		= VikRequest::getString('tmpl', '', 'request');
-$pitemid 	= VikRequest::getInt('Itemid', '', 'request');
-$bestitemid = VikBooking::findProperItemIdType(array('booking'));
+$pitemid 	= VikRequest::getInt('Itemid', 0, 'request');
+$bestitemid = VikBooking::findProperItemIdType(['booking']);
 $now_info 	= getdate();
 
-$wdays_map 	= array(
+$wdays_map 	= [
 	JText::translate('VBWEEKDAYZERO'),
 	JText::translate('VBWEEKDAYONE'),
 	JText::translate('VBWEEKDAYTWO'),
@@ -41,7 +53,7 @@ $wdays_map 	= array(
 	JText::translate('VBWEEKDAYFOUR'),
 	JText::translate('VBWEEKDAYFIVE'),
 	JText::translate('VBWEEKDAYSIX')
-);
+];
 
 $isdue = 0;
 $isdue_orig = 0;
@@ -51,9 +63,24 @@ $optbought = array();
 $extraservices = array();
 $roomsnames = array();
 $is_package = !empty($ord['pkg']) ? true : false;
+
+$room_stay_nights = 0;
 foreach ($orderrooms as $kor => $or) {
 	$num = $kor + 1;
 	$roomsnames[] = $or['name'];
+
+	// determine proper values for this room
+	$room_stay_checkin  = $ord['checkin'];
+	$room_stay_checkout = $ord['checkout'];
+	$room_stay_nights 	= $ord['days'];
+	if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$kor]) && $room_stay_dates[$kor]['idroom'] == $or['idroom']) {
+		$room_stay_checkin  = !empty($room_stay_dates[$kor]['checkin_ts']) ? $room_stay_dates[$kor]['checkin_ts'] : $room_stay_dates[$kor]['checkin'];
+		$room_stay_checkout = !empty($room_stay_dates[$kor]['checkout_ts']) ? $room_stay_dates[$kor]['checkout_ts'] : $room_stay_dates[$kor]['checkout'];
+		$room_stay_nights 	= $av_helper->countNightsOfStay($room_stay_checkin, $room_stay_checkout);
+		// inject nights calculated for this room
+		$room_stay_dates[$kor]['nights'] = $room_stay_nights;
+	}
+
 	if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
 		// package cost or cust_cost may not be inclusive of taxes if prices tax included is off
 		$calctar = VikBooking::sayPackagePlusIva($or['cust_cost'], $or['cust_idiva']);
@@ -73,73 +100,76 @@ foreach ($orderrooms as $kor => $or) {
 	if (!empty($or['optionals'])) {
 		$stepo = explode(";", $or['optionals']);
 		foreach ($stepo as $roptkey => $one) {
-			if (!empty($one)) {
-				$stept = explode(":", $one);
-				$actopt = VikBooking::getSingleOption($stept[0], $vbo_tn);
-				if (count($actopt) > 0) {
-					$chvar = '';
-					if (!empty($actopt['ageintervals']) && $or['children'] > 0 && strstr($stept[1], '-') != false) {
-						$optagenames = VikBooking::getOptionIntervalsAges($actopt['ageintervals']);
-						$optagepcent = VikBooking::getOptionIntervalsPercentage($actopt['ageintervals']);
-						$optageovrct = VikBooking::getOptionIntervalChildOverrides($actopt, $or['adults'], $or['children']);
-						$child_num 	 = VikBooking::getRoomOptionChildNumber($or['optionals'], $actopt['id'], $roptkey, $or['children']);
-						$optagecosts = VikBooking::getOptionIntervalsCosts(isset($optageovrct['ageintervals_child' . ($child_num + 1)]) ? $optageovrct['ageintervals_child' . ($child_num + 1)] : $actopt['ageintervals']);
-						$agestept = explode('-', $stept[1]);
-						$stept[1] = $agestept[0];
-						$chvar = $agestept[1];
-						if (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 1) {
-							//percentage value of the adults tariff
-							if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-								$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
-							} else {
-								$display_rate = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
-								$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
-							}
-						} elseif (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 2) {
-							//VBO 1.10 - percentage value of room base cost
-							if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-								$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
-							} else {
-								$display_rate = isset($tars[$num]['room_base_cost']) ? $tars[$num]['room_base_cost'] : (!empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost']);
-								$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
-							}
-						}
-						$actopt['chageintv'] = $chvar;
-						$actopt['name'] .= ' (' . $optagenames[($chvar - 1)] . ')';
-						$realcost = (intval($actopt['perday']) == 1 ? (floatval($optagecosts[($chvar - 1)]) * $ord['days'] * $stept[1]) : (floatval($optagecosts[($chvar - 1)]) * $stept[1]));
+			if (empty($one)) {
+				continue;
+			}
+			$stept = explode(":", $one);
+			$actopt = VikBooking::getSingleOption($stept[0], $vbo_tn);
+			if (!count($actopt)) {
+				continue;
+			}
+			$chvar = '';
+			if (!empty($actopt['ageintervals']) && $or['children'] > 0 && strstr($stept[1], '-') != false) {
+				$optagenames = VikBooking::getOptionIntervalsAges($actopt['ageintervals']);
+				$optagepcent = VikBooking::getOptionIntervalsPercentage($actopt['ageintervals']);
+				$optageovrct = VikBooking::getOptionIntervalChildOverrides($actopt, $or['adults'], $or['children']);
+				$child_num 	 = VikBooking::getRoomOptionChildNumber($or['optionals'], $actopt['id'], $roptkey, $or['children']);
+				$optagecosts = VikBooking::getOptionIntervalsCosts(isset($optageovrct['ageintervals_child' . ($child_num + 1)]) ? $optageovrct['ageintervals_child' . ($child_num + 1)] : $actopt['ageintervals']);
+				$agestept = explode('-', $stept[1]);
+				$stept[1] = $agestept[0];
+				$chvar = $agestept[1];
+				if (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 1) {
+					//percentage value of the adults tariff
+					if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+						$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
 					} else {
-						// VBO 1.11 - options percentage cost of the room total fee
-						if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
-							$deftar_basecosts = $or['cust_cost'];
-						} else {
-							$deftar_basecosts = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
-						}
-						$actopt['cost'] = (int)$actopt['pcentroom'] ? ($deftar_basecosts * $actopt['cost'] / 100) : $actopt['cost'];
-						//
-						$realcost = (intval($actopt['perday']) == 1 ? ($actopt['cost'] * $ord['days'] * $stept[1]) : ($actopt['cost'] * $stept[1]));
+						$display_rate = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
+						$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
 					}
-					if (!empty($actopt['maxprice']) && $actopt['maxprice'] > 0 && $realcost > $actopt['maxprice']) {
-						$realcost = $actopt['maxprice'];
-						if (intval($actopt['hmany']) == 1 && intval($stept[1]) > 1) {
-							$realcost = $actopt['maxprice'] * $stept[1];
-						}
+				} elseif (array_key_exists(($chvar - 1), $optagepcent) && $optagepcent[($chvar - 1)] == 2) {
+					//VBO 1.10 - percentage value of room base cost
+					if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+						$optagecosts[($chvar - 1)] = $or['cust_cost'] * $optagecosts[($chvar - 1)] / 100;
+					} else {
+						$display_rate = isset($tars[$num]['room_base_cost']) ? $tars[$num]['room_base_cost'] : (!empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost']);
+						$optagecosts[($chvar - 1)] = $display_rate * $optagecosts[($chvar - 1)] / 100;
 					}
-					if ($actopt['perperson'] == 1) {
-						$realcost = $realcost * $or['adults'];
-					}
-					$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $actopt['idiva']);
-					$isdue += $tmpopr;
-					$isdue_orig += $tmpopr;
-					$imp += VikBooking::sayOptionalsMinusIva($realcost, $actopt['idiva']);
-					if (!isset($optbought[$num])) {
-						$optbought[$num] = '';
-					}
-					$optbought[$num] .= "<div class=\"vbo-booking-item-row\"><span class=\"vbo-booking-pricename\">" . ($stept[1] > 1 ? $stept[1] . " " : "") . $actopt['name'] . "</span> <span class=\"vbo-booking-pricedet\"><span class=\"vbo_currency\">" . $currencysymb . "</span> <span class=\"vbo_price\">" . VikBooking::numberFormat($tmpopr) . "</span></span></div>";
+				}
+				$actopt['chageintv'] = $chvar;
+				$actopt['name'] .= ' (' . $optagenames[($chvar - 1)] . ')';
+				$realcost = (intval($actopt['perday']) == 1 ? (floatval($optagecosts[($chvar - 1)]) * $room_stay_nights * $stept[1]) : (floatval($optagecosts[($chvar - 1)]) * $stept[1]));
+			} else {
+				// VBO 1.11 - options percentage cost of the room total fee
+				if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
+					$deftar_basecosts = $or['cust_cost'];
+				} else {
+					$deftar_basecosts = !empty($or['room_cost']) ? $or['room_cost'] : $tars[$num]['cost'];
+				}
+				$actopt['cost'] = (int)$actopt['pcentroom'] ? ($deftar_basecosts * $actopt['cost'] / 100) : $actopt['cost'];
+				//
+				$realcost = (intval($actopt['perday']) == 1 ? ($actopt['cost'] * $room_stay_nights * $stept[1]) : ($actopt['cost'] * $stept[1]));
+			}
+			if (!empty($actopt['maxprice']) && $actopt['maxprice'] > 0 && $realcost > $actopt['maxprice']) {
+				$realcost = $actopt['maxprice'];
+				if (intval($actopt['hmany']) == 1 && intval($stept[1]) > 1) {
+					$realcost = $actopt['maxprice'] * $stept[1];
 				}
 			}
+			if ($actopt['perperson'] == 1) {
+				$realcost = $realcost * $or['adults'];
+			}
+			$tmpopr = VikBooking::sayOptionalsPlusIva($realcost, $actopt['idiva']);
+			$isdue += $tmpopr;
+			$isdue_orig += $tmpopr;
+			$imp += VikBooking::sayOptionalsMinusIva($realcost, $actopt['idiva']);
+			if (!isset($optbought[$num])) {
+				$optbought[$num] = '';
+			}
+			$optbought[$num] .= "<div class=\"vbo-booking-item-row\"><span class=\"vbo-booking-pricename\">" . ($stept[1] > 1 ? $stept[1] . " " : "") . $actopt['name'] . "</span> <span class=\"vbo-booking-pricedet\"><span class=\"vbo_currency\">" . $currencysymb . "</span> <span class=\"vbo_price\">" . VikBooking::numberFormat($tmpopr) . "</span></span></div>";
 		}
 	}
-	//custom extra costs
+
+	// custom extra costs
 	if (!empty($or['extracosts'])) {
 		$extraservices[$num] = '';
 		$cur_extra_costs = json_decode($or['extracosts'], true);
@@ -151,19 +181,19 @@ foreach ($orderrooms as $kor => $or) {
 			$extraservices[$num] .= "<div class=\"vbo-booking-item-row\"><span class=\"vbo-booking-pricename\">" . $ecv['name'] . "</span> <span class=\"vbo-booking-pricedet\"><span class=\"vbo_currency\">" . $currencysymb . "</span> <span class=\"vbo_price\">" . VikBooking::numberFormat($ecplustax) . "</span></span></div>";
 		}
 	}
-	//
+
 
 	//Store Room booking information - Individual 
 
 
-	include("hms_api/api_booking_information_update_to_server.php");
+	include("api_booking_information_update_to_server.php");
 }
 
 $tax = $isdue - $imp;
 
 $usedcoupon = false;
 $origisdue = $isdue;
-if (strlen($ord['coupon']) > 0) {
+if (strlen((string)$ord['coupon']) > 0) {
 	$usedcoupon = true;
 	$expcoupon = explode(";", $ord['coupon']);
 	$isdue = $isdue - $expcoupon[1];
@@ -185,11 +215,18 @@ $resmodcanc = $this->days_to_arrival < 1 ? 0 : $resmodcanc;
 $resmodcancmin = VikBooking::getReservationModCancMin();
 $mod_allowed = ($resmodcanc > 1 && $resmodcanc != 3 && $this->days_to_arrival >= $resmodcancmin);
 $canc_allowed = ($resmodcanc > 1 && $resmodcanc != 2 && $this->is_refundable > 0 && $this->daysadv_refund <= $this->days_to_arrival && $this->days_to_arrival >= $resmodcancmin);
-//
 
 $ts_info = getdate($ord['ts']);
 $checkin_info = getdate($ord['checkin']);
 $checkout_info = getdate($ord['checkout']);
+
+// the current booking URI
+$current_booking_uri = JRoute::rewrite('index.php?option=com_vikbooking&view=booking&sid=' . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . '&ts=' . $ord['ts'] . (!empty($bestitemid) ? '&Itemid=' . $bestitemid : (!empty($pitemid) ? '&Itemid=' . $pitemid : '')));
+?>
+<a class="vbo-current-booking-uri" href="<?php echo $current_booking_uri; ?>" style="display: none;"></a>
+
+
+<?php
 
 //print button
 if ($ord['status'] == 'confirmed' && $ptmpl != 'component') {
@@ -199,12 +236,14 @@ if ($ord['status'] == 'confirmed' && $ptmpl != 'component') {
 	</div>
 <?php
 }
-//
 
 if ($ord['status'] == 'confirmed') {
 	$head_css = 'vbo-booking-details-head-confirmed';
 ?>
-	<h3 class="vbo-booking-details-intro"><?php echo JText::sprintf('VBOYOURBOOKCONFAT', VikBooking::getFrontTitle()); ?></h3>
+	<!-- api_confirmation_message-->
+	<h3 class="vbo-booking-details-intro"> <?php echo JText::sprintf('VBOYOURBOOKCONFAT', VikBooking::getFrontTitle()); ?></h3>
+	<!-- Note: Hotel Room reservation Number : <?php echo $ord['hms_api_reservation_number']; ?> -->
+
 <?php
 } elseif ($ord['status'] == 'cancelled') {
 	$head_css = 'vbo-booking-details-head-cancelled';
@@ -273,6 +312,15 @@ if ($ord['status'] == 'confirmed') {
 				<span class="vbo-booking-details-bookinfo-lbl"><?php echo JText::translate('VBDAYS'); ?></span>
 				<span class="vbo-booking-details-bookinfo-val"><?php echo $ord['days']; ?></span>
 			</div>
+			<?php
+			if ($ord['split_stay']) {
+			?>
+				<div class="vbo-booking-details-bookinfo vbo-booking-details-bookinfo-splitstay">
+					<span class="vbo-booking-details-bookinfo-lbl"><?php VikBookingIcons::e('random'); ?> <?php echo JText::translate('VBO_SPLIT_STAY_RES'); ?></span>
+				</div>
+			<?php
+			}
+			?>
 		</div>
 
 		<div class="vbo-booking-details-udets">
@@ -283,7 +331,7 @@ if ($ord['status'] == 'confirmed') {
 				if (count($custdata_parts) > 2 && strpos($custdata_parts[0], ':') !== false && strpos($custdata_parts[1], ':') !== false) {
 					//attempt to format labels and values
 					foreach ($custdata_parts as $custdet) {
-						if (strlen($custdet) < 1) {
+						if (strlen((string)$custdet) < 1) {
 							continue;
 						}
 						$custdet_parts = explode(':', $custdet);
@@ -299,12 +347,12 @@ if ($ord['status'] == 'confirmed') {
 				?>
 						<div class="vbo-bookingdet-userdetail">
 							<?php
-							if (strlen($custd_lbl)) {
+							if (strlen((string)$custd_lbl)) {
 							?>
 								<span class="vbo-bookingdet-userdetail-lbl"><?php echo VikBooking::tnCustomerRawDataLabel($custd_lbl); ?></span>
 							<?php
 							}
-							if (strlen($custd_val)) {
+							if (strlen((string)$custd_val)) {
 							?>
 								<span class="vbo-bookingdet-userdetail-val"><?php echo $custd_val; ?></span>
 							<?php
@@ -359,14 +407,14 @@ if ($ord['status'] == 'confirmed') {
 						<div class="vbo-booking-mod-container vbo-booking-otabooking-wrap">
 							<div class="vbo-booking-mod-inner">
 								<div class="vbo-booking-mod-cmd">
-									<img class="vbo-otabooking-logo" src="<?php echo $otalogo; ?>" alt="<?php echo $ord['idorderota']; ?>" title="<?php echo $ord['idorderota']; ?>" />
+									<img class="vbo-otabooking-logo" src="<?php echo $otalogo; ?>" alt="<?php echo htmlspecialchars($ord['idorderota']); ?>" title="<?php echo htmlspecialchars($ord['idorderota']); ?>" />
 								</div>
 							</div>
 						</div>
 					<?php
 					}
 					if ($precheckin) {
-						$start_itemid = VikBooking::findProperItemIdType(array('booking', 'vikbooking'));
+						$start_itemid = VikBooking::findProperItemIdType(['booking', 'vikbooking']);
 					?>
 						<div class="vbo-booking-mod-container">
 							<div class="vbo-booking-mod-inner">
@@ -378,7 +426,7 @@ if ($ord['status'] == 'confirmed') {
 					<?php
 					}
 					if ($canbereviewed) {
-						$start_itemid = VikBooking::findProperItemIdType(array('booking', 'vikbooking'));
+						$start_itemid = VikBooking::findProperItemIdType(['booking', 'vikbooking']);
 					?>
 						<div class="vbo-booking-mod-container">
 							<div class="vbo-booking-mod-inner">
@@ -389,8 +437,8 @@ if ($ord['status'] == 'confirmed') {
 						</div>
 					<?php
 					}
-					if ($mod_allowed && !$isotabooking) {
-						$start_itemid = VikBooking::findProperItemIdType(array('vikbooking', 'roomslist'));
+					if ($mod_allowed && !$isotabooking && !$ord['split_stay']) {
+						$start_itemid = VikBooking::findProperItemIdType(['vikbooking', 'roomslist']);
 					?>
 						<div class="vbo-booking-mod-container">
 							<div class="vbo-booking-mod-inner">
@@ -400,6 +448,12 @@ if ($ord['status'] == 'confirmed') {
 							</div>
 						</div>
 					<?php
+						/**
+						 * Suggest room upgrade options, if any.
+						 * 
+						 * @since 	1.16.0 (J) - 1.6.0 (WP)
+						 */
+						echo $this->loadTemplate('upgrade');
 					}
 					if ($canc_allowed && !$isotabooking) {
 					?>
@@ -454,7 +508,7 @@ if ($ord['status'] == 'confirmed') {
 	?>
 		<div class="vbvordroominfo<?php echo count($orderrooms) > 1 ? ' vbvordroominfo-multi' : ''; ?>">
 			<?php
-			if (strlen($or['img']) > 0) {
+			if (strlen((string)$or['img']) > 0) {
 			?>
 				<div class="vbo-booking-roomphoto">
 					<img src="<?php echo VBO_SITE_URI; ?>resources/uploads/<?php echo $or['img']; ?>" />
@@ -475,13 +529,31 @@ if ($ord['status'] == 'confirmed') {
 					?>
 				</div>
 				<?php
+				if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$kor]) && $room_stay_dates[$kor]['idroom'] == $or['idroom']) {
+					$room_stay_checkin  = !empty($room_stay_dates[$kor]['checkin_ts']) ? $room_stay_dates[$kor]['checkin_ts'] : $room_stay_dates[$kor]['checkin'];
+					$room_stay_checkout = !empty($room_stay_dates[$kor]['checkout_ts']) ? $room_stay_dates[$kor]['checkout_ts'] : $room_stay_dates[$kor]['checkout'];
+					$room_stay_nights 	= $av_helper->countNightsOfStay($room_stay_checkin, $room_stay_checkout);
+					// inject nights calculated for this room
+					$room_stay_dates[$kor]['nights'] = $room_stay_nights;
+				?>
+					<div class="vbo-booking-splitstay-info">
+						<div class="vbo-booking-splitstay-info-room">
+							<span class="vbo-booking-splitstay-nights"><?php VikBookingIcons::e('moon'); ?> <?php echo $room_stay_nights . ' ' . ($room_stay_nights > 1 ? JText::translate('VBDAYS') : JText::translate('VBDAY')); ?></span>
+							<span class="vbo-booking-splitstay-checkin"><?php VikBookingIcons::e('sign-in'); ?> <?php echo date(str_replace("/", $datesep, $df), $room_stay_checkin); ?></span>
+							<span class="vbo-booking-splitstay-checkout"><?php VikBookingIcons::e('sign-out'); ?> <?php echo date(str_replace("/", $datesep, $df), $room_stay_checkout); ?></span>
+						</div>
+					</div>
+				<?php
+				}
 				if ($is_package === true || (!empty($or['cust_cost']) && $or['cust_cost'] > 0.00)) {
 				?>
 					<div class="vbo-booking-roomrate">
 						<span class="vbvordcoststitlemain">
 							<span class="vbo-booking-pricename"><?php echo $pricenames[$num]; ?></span>
-							<span class="vbo_currency"><?php echo $currencysymb; ?></span>
-							<span class="vbo_price"><?php echo VikBooking::numberFormat($or['cust_cost']); ?></span>
+							<span class="room_cost">
+								<span class="vbo_currency"><?php echo $currencysymb; ?></span>
+								<span class="vbo_price"><?php echo VikBooking::numberFormat($or['cust_cost']); ?></span>
+							</span>
 						</span>
 					</div>
 				<?php
@@ -490,8 +562,10 @@ if ($ord['status'] == 'confirmed') {
 					<div class="vbo-booking-roomrate">
 						<span class="vbvordcoststitlemain">
 							<span class="vbo-booking-pricename"><?php echo $pricenames[$num]; ?></span>
-							<span class="vbo_currency"><?php echo $currencysymb; ?></span>
-							<span class="vbo_price" <?php echo $ord['status'] == 'confirmed' && $or['room_cost'] > 0 ? ' data-vborigprice="' . VikBooking::numberFormat($or['room_cost']) . '"' : ''; ?>><?php echo VikBooking::numberFormat($tars[$num]['calctar']); ?></span>
+							<span class="room_cost">
+								<span class="vbo_currency"><?php echo $currencysymb; ?></span>
+								<span class="vbo_price" <?php echo $ord['status'] == 'confirmed' && $or['room_cost'] > 0 ? ' data-vborigprice="' . VikBooking::numberFormat($or['room_cost']) . '"' : ''; ?>><?php echo VikBooking::numberFormat($tars[$num]['calctar']); ?></span>
+							</span>
 						</span>
 					</div>
 				<?php
@@ -500,11 +574,11 @@ if ($ord['status'] == 'confirmed') {
 			</div>
 
 			<?php
-			if ((array_key_exists($num, $optbought) && strlen($optbought[$num]) > 0) || (array_key_exists($num, $extraservices) && strlen($extraservices[$num]) > 0)) {
+			if ((array_key_exists($num, $optbought) && strlen((string)$optbought[$num]) > 0) || (array_key_exists($num, $extraservices) && strlen((string)$extraservices[$num]) > 0)) {
 			?>
 				<div class="vbo-booking-room-extras">
 					<?php
-					if (array_key_exists($num, $optbought) && strlen($optbought[$num]) > 0) {
+					if (array_key_exists($num, $optbought) && strlen((string)$optbought[$num]) > 0) {
 					?>
 						<div class="vbo-booking-room-extras-options">
 							<span class="vbvordcoststitle"><?php echo JText::translate('VBOPTS'); ?></span>
@@ -512,7 +586,7 @@ if ($ord['status'] == 'confirmed') {
 						</div>
 					<?php
 					}
-					if (array_key_exists($num, $extraservices) && strlen($extraservices[$num]) > 0) {
+					if (array_key_exists($num, $extraservices) && strlen((string)$extraservices[$num]) > 0) {
 					?>
 						<div class="vbo-booking-room-extras-services">
 							<span class="vbvordcoststitle"><?php echo JText::translate('VBOEXTRASERVICES'); ?></span>
@@ -536,7 +610,7 @@ if ($ord['status'] == 'confirmed') {
 if ($rooms_total_changed === true) {
 ?>
 	<script type="text/javascript">
-		jQuery(document).ready(function() {
+		jQuery(function() {
 			jQuery(".vbo_price").not(".vbo_keepcost").each(function(k, v) {
 				var origp = jQuery(this).attr('data-vborigprice');
 				if (origp !== undefined) {
@@ -571,7 +645,7 @@ if ($ord['status'] == 'confirmed' && is_array($payment) && intval($payment['show
 		/**
 		 * @wponly 	we need to let WordPress parse the paragraphs in the message.
 		 */
-		if (defined('ABSPATH')) {
+		if (VBOPlatformDetection::isWordPress()) {
 			echo wpautop($payment['note']);
 		} else {
 			echo $payment['note'];
@@ -634,43 +708,64 @@ if ($ord['status'] == 'confirmed' && is_array($payment) && intval($payment['show
 	 * the payment counter is greater than 0 (some tasks will force it to 1 when empty) and the amount paid is greater than
 	 * zero but less than the total amount, or when the 'payable' property is greater than zero.
 	 * 
-	 * @since 	1.3.0
+	 * @since 	1.13 (J) - 1.3.0 (WP)
 	 * 
 	 * We no longer need the payment counter to be greater than zero to allow a payment, as the payable amount can be defined by the admin.
 	 * 
 	 * @since 	1.14 (J) - 1.4.0 (WP)
+	 * 
+	 * Some OTA bookings using an OTA-Collect business model may look as not entirely paid when they actually are, due to commissions.
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
 	 */
 	$payable = (($ord['totpaid'] > 0.00 && $ord['totpaid'] < $ord['total'] && $ord['paymcount'] > 0) || $ord['payable'] > 0);
+	if ($payable && !empty($ord['idorderota']) && !empty($ord['channel']) && $ord['cmms'] && ($ord['total'] - $ord['totpaid'] - $ord['cmms']) < 1) {
+		// the difference of the amount paid is equal to the OTA commissions amount
+		$payable = false;
+	}
+
 	if ($ord['status'] == 'confirmed' && is_array($payment) && VikBooking::multiplePayments() && $ord['total'] > 0 && $payable) {
-		//write again the payment form because the order was not fully paid
-		/**
-		 * @wponly 	do not use require_once to load the payment
-		 *
-		 * @since 	1.0.5
-		 */
-		$return_url = JUri::root() . "index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'];
-		$error_url = JUri::root() . "index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'];
-		$notify_url = JUri::root() . "index.php?option=com_vikbooking&task=notifypayment&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&tmpl=component";
-		/**
-		 * @wponly  the URLs must be routed differently for WP
-		 */
-		$model 	= JModel::getInstance('vikbooking', 'shortcodes', 'admin');
-		$itemid = $model->best(array('booking'), (!empty($ord['lang']) ? $ord['lang'] : null));
-		if ($itemid) {
-			$return_url = str_replace(JUri::root(), '', $return_url);
-			$error_url = str_replace(JUri::root(), '', $error_url);
-			$notify_url = str_replace(JUri::root(), '', $notify_url);
-			$return_url = JRoute::rewrite($return_url . "&Itemid={$itemid}", false);
-			$error_url = JRoute::rewrite($error_url . "&Itemid={$itemid}", false);
-			$notify_url = JRoute::rewrite($notify_url . "&Itemid={$itemid}", false);
+		// write again the payment form because the order was not fully paid
+
+		if (VBOPlatformDetection::isWordPress()) {
+			/**
+			 * @wponly
+			 *
+			 * @since 	1.0.5
+			 */
+			$return_url = JUri::root() . "index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'];
+			$error_url = JUri::root() . "index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'];
+			$notify_url = JUri::root() . "index.php?option=com_vikbooking&task=notifypayment&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&tmpl=component";
+			/**
+			 * @wponly  the URLs must be routed differently for WP
+			 */
+			$model 	= JModel::getInstance('vikbooking', 'shortcodes', 'admin');
+			$itemid = $model->best(array('booking'), (!empty($ord['lang']) ? $ord['lang'] : null));
+			if ($itemid) {
+				$return_url = str_replace(JUri::root(), '', $return_url);
+				$error_url = str_replace(JUri::root(), '', $error_url);
+				$notify_url = str_replace(JUri::root(), '', $notify_url);
+				$return_url = JRoute::rewrite($return_url . "&Itemid={$itemid}", false);
+				$error_url = JRoute::rewrite($error_url . "&Itemid={$itemid}", false);
+				$notify_url = JRoute::rewrite($notify_url . "&Itemid={$itemid}", false);
+			}
+		} else {
+			$return_url = VikBooking::externalroute("index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'], false, (!empty($bestitemid) ? $bestitemid : null));
+			$error_url = VikBooking::externalroute("index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'], false, (!empty($bestitemid) ? $bestitemid : null));
+			$notify_url = VikBooking::externalroute("index.php?option=com_vikbooking&task=notifypayment&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&tmpl=component", false, null);
 		}
-		//
+
 		$transaction_name = VikBooking::getPaymentName();
 		$remainingamount = $ord['payable'] > 0 ? $ord['payable'] : ($ord['total'] - $ord['totpaid']);
 		$leave_deposit = 0;
 		$percentdeposit = "";
-		$array_order = array();
+
+		$array_order = [];
 		$array_order['details'] = $ord;
+		if (empty($array_order['details']['sid']) && !empty($array_order['details']['idorderota']) && !empty($array_order['details']['channel'])) {
+			$array_order['details']['sid'] = $array_order['details']['idorderota'];
+			$ord['sid'] = $ord['idorderota'];
+		}
 		$array_order['customer_email'] = $ord['custmail'];
 		$array_order['account_name'] = VikBooking::getPaypalAcc();
 		$array_order['transaction_currency'] = VikBooking::getCurrencyCodePp();
@@ -716,17 +811,29 @@ if ($ord['status'] == 'confirmed' && is_array($payment) && intval($payment['show
 
 		<div class="vbvordpaybutton">
 			<?php
-			/**
-			 * @wponly 	The payment gateway is now loaded 
-			 * 			using the apposite dispatcher.
-			 *
-			 * @since 1.0.5
-			 */
-			JLoader::import('adapter.payment.dispatcher');
+			if (VBOPlatformDetection::isWordPress()) {
+				/**
+				 * @wponly 	The payment gateway is now loaded 
+				 * 			using the apposite dispatcher.
+				 *
+				 * @since 1.0.5
+				 */
+				JLoader::import('adapter.payment.dispatcher');
 
-			$obj = JPaymentDispatcher::getInstance('vikbooking', $payment['file'], $array_order, $payment['params']);
-			// remember to echo the payment
-			echo $obj->showPayment();
+				$obj = JPaymentDispatcher::getInstance('vikbooking', $payment['file'], $array_order, $payment['params']);
+				// remember to echo the payment
+				echo $obj->showPayment();
+			} else {
+				/**
+				 * @joomlaonly 	The Payment Factory library will invoke the gateway.
+				 * 
+				 * @since 	1.14.3
+				 */
+				require_once VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'payments' . DIRECTORY_SEPARATOR . 'libraries' . DIRECTORY_SEPARATOR . 'factory.php';
+				$obj = VBOPaymentFactory::getPaymentInstance($payment['file'], $array_order, $payment['params']);
+
+				$obj->showPayment();
+			}
 			?>
 		</div>
 		<?php
@@ -903,35 +1010,48 @@ if ($ord['status'] == 'confirmed' && $canc_allowed) {
 
 // stand-by booking payment rendering
 if (is_array($payment) && $ord['status'] == 'standby') {
-	/**
-	 * @wponly 	do not use require_once to load the payment
-	 *
-	 * @since 	1.0.5
-	 */
+	// render the selected payment method
 	$lang = JFactory::getLanguage();
 	$langtag = substr($lang->getTag(), 0, 2);
-	$return_url = JUri::root() . "index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&lang=" . $langtag;
-	$error_url = JUri::root() . "index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&lang=" . $langtag;
-	$notify_url = JUri::root() . "index.php?option=com_vikbooking&task=notifypayment&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&lang=" . $langtag . "&tmpl=component";
-	/**
-	 * @wponly  the URLs must be routed differently for WP
-	 */
-	$model 	= JModel::getInstance('vikbooking', 'shortcodes', 'admin');
-	$itemid = $model->best(array('booking'), (!empty($ord['lang']) ? $ord['lang'] : null));
-	if ($itemid) {
-		$return_url = str_replace(JUri::root(), '', $return_url);
-		$error_url = str_replace(JUri::root(), '', $error_url);
-		$notify_url = str_replace(JUri::root(), '', $notify_url);
-		$return_url = JRoute::rewrite($return_url . "&Itemid={$itemid}", false);
-		$error_url = JRoute::rewrite($error_url . "&Itemid={$itemid}", false);
-		$notify_url = JRoute::rewrite($notify_url . "&Itemid={$itemid}", false);
+
+	if (VBOPlatformDetection::isWordPress()) {
+		/**
+		 * @wponly
+		 *
+		 * @since 	1.0.5
+		 */
+		$return_url = JUri::root() . "index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&lang=" . $langtag;
+		$error_url = JUri::root() . "index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&lang=" . $langtag;
+		$notify_url = JUri::root() . "index.php?option=com_vikbooking&task=notifypayment&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&lang=" . $langtag . "&tmpl=component";
+		/**
+		 * @wponly  the URLs must be routed differently for WP
+		 */
+		$model 	= JModel::getInstance('vikbooking', 'shortcodes', 'admin');
+		$itemid = $model->best(array('booking'), (!empty($ord['lang']) ? $ord['lang'] : null));
+		if ($itemid) {
+			$return_url = str_replace(JUri::root(), '', $return_url);
+			$error_url = str_replace(JUri::root(), '', $error_url);
+			$notify_url = str_replace(JUri::root(), '', $notify_url);
+			$return_url = JRoute::rewrite($return_url . "&Itemid={$itemid}", false);
+			$error_url = JRoute::rewrite($error_url . "&Itemid={$itemid}", false);
+			$notify_url = JRoute::rewrite($notify_url . "&Itemid={$itemid}", false);
+		}
+	} else {
+		$return_url = VikBooking::externalroute("index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&lang=" . $langtag, false, (!empty($bestitemid) ? $bestitemid : null));
+		$error_url = VikBooking::externalroute("index.php?option=com_vikbooking&view=booking&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&lang=" . $langtag, false, (!empty($bestitemid) ? $bestitemid : null));
+		$notify_url = VikBooking::externalroute("index.php?option=com_vikbooking&task=notifypayment&sid=" . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . "&ts=" . $ord['ts'] . "&lang=" . $langtag . "&tmpl=component", false);
 	}
-	//
+
 	$transaction_name = VikBooking::getPaymentName();
 	$leave_deposit = 0;
 	$percentdeposit = "";
-	$array_order = array();
+
+	$array_order = [];
 	$array_order['details'] = $ord;
+	if (empty($array_order['details']['sid']) && !empty($array_order['details']['idorderota']) && !empty($array_order['details']['channel'])) {
+		$array_order['details']['sid'] = $array_order['details']['idorderota'];
+		$ord['sid'] = $ord['idorderota'];
+	}
 	$array_order['customer_email'] = $ord['custmail'];
 	$array_order['account_name'] = VikBooking::getPaypalAcc();
 	$array_order['transaction_currency'] = VikBooking::getCurrencyCodePp();
@@ -1010,12 +1130,18 @@ if (is_array($payment) && $ord['status'] == 'standby') {
 	$array_order['payment_info'] = $payment;
 	$array_order = array_merge($ord, $array_order);
 
+	if (VBOPlatformDetection::isWordPress()) {
+		$elapsed_redirect_uri = $return_url;
+	} else {
+		$elapsed_redirect_uri = JRoute::rewrite('index.php?option=com_vikbooking&view=booking&sid=' . (!empty($ord['idorderota']) && !empty($ord['channel']) ? $ord['idorderota'] : $ord['sid']) . '&ts=' . $ord['ts'] . (!empty($bestitemid) ? '&Itemid=' . $bestitemid : (!empty($pitemid) ? '&Itemid=' . $pitemid : '')), false);;
+	}
+
 	//Auto Removal Minutes
 	$minautoremove = VikBooking::getMinutesAutoRemove();
 	$mins_elapsed = floor(($now_info[0] - $ord['ts']) / 60);
 	if ($minautoremove > 0) {
 		$booktime_info = getdate($ord['ts']);
-		$booktime_offset = date('Z', $ord['ts']) * 60;
+		$booktime_offset = date('Z', $ord['ts']) / 60;
 		$remainmin = $minautoremove - $mins_elapsed;
 		$remainmin = $remainmin < 1 ? 1 : $remainmin;
 		$remainmilsec = intval($remainmin * 60 * 1000) + 100;
@@ -1038,10 +1164,7 @@ if (is_array($payment) && $ord['status'] == 'standby') {
 				"minutes": "<?php echo addslashes($lbl_minutes); ?>"
 			}
 			var vboPayTimeout = setTimeout(function() {
-				/**
-				 * @wponly  the redirect href must be routed differently
-				 */
-				document.location.href = '<?php echo $return_url; ?>';
+				document.location.href = '<?php echo $elapsed_redirect_uri; ?>';
 			}, <?php echo $remainmilsec; ?>);
 			var vboPayInterval = setInterval("vboRefreshPayTimer()", 60000);
 			var vboBookInfo = new Date(<?php echo $booktime_info['year']; ?>, <?php echo ($booktime_info['mon'] - 1); ?>, <?php echo $booktime_info['mday']; ?>, <?php echo $booktime_info['hours']; ?>, <?php echo $booktime_info['minutes']; ?>, <?php echo $booktime_info['seconds']; ?>, 0);
@@ -1054,10 +1177,11 @@ if (is_array($payment) && $ord['status'] == 'standby') {
 			function vboRefreshPayTimer() {
 				var vboNow = new Date();
 				if (!vboPayTimerOffsetSet) {
-					var tzoffset = <?php echo $booktime_offset; ?> - vboNow.getTimezoneOffset();
+					var tzoffset = vboNow.getTimezoneOffset() * -1 - <?php echo $booktime_offset; ?>;
 					vboBookInfo.setMinutes(vboBookInfo.getMinutes() + tzoffset);
 					vboPayTimerOffsetSet = true;
 				}
+
 				var mins_elapsed = Math.floor((vboNow - vboBookInfo) / 1000 / 60);
 				var remainmin = <?php echo $minautoremove; ?> - mins_elapsed;
 				var hours_left = remainmin > 59 ? Math.floor(remainmin / 60) : 0;
@@ -1105,17 +1229,29 @@ if (is_array($payment) && $ord['status'] == 'standby') {
 		<?php
 		}
 
-		/**
-		 * @wponly 	The payment gateway is now loaded 
-		 * 			using the apposite dispatcher.
-		 *
-		 * @since 1.0.5
-		 */
-		JLoader::import('adapter.payment.dispatcher');
+		if (VBOPlatformDetection::isWordPress()) {
+			/**
+			 * @wponly 	The payment gateway is now loaded 
+			 * 			using the apposite dispatcher.
+			 *
+			 * @since 1.0.5
+			 */
+			JLoader::import('adapter.payment.dispatcher');
 
-		$obj = JPaymentDispatcher::getInstance('vikbooking', $payment['file'], $array_order, $payment['params']);
-		// remember to echo the payment
-		echo $obj->showPayment();
+			$obj = JPaymentDispatcher::getInstance('vikbooking', $payment['file'], $array_order, $payment['params']);
+			// remember to echo the payment
+			echo $obj->showPayment();
+		} else {
+			/**
+			 * @joomlaonly 	The Payment Factory library will invoke the gateway.
+			 * 
+			 * @since 	1.14.3
+			 */
+			require_once VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'payments' . DIRECTORY_SEPARATOR . 'libraries' . DIRECTORY_SEPARATOR . 'factory.php';
+			$obj = VBOPaymentFactory::getPaymentInstance($payment['file'], $array_order, $payment['params']);
+
+			$obj->showPayment();
+		}
 
 		?>
 	</div>
@@ -1236,7 +1372,7 @@ if (is_array($review) && count($review)) {
 /**
  * Upselling Options/Extras block.
  * 
- * @since  1.3.0
+ * @since  1.13 (J) - 1.3.0 (WP)
  */
 $tot_upselling = count($this->upselling);
 if ($tot_upselling) {
@@ -1275,6 +1411,12 @@ if ($tot_upselling) {
 						?>
 						<div class="vbo-upsell-options-wrap">
 							<?php
+							// determine proper nights of stay
+							$room_stay_nights = $ord['days'];
+							if ($ord['split_stay'] && count($room_stay_dates) && isset($room_stay_dates[$kor]) && $room_stay_dates[$kor]['idroom'] == $uproom->id) {
+								$room_stay_nights = $room_stay_dates[$kor]['nights'];
+							}
+
 							foreach ($uproom->upsellable as $o) {
 								if ((int)$o['pcentroom']) {
 									// make sure we have a cost for the room, or we should skip this type of option for "incomplete" bookings
@@ -1283,7 +1425,7 @@ if ($tot_upselling) {
 									}
 									$o['cost'] = ((!empty($orderrooms[$kor]['cust_cost']) ? $orderrooms[$kor]['cust_cost'] : $orderrooms[$kor]['room_cost']) * $o['cost'] / 100);
 								}
-								$optcost = intval($o['perday']) == 1 ? ($o['cost'] * $ord['days']) : $o['cost'];
+								$optcost = intval($o['perday']) == 1 ? ($o['cost'] * $room_stay_nights) : $o['cost'];
 								if (!empty($o['maxprice']) && $o['maxprice'] > 0 && $optcost > $o['maxprice']) {
 									$optcost = $o['maxprice'];
 								}
@@ -1465,7 +1607,7 @@ if ($tot_upselling) {
  * use any other chat handler. Chat can be disabled from config.
  * Using the chat via front-end imposes the guest to be the sender.
  * 
- * @since  1.1.7
+ * @since  1.12 (J) - 1.1.7 (WP)
  */
 $messaging = null;
 if (VikBooking::chatEnabled() > 0) {
@@ -1506,7 +1648,7 @@ if (!is_null($messaging)) {
 		</div>
 	</div>
 	<script type="text/javascript">
-		jQuery(document).ready(function() {
+		jQuery(function() {
 			jQuery('.vbo-booking-chat-control').click(function() {
 				jQuery(this).remove();
 				jQuery('.vbo-booking-chat-wrap').removeClass('vbo-booking-chat-closed');
@@ -1542,12 +1684,12 @@ if (is_array($this->payment) && $this->payment['outposition'] != 'bottom') {
 	// move the payment window, if available
 ?>
 	<script type="text/javascript">
-		jQuery(document).ready(function() {
+		jQuery(function() {
 
-			var payment_output = jQuery('.vbvordpaybutton'),
-				payment_notes = jQuery('.vbvordpaynote'),
-				payment_ctimer = jQuery('.vbo-timer-payment'),
-				payment_wrappr = jQuery('.vbo-paycontainer-pos-<?php echo $this->payment['outposition']; ?>');
+			var payment_output = jQuery('.vbvordpaybutton').first(),
+				payment_notes = jQuery('.vbvordpaynote').first(),
+				payment_ctimer = jQuery('.vbo-timer-payment').first(),
+				payment_wrappr = jQuery('.vbo-paycontainer-pos-<?php echo $this->payment['outposition']; ?>').first();
 
 			if (payment_output.length && payment_wrappr.length) {
 				// display final target

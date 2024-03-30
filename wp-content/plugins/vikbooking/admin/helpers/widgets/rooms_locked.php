@@ -64,7 +64,7 @@ class VikBookingAdminWidgetRoomsLocked extends VikBookingAdminWidget
 		?>
 		<div class="vbo-admin-widget-wrapper">
 			<div class="vbo-admin-widget-head">
-				<h4><?php VikBookingIcons::e('lock'); ?> <?php echo JText::translate('VBDASHROOMSLOCKED'); ?> <span>(<?php echo count($rooms_locked); ?>)</span></h4>
+				<h4><?php echo $this->widgetIcon; ?> <span><?php echo JText::translate('VBDASHROOMSLOCKED'); ?> (<?php echo count($rooms_locked); ?>)</span></h4>
 			</div>
 		<?php
 		if (count($rooms_locked)) {

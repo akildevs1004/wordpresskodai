@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.mvc
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -32,6 +32,7 @@ defined('ABSPATH') or die('No script kiddies please!');
  *
  * @since 10.0
  */
+#[\AllowDynamicProperties]
 abstract class JView
 {
 	/**
@@ -148,7 +149,15 @@ abstract class JView
 		{
 			$file = $this->_layout;
 		}
-		else if (!is_null($tpl))
+		
+		/**
+		 * Do not use an ELSEIF statement (as it was earlier) because we have to append the given
+		 * template also in case the configured layout is different than "default", otherwise we
+		 * risk to enter in an infinite loop.
+		 * 
+		 * @since 10.1.41
+		 */
+		if (!is_null($tpl))
 		{
 			$file .= '_' . $tpl;
 		}
@@ -238,14 +247,22 @@ abstract class JView
 	protected function _getTemplateBasePath($base, $layout)
 	{
 		/**
-		 * Make sure the base path contains the "plugin" name and the "client" section.
-		 *
-		 * @since 10.1.27  Added support for Windows backslash.
+		 * Check whether the base path refers to a WordPress only view.
+		 * 
+		 * @since 10.1.48
 		 */
-		if (!preg_match("/[\/\\\\]plugins[\/\\\\](.*?)[\/\\\\](.*?)[\/\\\\]/", $base, $match))
+		if (!preg_match("/[\/\\\\]plugins[\/\\\\](.*?)[\/\\\\]libraries[\/\\\\]mvc[\/\\\\](.*?)[\/\\\\]/", $base, $match))
 		{
-			// malformed base path, don't proceed
-			return false;
+			/**
+			 * Make sure the base path contains the "plugin" name and the "client" section.
+			 *
+			 * @since 10.1.27  Added support for Windows backslash.
+			 */
+			if (!preg_match("/[\/\\\\]plugins[\/\\\\](.*?)[\/\\\\](.*?)[\/\\\\]/", $base, $match))
+			{
+				// malformed base path, don't proceed
+				return false;
+			}	
 		}
 
 		$upload = wp_upload_dir();
@@ -267,7 +284,7 @@ abstract class JView
 		// return only the base path.
 		$template = implode(DIRECTORY_SEPARATOR, $parts);
 
-		if (is_file($template . DIRECTORY_SEPARATOR . $layout . '.php'))
+		if (JFile::exists($template . DIRECTORY_SEPARATOR . $layout . '.php'))
 		{
 			// the resulting override exists, return the updated base path
 			return $template;

@@ -137,8 +137,6 @@ class UriUpdateHandler
 			->where('extension_id = '.$dbo->q($this->component->id));
 
 		$dbo->setQuery($q);
-		$dbo->execute();
-
 		$updateSite = $dbo->loadResult();
 
 		$success = false;
@@ -196,11 +194,11 @@ class UriUpdateHandler
 			->where('extension_id = ' . $this->component->id);
 		
 		$dbo->setQuery($q, 0, 1);
-		$dbo->execute();
+		$version_id = $dbo->loadResult();
 
-		if ($dbo->getNumRows()) {
+		if ($version_id) {
 
-			if ($dbo->loadResult() == $version) {
+			if ($version_id == $version) {
 				$ok = true;
 			} else {
 				$q->clear()

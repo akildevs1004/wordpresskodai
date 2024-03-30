@@ -23,6 +23,8 @@ interface VBONotificationDisplayer
 	 * the notification in the browser.
 	 * 
 	 * @return 	null|object 	the notification display data payload.
+	 * 
+	 * @throws 	Exception
 	 */
 	public function getData();
 }

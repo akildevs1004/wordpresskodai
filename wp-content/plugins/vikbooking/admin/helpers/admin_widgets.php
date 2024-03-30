@@ -81,34 +81,69 @@ class VikBookingHelperAdminWidgets
 	 */
 	protected function load()
 	{
+		/** @var VBOPlatformDispatcherInterface */
+		$dispatcher = VBOFactory::getPlatform()->getDispatcher();
+
 		// require main/parent admin-widget class
 		require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'admin_widget.php');
 
-		$widgets_base  = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'widgets' . DIRECTORY_SEPARATOR;
-		$widgets_files = glob($widgets_base . '*.php');
+		$widgets_base   = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'widgets' . DIRECTORY_SEPARATOR;
+		$widgets_files  = glob($widgets_base . '*.php');
+		$widgets_banned = [];
 
 		/**
 		 * Trigger event to let other plugins register additional widgets.
 		 *
 		 * @return 	array 	A list of supported widgets.
 		 */
-		$list = JFactory::getApplication()->triggerEvent('onLoadAdminWidgets');
+		$list = $dispatcher->filter('onLoadAdminWidgets');
+
 		foreach ($list as $chunk) {
 			// merge default widget files with the returned ones
 			$widgets_files = array_merge($widgets_files, (array)$chunk);
 		}
 
+		/**
+		 * Trigger event to let other plugins unregister specific widgets.
+		 *
+		 * @return 	array 	A list of widget identifiers to unload.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$unloaded = $dispatcher->filter('onUnloadAdminWidgets');
+
+		foreach ($unloaded as $chunk) {
+			// merge all the the returned ones
+			$widgets_banned = array_merge($widgets_banned, (array)$chunk);
+		}
+
+		// parse all admin widgets
 		foreach ($widgets_files as $wf) {
 			try {
-				// require widget class file
+				/**
+				 * Require widget class file only if available, to allow registering classes at
+				 * runtime by third-party plugins without needing to have a dedicated PHP file.
+				 * The widget class must obviously exist all the times, but the file must not.
+				 */
 				if (is_file($wf)) {
 					require_once($wf);
 				}
 
-				// instantiate widget object
-				$classname  = 'VikBookingAdminWidget' . str_replace(' ', '', ucwords(str_replace('_', ' ', basename($wf, '.php'))));
+				// widget identifier
+				$widget_identif = basename($wf, '.php');
+
+				// check if the widget was unloaded
+				if (in_array($widget_identif, $widgets_banned)) {
+					continue;
+				}
+
+				// build widget class name
+				$classname  = 'VikBookingAdminWidget' . str_replace(' ', '', ucwords(str_replace('_', ' ', $widget_identif)));
+
 				if (class_exists($classname)) {
+					// instantiate widget object
 					$widget = new $classname();
+
 					// push widget object
 					array_push($this->widgets, $widget);
 				}
@@ -128,21 +163,24 @@ class VikBookingHelperAdminWidgets
 	 */
 	protected function getDefaultWidgetsMap()
 	{
+		// sections container
 		$sections = [];
 
 		// build default sections
-		
-		// first section
+
+		// new section
 		$section = new stdClass;
 		$section->name = 'Top';
 		$section->containers = [];
 		// start container
 		$container = new stdClass;
-		$container->size = 'large';
+		$container->size = 'medium';
 		$container->widgets = [
 			'sticky_notes',
 			'arriving_today',
 			'departing_today',
+			'check_availability',
+			'latest_events',
 		];
 		// push container
 		array_push($section->containers, $container);
@@ -150,54 +188,27 @@ class VikBookingHelperAdminWidgets
 		$container = new stdClass;
 		$container->size = 'small';
 		$container->widgets = [
+			'guest_messages',
 			'latest_from_guests',
+			'booking_details',
+			'visitors_counter',
+		];
+		// push container
+		array_push($section->containers, $container);
+		// start container
+		$container = new stdClass;
+		$container->size = 'small';
+		$container->widgets = [
 			'forecast',
-		];
-		// push container
-		array_push($section->containers, $container);
-		// push section
-		array_push($sections, $section);
-
-		// second section
-		$section = new stdClass;
-		$section->name = 'Top 2';
-		$section->containers = [];
-		// start container
-		$container = new stdClass;
-		$container->size = 'medium';
-		$container->widgets = [
-			'reminders',
 			'bookings_calendar',
-		];
-		// push container
-		array_push($section->containers, $container);
-		// start container
-		$container = new stdClass;
-		$container->size = 'medium';
-		$container->widgets = [
-			'latest_events',
+			'reminders',
 		];
 		// push container
 		array_push($section->containers, $container);
 		// push section
 		array_push($sections, $section);
 
-		// third section
-		$section = new stdClass;
-		$section->name = 'Top 3';
-		$section->containers = [];
-		// start container
-		$container = new stdClass;
-		$container->size = 'full';
-		$container->widgets = [
-			'weekly_bookings',
-		];
-		// push container
-		array_push($section->containers, $container);
-		// push section
-		array_push($sections, $section);
-
-		// fourth section
+		// new section
 		$section = new stdClass;
 		$section->name = 'Middle';
 		$section->containers = [];
@@ -206,47 +217,48 @@ class VikBookingHelperAdminWidgets
 		$container->size = 'full';
 		$container->widgets = [
 			'today_rooms_occupancy',
+			'weekly_bookings',
 		];
 		// push container
 		array_push($section->containers, $container);
 		// push section
 		array_push($sections, $section);
 
-		// fifth section
+		// new section
 		$section = new stdClass;
-		$section->name = 'Bottom';
+		$section->name = 'Middle 2';
 		$section->containers = [];
+		// start container
+		$container = new stdClass;
+		$container->size = 'small';
+		$container->widgets = [
+			'latest_events',
+		];
+		// push container
+		array_push($section->containers, $container);
+		// start container
+		$container = new stdClass;
+		$container->size = 'small';
+		$container->widgets = [
+			'rates_flow',
+		];
+		// push container
+		array_push($section->containers, $container);
 		// start container
 		$container = new stdClass;
 		$container->size = 'medium';
 		$container->widgets = [
-			'orphan_dates',
-			'rooms_locked',
-		];
-		// push container
-		array_push($section->containers, $container);
-		// start container
-		$container = new stdClass;
-		$container->size = 'small';
-		$container->widgets = [
-			'sticky_notes',
-		];
-		// push container
-		array_push($section->containers, $container);
-		// start container
-		$container = new stdClass;
-		$container->size = 'small';
-		$container->widgets = [
-			'visitors_counter',
+			'finance',
+			'currency_converter',
 		];
 		// push container
 		array_push($section->containers, $container);
 		// push section
 		array_push($sections, $section);
 
-		// sixth section
+		// new section
 		$section = new stdClass;
-		$section->name = 'Bottom 2';
+		$section->name = 'Bottom';
 		$section->containers = [];
 		// start container
 		$container = new stdClass;
@@ -261,6 +273,30 @@ class VikBookingHelperAdminWidgets
 		$container->size = 'medium';
 		$container->widgets = [
 			'next_bookings',
+		];
+		// push container
+		array_push($section->containers, $container);
+		// push section
+		array_push($sections, $section);
+
+		// new section
+		$section = new stdClass;
+		$section->name = 'Bottom 2';
+		$section->containers = [];
+		// start container
+		$container = new stdClass;
+		$container->size = 'medium';
+		$container->widgets = [
+			'orphan_dates',
+			'rooms_locked',
+		];
+		// push container
+		array_push($section->containers, $container);
+		// start container
+		$container = new stdClass;
+		$container->size = 'medium';
+		$container->widgets = [
+			'sticky_notes',
 		];
 		// push container
 		array_push($section->containers, $container);
@@ -296,10 +332,9 @@ class VikBookingHelperAdminWidgets
 		$id = $this->simplifyId($id);
 
 		foreach ($this->widgets as $widget) {
-			if ($widget->getIdentifier() != $id) {
-				continue;
+			if ($widget->getIdentifier() == $id) {
+				return $widget;
 			}
-			return $widget;
 		}
 
 		return false;
@@ -384,9 +419,9 @@ class VikBookingHelperAdminWidgets
 	{
 		$q = "SELECT `setting` FROM `#__vikbooking_config` WHERE `param`='admin_widgets_map';";
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		if ($this->dbo->getNumRows()) {
-			$map = json_decode($this->dbo->loadResult());
+		$map = $this->dbo->loadResult();
+		if ($map) {
+			$map = json_decode($map);
 			return is_object($map) && !empty($map->sections) && is_array($map->sections) ? $map : $this->getDefaultWidgetsMap();
 		}
 
@@ -442,23 +477,24 @@ class VikBookingHelperAdminWidgets
 	/**
 	 * Forces the rendering of a specific widget identifier.
 	 * 
-	 * @param 	string 	$id 	the widget identifier.
-	 * @param 	mixed 	$data 	anything to pass to the widget.
+	 * @param 	string 				$id 	the widget identifier.
+	 * @param 	VBOMultitaskData 	$data 	optional multitask data for the widget.
 	 *
-	 * @return 	mixed 	void on success, false otherwise.
+	 * @return 	void
 	 */
-	public function renderWidget($id, $data = null)
+	public function renderWidget($id, VBOMultitaskData $data = null)
 	{
 		$id = $this->simplifyId($id);
 
 		foreach ($this->widgets as $widget) {
-			if ($widget->getIdentifier() != $id) {
-				continue;
-			}
-			return $widget->render($data);
-		}
+			if ($widget->getIdentifier() == $id) {
+				// render the requested widget
+				$widget->render($data);
 
-		return false;
+				// return void
+				return;
+			}
+		}
 	}
 
 	/**
@@ -471,10 +507,10 @@ class VikBookingHelperAdminWidgets
 	public function getContainerCssClass($size)
 	{
 		$css_size_map = [
-			'small' => 'vbo-admin-widgets-container-small',
+			'small'  => 'vbo-admin-widgets-container-small',
 			'medium' => 'vbo-admin-widgets-container-medium',
-			'large' => 'vbo-admin-widgets-container-large',
-			'full' => 'vbo-admin-widgets-container-fullwidth',
+			'large'  => 'vbo-admin-widgets-container-large',
+			'full'   => 'vbo-admin-widgets-container-fullwidth',
 		];
 
 		return isset($css_size_map[$size]) ? $css_size_map[$size] : $css_size_map['full'];
@@ -542,9 +578,8 @@ class VikBookingHelperAdminWidgets
 
 		$q = "SELECT `id`,`name`,`units`,`params`,`avail` FROM `#__vikbooking_rooms`;";
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		if ($this->dbo->getNumRows() > 0) {
-			$all_rooms = $this->dbo->loadAssocList();
+		$all_rooms = $this->dbo->loadAssocList();
+		if ($all_rooms) {
 			foreach ($all_rooms as $k => $r) {
 				if ($r['avail'] < 1) {
 					$unpublished_rooms[] = $r['id'];
@@ -627,9 +662,9 @@ class VikBookingHelperAdminWidgets
 	{
 		$q = "SELECT `setting` FROM `#__vikbooking_config` WHERE `param`='admin_widgets_welcome';";
 		$this->dbo->setQuery($q);
-		$this->dbo->execute();
-		if ($this->dbo->getNumRows()) {
-			return ((int)$this->dbo->loadResult() < 1);
+		$show_welcome = $this->dbo->loadResult();
+		if ($show_welcome !== null) {
+			return ((int)$show_welcome < 1);
 		}
 
 		$q = "INSERT INTO `#__vikbooking_config` (`param`,`setting`) VALUES ('admin_widgets_welcome', '0');";

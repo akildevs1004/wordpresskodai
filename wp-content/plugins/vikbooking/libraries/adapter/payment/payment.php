@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.payment
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -671,6 +671,137 @@ abstract class JPayment
 	{
 		// do nothing as a plugin may
 		// not support refund requests
+	}
+
+	/**
+	 * Checks whether the payment method supports
+	 * direct charge requests (false by default).
+	 * Inherits method in children classes in case
+	 * the payment supports direct debits.
+	 *
+	 * @return 	boolean
+	 *
+	 * @since 	10.1.46
+	 */
+	public function isDirectChargeSupported()
+	{
+		// not supported by default
+		return false;
+	}
+
+	/**
+	 * Performs the direct charge request of a CC.
+	 *
+	 * This method triggers the ACTION below to manipulate the payment details
+	 * before they are used to execute the direct charge:
+	 * - payment_before_direct_charge
+	 *
+	 * This method triggers the ACTION below to manipulate the
+	 * response evaluated by the direct charge:
+	 * - payment_after_direct_charge
+	 *
+	 * @return 	mixed 	An object describing the status of the transaction.
+	 *
+	 * @uses 	isDirectChargeSupported()
+	 * @uses 	doDirectCharge()
+	 *
+	 * @since 	10.1.46
+	 */
+	public function directCharge()
+	{
+		// make sure direct charge requests are supported
+		if (!$this->isDirectChargeSupported())
+		{
+			// direct charge requests are not supported
+			throw new Exception('Direct charge method not supported', 405);
+		}
+
+		$status = new JPaymentStatus();
+
+		/**
+		 * Plugins can manipulate the properties of this object.
+		 * Fires before the direct charge request is made.
+		 * Global hook accessible by any drivers.
+		 *
+		 * @param 	self 	A reference to this object.
+		 *
+		 * @since 	10.1.46
+		 */
+		do_action($this->getHook('payment_before_direct_charge'), array($this));
+
+		/**
+		 * Plugins can manipulate the properties of this object.
+		 * Fires before the direct charge request is made.
+		 * Hook specific for the current driver.
+		 *
+		 * @param 	self 	A reference to this object.
+		 *
+		 * @since 	10.1.46
+		 */
+		do_action($this->getDriverHook('payment_before_direct_charge'), array($this));
+
+		// children payments will perform the direct charge
+		$this->doDirectCharge($status);
+
+		$response = null;
+
+		/**
+		 * Plugins can manipulate the response object to return.
+		 * By filling the &$response variable, this method will return
+		 * it instead of the default &$status one.
+		 * Fires after completing the direct charge.
+		 * Hook specific for the current driver.
+		 *
+		 * @param 	self 			A reference to this object.
+		 * @param 	JPaymentStatus 	A reference to the status object.
+		 * @param 	mixed 			A reference to the final response (null by default).
+		 *
+		 * @since 	10.1.32
+		 */
+		do_action_ref_array($this->getDriverHook('payment_after_direct_charge'), array($this, $status, &$response));
+
+		/**
+		 * Plugins can manipulate the response object to return.
+		 * By filling the &$response variable, this method will return
+		 * it instead of the default &$status one.
+		 * Fires after completing the direct charge.
+		 * Global hook accessible by any drivers.
+		 *
+		 * @param 	self 			A reference to this object.
+		 * @param 	JPaymentStatus 	A reference to the status object.
+		 * @param 	mixed 			A reference to the final response (null by default).
+		 *
+		 * @since 	10.1.32
+		 */
+		do_action_ref_array($this->getHook('payment_after_direct_charge'), array($this, $status, &$response));
+
+		if (is_null($response))
+		{
+			// no hook fired, the response will be equal to the status object
+			$response = $status;
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Direct charge implementor.
+	 * Children classes can inherit this method to use the API of the
+	 * payment in order to perform a direct charge.
+	 *
+	 * @param 	JPaymentStatus 	$status 	The status object. In case the direct charge was 
+	 * 										successful, you should invoke: $status->verified().
+	 *
+	 * @return 	void
+	 *
+	 * @see 	JPaymentStatus
+	 *
+	 * @since 	10.1.46
+	 */
+	protected function doDirectCharge(JPaymentStatus $status)
+	{
+		// do nothing as a plugin may
+		// not support direct charges
 	}
 
 	/**

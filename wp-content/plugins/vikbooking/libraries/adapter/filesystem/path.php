@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.filesystem
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -103,7 +103,7 @@ class JPath
 
 		if (empty($path))
 		{
-			throw new Exception('JPath::clean() does not accept empty paths.', 500);
+			throw new InvalidArgumentException('JPath::clean() does not accept empty paths.', 500);
 		}
 
 		// Remove double slashes and backslashes and convert all slashes and backslashes to DIRECTORY_SEPARATOR.

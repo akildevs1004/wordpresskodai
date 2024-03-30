@@ -11,7 +11,6 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 $room = $this->room;
-$msg = $this->msg;
 $allc = $this->allc;
 $payments = $this->payments;
 $busy = $this->busy;
@@ -25,6 +24,23 @@ $vbo_app->loadDatePicker();
 $document = JFactory::getDocument();
 $document->addStyleSheet(VBO_ADMIN_URI.'resources/jquery.highlighttextarea.min.css');
 JHtml::fetch('script', VBO_ADMIN_URI.'resources/jquery.highlighttextarea.min.js');
+
+// JS lang def
+JText::script('VBFILLCUSTFIELDS');
+JText::script('VBMSGTHREE');
+JText::script('VBMSGFOUR');
+JText::script('VBDBTEXTROOMCLOSED');
+JText::script('ORDER_NOTES');
+JText::script('VBSUBMCLOSEROOM');
+JText::script('VBCUSTINFO');
+JText::script('VBMAKERESERV');
+JText::script('VBDAY');
+JText::script('VBOCALCLOSEOTHERROOMS');
+JText::script('VBERRCUSTOMEREMAILEXISTS');
+JText::script('VBAPPLY');
+JText::script('VBANNULLA');
+JText::script('VBO_MARK_UNITS_CLOSED');
+
 $vbo_df = VikBooking::getDateFormat(true);
 if ($vbo_df == "%d/%m/%Y") {
 	$df = 'd/m/Y';
@@ -36,36 +52,46 @@ if ($vbo_df == "%d/%m/%Y") {
 	$df = 'Y/m/d';
 	$juidf = 'yy/mm/dd';
 }
-
+$datesep = VikBooking::getDateSeparator(true);
 $prices_vat_included = (int)VikBooking::ivaInclusa();
 
 $pcheckin = VikRequest::getString('checkin', '', 'request');
+$pcheckin_ymd = $pcheckin;
 if (!empty($pcheckin)) {
 	$pcheckin = date(str_replace('%', '', $vbo_df), strtotime($pcheckin));
 }
 $pcheckout = VikRequest::getString('checkout', '', 'request');
+$pcheckout_ymd = $pcheckout;
 if (!empty($pcheckout)) {
 	$pcheckout = date(str_replace('%', '', $vbo_df), strtotime($pcheckout));
 }
+
 $ptmpl = VikRequest::getString('tmpl', '', 'request');
 $poverview = VikRequest::getInt('overv', '', 'request');
-$poverview_change = VikRequest::getInt('overview_change', '', 'request');
+$poverview_change = VikRequest::getInt('overview_change', 0, 'request');
 $padults = VikRequest::getInt('adults', 0, 'request');
 $pchildren = VikRequest::getInt('children', 0, 'request');
 $pidprice = VikRequest::getInt('idprice', 0, 'request');
 $pbooknow = VikRequest::getInt('booknow', 0, 'request');
 
-if (strlen($msg) > 0 && intval($msg) > 0) {
+/**
+ * Split stay data for booking.
+ * 
+ * @since 	1.16.0 (J) - 1.6.0 (WP)
+ */
+$split_stay = VikRequest::getVar('split_stay', array());
+$rooms_data = [];
+foreach ($allc as $room_info) {
+	$rooms_data[$room_info['id']] = $room_info['name'];
+}
+
+if ($this->new_res_id) {
 	?>
-<p class="successmade"><?php echo JText::translate('VBBOOKMADE'); ?> &nbsp;&nbsp;&nbsp; <a href="index.php?option=com_vikbooking&task=editorder&cid[]=<?php echo intval($msg); ?>" class="btn"><i class="vboicn-eye"></i> <?php echo JText::translate('VBOVIEWBOOKINGDET'); ?></a></p>
+<p class="successmade"><?php echo JText::translate('VBBOOKMADE'); ?> &nbsp;&nbsp;&nbsp; <a href="index.php?option=com_vikbooking&task=editorder&cid[]=<?php echo $this->new_res_id; ?>" target="_blank" class="btn"><i class="vboicn-eye"></i> <?php echo JText::translate('VBOVIEWBOOKINGDET'); ?></a></p>
 	<?php
 	if ($poverview > 0 && $ptmpl == 'component') {
 		$poverview_change = 1;
 	}
-} elseif (strlen($msg) > 0 && $msg == "0") {
-	?>
-<p class="err" style="margin-top: -5px;"><?php echo JText::translate('VBBOOKNOTMADE'); ?></p>
-	<?php
 }
 
 $timeopst = VikBooking::getTimeOpenStore();
@@ -99,32 +125,28 @@ for ($i = $childrenparts[0]; $i <= ((int)$childrenparts[1] * $room['units']); $i
 }
 $selchildren .= "</select>\n";
 $selpayments = '<select name="payment"><option value="">'.JText::translate('VBPAYMUNDEFINED').'</option>';
-if (is_array($payments) && @count($payments) > 0) {
+if (is_array($payments) && $payments) {
 	foreach ($payments as $pay) {
 		$selpayments .= '<option value="'.$pay['id'].'">'.$pay['name'].'</option>';
 	}
 }
 $selpayments .= '</select>';
 // custom fields
-$all_cfields = array();
 $all_countries = array();
 $q = "SELECT * FROM `#__vikbooking_custfields` ORDER BY `#__vikbooking_custfields`.`ordering` ASC;";
 $dbo->setQuery($q);
-$dbo->execute();
-if ($dbo->getNumRows() > 0) {
-	$all_cfields = $dbo->loadAssocList();
+$all_cfields = $dbo->loadAssocList();
+if ($all_cfields) {
 	$q = "SELECT * FROM `#__vikbooking_countries` ORDER BY `#__vikbooking_countries`.`country_name` ASC;";
 	$dbo->setQuery($q);
-	$dbo->execute();
-	$all_countries = $dbo->getNumRows() > 0 ? $dbo->loadAssocList() : array();
+	$all_countries = $dbo->loadAssocList();
 }
-//
+
 $wiva = "";
 $q = "SELECT * FROM `#__vikbooking_iva`;";
 $dbo->setQuery($q);
-$dbo->execute();
-if ($dbo->getNumRows() > 0) {
-	$ivas = $dbo->loadAssocList();
+$ivas = $dbo->loadAssocList();
+if ($ivas) {
 	foreach ($ivas as $kiv => $iv) {
 		$wiva .= "<option value=\"".$iv['id']."\" data-aliqid=\"".$iv['id']."\"".($kiv < 1 ? ' selected="selected"' : '').">".(empty($iv['name']) ? $iv['aliq']."%" : $iv['name']." - ".$iv['aliq']."%")."</option>\n";
 	}
@@ -145,9 +167,8 @@ if (count($allc) > 1) {
 	}
 	$closeotherrooms .= "</select>\n";
 }
-//
-?>
 
+?>
 
 <div class="vbo-admin-container">
 	
@@ -157,7 +178,7 @@ if (count($allc) > 1) {
 			<div class="vbo-params-wrap">
 				<legend class="adminlegend">
 					<div class="vbo-quickres-head">
-						<span><?php echo $room['name'] . " - " . JText::translate('VBQUICKBOOK'); ?></span>
+						<span><?php echo $room['name'] . " - " . JText::translate('VBQUICKBOOK') . (!empty($split_stay) ? ' (' . JText::translate('VBO_SPLIT_STAY') . ')' : ''); ?></span>
 						<div class="vbo-quickres-head-right">
 							<form name="vbchroom" id="vbchroom" method="post" action="index.php?option=com_vikbooking">
 								<input type="hidden" name="task" value="calendar"/>
@@ -178,7 +199,7 @@ if (count($allc) > 1) {
 						</div>
 					</div>
 				</legend>
-				<form name="newb" method="post" action="index.php?option=com_vikbooking" onsubmit="javascript: if (!document.newb.checkindate.value.match(/\S/)){alert('<?php echo addslashes(JText::translate('VBMSGTHREE')); ?>'); return false;} if (!document.newb.checkoutdate.value.match(/\S/)){alert('<?php echo addslashes(JText::translate('VBMSGFOUR')); ?>'); return false;} return true;">
+				<form name="newb" method="post" action="index.php?option=com_vikbooking" id="vbo-calendar-newb-form">
 					<div class="vbo-params-container">
 						<div class="vbo-param-container">
 							<div class="vbo-param-label"><?php echo JText::translate('VBDATEPICKUP'); ?></div>
@@ -208,7 +229,7 @@ if (count($allc) > 1) {
 								<input type="hidden" name="checkoutm" value="<?php echo $mcheckout; ?>"/>
 							</div>
 						</div>
-						<div class="vbo-param-container">
+						<div class="vbo-param-container" style="<?php echo !empty($split_stay) ? 'display: none;' : ''; ?>">
 							<div class="vbo-param-label">
 								<span class="vbcloseroomsp">
 									<label for="setclosed-on"><?php echo JText::translate('VBCLOSEROOM'); ?> <i class="<?php echo VikBookingIcons::i('ban'); ?>" style="float: none;"></i></label>
@@ -220,7 +241,7 @@ if (count($allc) > 1) {
 							</div>
 						</div>
 					<?php
-					if ($room['units'] > 1) {
+					if ($room['units'] > 1 && empty($split_stay)) {
 						$num_rooms_vals = range(1, $room['units']);
 						$num_rooms_opts = '';
 						foreach ($num_rooms_vals as $nrv) {
@@ -245,9 +266,39 @@ if (count($allc) > 1) {
 						<div class="vbo-param-container" id="vbo-row-people">
 							<div class="vbo-param-label"><?php echo JText::translate('VBQUICKRESGUESTS'); ?></div>
 							<div class="vbo-param-setting">
-								<?php echo '<span class="vbo-quickres-aduchi-inlbl">' . JText::translate('VBQUICKADULTS') . "</span> " . $seladults . " &nbsp;&nbsp; <span class=\"vbo-quickres-aduchi-inlbl\">" . JText::translate('VBQUICKCHILDREN') . "</span> " . $selchildren; ?>
+								<span class="vbo-quickres-aduchi-wrap">
+									<span class="vbo-quickres-aduchi-inlbl"><?php echo JText::translate('VBQUICKADULTS'); ?></span>
+									<?php echo $seladults; ?>
+								</span>
+								<span class="vbo-quickres-aduchi-wrap">
+									<span class="vbo-quickres-aduchi-inlbl"><?php echo JText::translate('VBQUICKCHILDREN'); ?></span>
+									<?php echo $selchildren; ?>
+								</span>
 							</div>
 						</div>
+				<?php
+				if (!empty($split_stay)) {
+					foreach ($split_stay as $sps_k => $sps_v) {
+						?>
+						<div class="vbo-param-container">
+							<div class="vbo-param-label"><?php echo $sps_k < 1 ? '<i class="' . VikBookingIcons::i('random') . '"></i> ' . JText::translate('VBO_SPLIT_STAY') : ' '; ?></div>
+							<div class="vbo-param-setting">
+								<div class="vbo-cal-splitstay-details">
+									<div class="vbo-cal-splitstay-room">
+										<span class="vbo-cal-splitstay-room-name"><?php VikBookingIcons::e('bed'); ?> <?php echo $rooms_data[$sps_v['idroom']]; ?></span>
+										<span class="vbo-cal-splitstay-room-nights"><?php VikBookingIcons::e('moon'); ?> <?php echo $sps_v['nights']; ?> <?php echo $sps_v['nights'] > 1 ? JText::translate('VBDAYS') : JText::translate('VBDAY'); ?></span>
+									</div>
+									<div class="vbo-cal-splitstay-dates">
+										<span class="vbo-cal-splitstay-dates-in"><?php VikBookingIcons::e('plane-arrival'); ?> <?php echo date(str_replace("/", $datesep, $df), strtotime($sps_v['checkin'])); ?></span>
+										<span class="vbo-cal-splitstay-dates-out"><?php VikBookingIcons::e('plane-departure'); ?> <?php echo date(str_replace("/", $datesep, $df), strtotime($sps_v['checkout'])); ?></span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<?php
+					}
+				}
+				?>
 						<div class="vbo-param-container"<?php echo ($poverview > 0 ? ' style="display: none;"' : ''); ?> id="vbo-row-bstat">
 							<div class="vbo-param-label"><?php echo JText::translate('VBCALBOOKINGSTATUS'); ?></div>
 							<div class="vbo-param-setting">
@@ -279,7 +330,7 @@ if (count($allc) > 1) {
 							</div>
 						</div>
 						<div class="vbo-param-container">
-							<div class="vbo-param-label"><?php echo JText::translate('VBCUSTINFO'); ?></div>
+							<div class="vbo-param-label" id="vbcustdatalbl"><?php echo JText::translate('VBCUSTINFO'); ?></div>
 							<div class="vbo-param-setting">
 								<textarea name="custdata" id="vbcustdatatxtarea" rows="5" cols="70" style="min-width: 300px;"></textarea>
 							</div>
@@ -291,19 +342,19 @@ if (count($allc) > 1) {
 						<div class="vbo-param-container" id="vbo-row-custcost">
 							<div class="vbo-param-label"><?php echo JText::translate('VBOROOMCUSTRATEPLANADD'); ?></div>
 							<div class="vbo-param-setting">
-								<span>
-									<?php echo $currencysymb; ?> <input name="cust_cost" id="cust_cost" value="" onfocus="document.getElementById('taxid').style.display = 'inline-block';" onkeyup="vbCalcDailyCost(this.value);" onchange="vbCalcDailyCost(this.value);" type="number" step="any" min="0" style="min-width: 75px; margin: 0 5px 0 0;">
-									<select name="taxid" id="taxid" style="display: none; margin: 0; max-width: 150px;">
+								<div class="vbo-calendar-costs-wrapper">
+									<?php echo $currencysymb; ?> <input name="cust_cost" id="cust_cost" value="" onfocus="document.getElementById('taxid').style.display = 'inline-block';" onkeyup="vbCalcDailyCost(this.value);" onchange="vbCalcDailyCost(this.value);" type="number" step="any" min="0">
+									<select class="vbo-calendar-taxid" name="taxid" id="taxid" style="display: none;">
 										<option value=""><?php echo JText::translate('VBNEWOPTFOUR'); ?></option>
 										<?php echo $wiva; ?>
 									</select>
-									<span id="avg-daycost" style="display: none; margin-left: 15px;">
-										<select name="totalpnight" style="margin: 0;">
+									<div id="avg-daycost" class="vbo-calendar-avg-daycost" style="display: none;">
+										<select name="totalpnight">
 											<option value="total"></option>
 											<option value="pnight"></option>
 										</select>
-									</span>
-								</span>
+									</div>
+								</div>
 							</div>
 						</div>
 						<div id="vbo-force-bookingdates" class="vbo-param-container" style="display: none;">
@@ -331,9 +382,20 @@ if (count($allc) > 1) {
 						<input type="hidden" name="tmpl" value="component" />
 						<?php
 					}
+					if (!empty($split_stay)) {
+						// add hidden fields for the split stay booking
+						foreach ($split_stay as $spsk => $sps_room) {
+							foreach ($sps_room as $sps_room_k => $sps_room_v) {
+								?>
+						<input type="hidden" name="split_stay_data[<?php echo $spsk; ?>][<?php echo $sps_room_k; ?>]" value="<?php echo JHtml::fetch('esc_attr', $sps_room_v); ?>" />
+								<?php
+							}
+						}
+					}
 					?>
 					<input type="hidden" name="customer_id" value="" id="customer_id_inpfield"/>
 					<input type="hidden" name="countrycode" value="" id="ccode_inpfield"/>
+					<input type="hidden" name="state" value="" id="state_inpfield"/>
 					<input type="hidden" name="t_first_name" value="" id="t_first_name_inpfield"/>
 					<input type="hidden" name="t_last_name" value="" id="t_last_name_inpfield"/>
 					<input type="hidden" name="phone" value="" id="phonefield"/>
@@ -369,13 +431,39 @@ if (count($allc) > 1) {
 			<?php
 		} else {
 			$check = true;
+			// build URL for each number of calendar months
+			$base_uri_data = [
+				'option' => 'com_vikbooking',
+				'task' => 'calendar',
+				'cid' => [
+					$room['id']
+				],
+				'split_stay' => $split_stay,
+			];
+			if (!empty($pcheckin_ymd) && !empty($pcheckout_ymd)) {
+				$base_uri_data['checkin'] = $pcheckin_ymd;
+				$base_uri_data['checkout'] = $pcheckout_ymd;
+			}
+			if ($padults > 0) {
+				$base_uri_data['adults'] = $padults;
+				$base_uri_data['children'] = $pchildren;
+			}
+			if (!empty($pidprice)) {
+				$base_uri_data['idprice'] = $pidprice;
+			}
+			if (!empty($pbooknow)) {
+				$base_uri_data['booknow'] = $pbooknow;
+			}
+			if ($ptmpl == 'component') {
+				$base_uri_data['tmpl'] = 'component';
+			}
 			?>
-			<p>
-				<a class="vbmodelink<?php echo $vmode == 3 ? ' vbmodelink-active' : ''; ?>" href="index.php?option=com_vikbooking&amp;task=calendar&amp;cid[]=<?php echo $room['id'].($ptmpl == 'component' ? '&tmpl=component' : ''); ?>&amp;vmode=3"><?php VikBookingIcons::e('calendar'); ?> <span><?php echo JText::translate('VBTHREEMONTHS'); ?></span></a>
-				<a class="vbmodelink<?php echo $vmode == 6 ? ' vbmodelink-active' : ''; ?>" href="index.php?option=com_vikbooking&amp;task=calendar&amp;cid[]=<?php echo $room['id'].($ptmpl == 'component' ? '&tmpl=component' : ''); ?>&amp;vmode=6"><?php VikBookingIcons::e('calendar'); ?> <span><?php echo JText::translate('VBSIXMONTHS'); ?></span></a>
-				<a class="vbmodelink<?php echo $vmode == 12 ? ' vbmodelink-active' : ''; ?>" href="index.php?option=com_vikbooking&amp;task=calendar&amp;cid[]=<?php echo $room['id'].($ptmpl == 'component' ? '&tmpl=component' : ''); ?>&amp;vmode=12"><?php VikBookingIcons::e('calendar'); ?> <span><?php echo JText::translate('VBTWELVEMONTHS'); ?></span></a>
-				<a class="vbmodelink<?php echo $vmode == 24 ? ' vbmodelink-active' : ''; ?>" href="index.php?option=com_vikbooking&amp;task=calendar&amp;cid[]=<?php echo $room['id'].($ptmpl == 'component' ? '&tmpl=component' : ''); ?>&amp;vmode=24"><?php VikBookingIcons::e('calendar'); ?> <span><?php echo JText::translate('VBTWOYEARS'); ?></span></a>
-			</p>
+			<div>
+				<a class="vbmodelink<?php echo $vmode == 3 ? ' vbmodelink-active' : ''; ?>" href="index.php?<?php echo http_build_query(array_merge($base_uri_data, ['vmode' => 3])); ?>"><?php VikBookingIcons::e('calendar'); ?> <span><?php echo JText::translate('VBTHREEMONTHS'); ?></span></a>
+				<a class="vbmodelink<?php echo $vmode == 6 ? ' vbmodelink-active' : ''; ?>" href="index.php?<?php echo http_build_query(array_merge($base_uri_data, ['vmode' => 6])); ?>"><?php VikBookingIcons::e('calendar'); ?> <span><?php echo JText::translate('VBSIXMONTHS'); ?></span></a>
+				<a class="vbmodelink<?php echo $vmode == 12 ? ' vbmodelink-active' : ''; ?>" href="index.php?<?php echo http_build_query(array_merge($base_uri_data, ['vmode' => 12])); ?>"><?php VikBookingIcons::e('calendar'); ?> <span><?php echo JText::translate('VBTWELVEMONTHS'); ?></span></a>
+				<a class="vbmodelink<?php echo $vmode == 24 ? ' vbmodelink-active' : ''; ?>" href="index.php?<?php echo http_build_query(array_merge($base_uri_data, ['vmode' => 24])); ?>"><?php VikBookingIcons::e('calendar'); ?> <span><?php echo JText::translate('VBTWOYEARS'); ?></span></a>
+			</div>
 			<?php
 		}
 		?>
@@ -383,13 +471,11 @@ if (count($allc) > 1) {
 				<?php
 				$arr = getdate();
 				$mon = $arr['mon'];
-				$realmon = ($mon < 10 ? "0".$mon : $mon);
 				$year = $arr['year'];
-				$day = $realmon."/01/".$year;
-				$dayts = strtotime($day);
+				$dayts = mktime(0, 0, 0, $mon, 1, $year);
 				$newarr = getdate($dayts);
 
-				$firstwday = (int)VikBooking::getFirstWeekDay(true);
+				$firstwday = (int)VikBooking::getFirstWeekDay();
 				$days_labels = array(
 						JText::translate('VBSUN'),
 						JText::translate('VBMON'),
@@ -471,7 +557,7 @@ if (count($allc) > 1) {
 							$cal .= "<td align=\"center\" data-daydate=\"".date($df, $newarr[0])."\" class=\"".$dclass."\">".$dlnk."</td>\n";
 						}
 						$next = $newarr['mday'] + 1;
-						$dayts = mktime(0, 0, 0, ($newarr['mon'] < 10 ? "0".$newarr['mon'] : $newarr['mon']), ($next < 10 ? "0".$next : $next), $newarr['year']);
+						$dayts = mktime(0, 0, 0, $newarr['mon'], $next, $newarr['year']);
 						$newarr = getdate($dayts);
 						$d_count++;
 					}
@@ -489,10 +575,10 @@ if (count($allc) > 1) {
 					if ($mon == 12) {
 						$mon = 1;
 						$year += 1;
-						$dayts = mktime(0, 0, 0, ($mon < 10 ? "0".$mon : $mon), 01, $year);
+						$dayts = mktime(0, 0, 0, $mon, 01, $year);
 					} else {
 						$mon += 1;
-						$dayts = mktime(0, 0, 0, ($mon < 10 ? "0".$mon : $mon), 01, $year);
+						$dayts = mktime(0, 0, 0, $mon, 01, $year);
 					}
 					$newarr = getdate($dayts);
 				}
@@ -503,33 +589,37 @@ if (count($allc) > 1) {
 
 </div>
 
-<div class="vbo-calendar-cfields-filler-overlay">
-	<a class="vbo-info-overlay-close" href="javascript: void(0);"></a>
+<div class="vbo-calendar-modal-helper" style="display: none;">
 	<div class="vbo-calendar-cfields-filler">
 		<div class="vbo-calendar-cfields-topcont">
-			<div class="vbo-calendar-cfields-custinfo">
-				<h4><?php echo JText::translate('VBCUSTINFO'); ?></h4>
-			</div>
 			<div class="vbo-calendar-cfields-search">
 				<label for="vbo-searchcust"><?php echo JText::translate('VBOSEARCHEXISTCUST'); ?></label>
 				<span id="vbo-searchcust-loading">
 					<i class="vboicn-hour-glass"></i>
 				</span>
-				<input type="text" id="vbo-searchcust" autocomplete="off" value="" placeholder="<?php echo JText::translate('VBOSEARCHCUSTBY'); ?>" size="35" />
+				<input type="text" id="vbo-searchcust" autocomplete="off" value="" placeholder="<?php echo htmlspecialchars(JText::translate('VBOSEARCHCUSTBY')); ?>" size="35" />
 				<div id="vbo-searchcust-res"></div>
 			</div>
 		</div>
 		<div class="vbo-calendar-cfields-inner">
 	<?php
-	$phone_field_id = '';
 	foreach ($all_cfields as $cfield) {
 		if ($cfield['type'] == 'text' && $cfield['isphone'] == 1) {
-			$phone_field_id = 'cfield' . $cfield['id'];
 			?>
 			<div class="vbo-calendar-cfield-entry">
-				<label for="<?php echo $phone_field_id; ?>" data-fieldid="<?php echo $cfield['id']; ?>"><?php echo JText::translate($cfield['name']); ?></label>
+				<label for="cfield<?php echo $cfield['id']; ?>" data-fieldid="<?php echo $cfield['id']; ?>"><?php echo JText::translate($cfield['name']); ?></label>
 				<span>
-					<?php echo $vbo_app->printPhoneInputField(array('id' => $phone_field_id, 'data-isemail' => '0', 'data-isnominative' => '0', 'data-isphone' => '1'), array('fullNumberOnBlur' => true)); ?>
+					<?php
+					echo $vbo_app->printPhoneInputField([
+						'id' => 'cfield' . $cfield['id'],
+						'class' => 'vbo-calendar-cfield-phone',
+						'data-isemail' => '0',
+						'data-isnominative' => '0',
+						'data-isphone' => '1'
+					], [
+						'fullNumberOnBlur' => true
+					]);
+					?>
 				</span>
 			</div>
 			<?php
@@ -556,7 +646,7 @@ if (count($allc) > 1) {
 			<div class="vbo-calendar-cfield-entry">
 				<label for="cfield<?php echo $cfield['id']; ?>" data-fieldid="<?php echo $cfield['id']; ?>"><?php echo JText::translate($cfield['name']); ?></label>
 				<span>
-					<select id="cfield<?php echo $cfield['id']; ?>"<?php echo !empty($phone_field_id) ? ' onchange="jQuery(\'#' . $phone_field_id . '\').trigger(\'vboupdatephonenumber\', jQuery(this).find(\'option:selected\').attr(\'data-c2code\'));"' : ''; ?>>
+					<select id="cfield<?php echo $cfield['id']; ?>" class="vbo-calendar-cfield-country">
 						<option value=""> </option>
 					<?php
 					foreach ($all_countries as $country) {
@@ -569,13 +659,20 @@ if (count($allc) > 1) {
 				</span>
 			</div>
 			<?php
+		} elseif ($cfield['type'] == 'state') {
+			?>
+			<div class="vbo-calendar-cfield-entry">
+				<label for="cfield<?php echo $cfield['id']; ?>" data-fieldid="<?php echo $cfield['id']; ?>"><?php echo JText::translate($cfield['name']); ?></label>
+				<span>
+					<select id="cfield<?php echo $cfield['id']; ?>" class="vbo-calendar-cfield-state">
+						<option value="">-----</option>
+					</select>
+				</span>
+			</div>
+			<?php
 		}
 	}
 	?>
-		</div>
-		<div class="vbo-calendar-cfields-bottom">
-			<button type="button" class="btn" onclick="hideCustomFields();"><?php echo JText::translate('VBANNULLA'); ?></button>
-			<button type="button" class="btn btn-success" onclick="applyCustomFieldsContent();"><i class="icon-edit"></i> <?php echo JText::translate('VBAPPLY'); ?></button>
 		</div>
 	</div>
 </div>
@@ -588,14 +685,13 @@ if (count($allc) > 1) {
 <script type="text/javascript">
 <?php echo ($poverview_change > 0 ? 'window.parent.hasNewBooking = true;' . "\n" : ''); ?>
 var vbo_glob_sel_nights = 0;
-var cfields_overlay = false;
 var customers_search_vals = "";
 var prev_tareat = null;
 var booknowmade = false;
 
 function vbCloseRoom() {
-	var ckbox = document.getElementById("setclosed") ? document.getElementById("setclosed") : document.getElementById("setclosed-on");
-	if (ckbox && ckbox.checked == true) {
+	var ckbox = jQuery('input[name="setclosed"]');
+	if (ckbox.length && ckbox.prop('checked')) {
 		jQuery('#vbo-close-all-rooms-sel').show();
 		jQuery('#vbo-row-people').hide();
 		if (jQuery('#vbo-row-numrooms').length) {
@@ -611,8 +707,9 @@ function vbCloseRoom() {
 			// save the previous customer information
 			prev_tareat = jQuery('#vbcustdatatxtarea').val();
 		}
-		jQuery('#vbcustdatatxtarea').val("<?php echo addslashes(JText::translate('VBDBTEXTROOMCLOSED')); ?>");
-		jQuery("#quickbsubmit").removeClass("btn-success").addClass("btn-danger").find("span").text("<?php echo addslashes(JText::translate('VBSUBMCLOSEROOM')); ?>");
+		jQuery('#vbcustdatatxtarea').val(Joomla.JText._('VBDBTEXTROOMCLOSED'));
+		jQuery('#vbcustdatalbl').text(Joomla.JText._('ORDER_NOTES'));
+		jQuery("#quickbsubmit").removeClass("btn-success").addClass("btn-danger").find("span").text(Joomla.JText._('VBSUBMCLOSEROOM'));
 		// hide force booking and untick checkbox
 		jQuery('#vbo-force-bookingdates').hide();
 		jQuery('input[name="forcebooking"]').prop('checked', false);
@@ -628,21 +725,34 @@ function vbCloseRoom() {
 		jQuery('#vbo-row-fillcustfields').show();
 		jQuery('#vbo-row-bpay').show();
 		jQuery('#vbcustdatatxtarea').val(prev_tareat + "");
-		jQuery("#quickbsubmit").removeClass("btn-danger").addClass("btn-success").find("span").text("<?php echo addslashes(JText::translate('VBMAKERESERV')); ?>");
+		jQuery('#vbcustdatalbl').text(Joomla.JText._('VBCUSTINFO'));
+		jQuery("#quickbsubmit").removeClass("btn-danger").addClass("btn-success").find("span").text(Joomla.JText._('VBMAKERESERV'));
 	}
 }
 
 function showCustomFields() {
-	cfields_overlay = true;
-	jQuery(".vbo-calendar-cfields-filler-overlay, .vbo-calendar-cfields-filler").fadeIn();
+	let modal_body = VBOCore.displayModal({
+		suffix: 		'calendar-cfields',
+		extra_class: 	'vbo-modal-tall',
+		title: 			Joomla.JText._('VBFILLCUSTFIELDS'),
+		body_prepend: 	true,
+		footer_left: 	'<button type="button" class="btn" onclick="hideCustomFields();">' + Joomla.JText._('VBANNULLA') + '</button>',
+		footer_right: 	'<button type="button" class="btn btn-success" onclick="applyCustomFieldsContent();"><i class="icon-edit"></i> ' + Joomla.JText._('VBAPPLY') + '</button>',
+		dismiss_event: 	'vbo-calendar-cfields-dismiss',
+		onDismiss: 		() => {
+			jQuery('.vbo-calendar-cfields-filler').appendTo('.vbo-calendar-modal-helper');
+		},
+	});
+
+	jQuery('.vbo-calendar-cfields-filler').appendTo(modal_body);
+
 	setTimeout(function() {
 		jQuery('#vbo-searchcust').focus();
 	}, 500);
 }
 
 function hideCustomFields() {
-	cfields_overlay = false;
-	jQuery(".vbo-calendar-cfields-filler-overlay").fadeOut();
+	VBOCore.emitEvent('vbo-calendar-cfields-dismiss');
 }
 
 function applyCustomFieldsContent() {
@@ -650,15 +760,16 @@ function applyCustomFieldsContent() {
 	var cfields_labels = new Array;
 	var nominatives = new Array;
 	var tot_rows = 1;
-	jQuery(".vbo-calendar-cfields-inner .vbo-calendar-cfield-entry").each(function(){
+	jQuery(".vbo-calendar-cfields-inner .vbo-calendar-cfield-entry").each(function() {
 		var cfield_name = jQuery(this).find("label").text();
 		var cfield_input = jQuery(this).find("span").find("input");
 		var cfield_textarea = jQuery(this).find("span").find("textarea");
-		var cfield_select = jQuery(this).find("span").find("select");
+		var cfield_select = jQuery(this).find("span").find("select.vbo-calendar-cfield-country");
+		var cfield_state = jQuery(this).find("span").find("select.vbo-calendar-cfield-state");
 		var cfield_cont = "";
 		if (cfield_input.length) {
 			cfield_cont = cfield_input.val();
-			if (cfield_input.attr("data-isemail") == "1" && cfield_cont.length) {
+			if (cfield_input.attr("data-isemail") == "1" && cfield_cont && cfield_cont.length) {
 				jQuery("#custmailfield").val(cfield_cont);
 			}
 			if (cfield_input.attr("data-isphone") == "1") {
@@ -671,17 +782,20 @@ function applyCustomFieldsContent() {
 			cfield_cont = cfield_textarea.val();
 		} else if (cfield_select.length) {
 			cfield_cont = cfield_select.val();
-			if (cfield_cont.length) {
+			if (cfield_cont && cfield_cont.length) {
 				var country_code = jQuery("option:selected", cfield_select).attr("data-ccode");
 				if (country_code.length) {
 					jQuery("#ccode_inpfield").val(country_code);
 				}
 			}
+		} else if (cfield_state.length) {
+			cfield_cont = cfield_state.val();
+			jQuery("#state_inpfield").val(cfield_cont);
 		}
-		if (cfield_cont.length) {
-			cfields_cont += cfield_name+": "+cfield_cont+"\r\n";
+		if (cfield_cont && cfield_cont.length) {
+			cfields_cont += cfield_name + ": " + cfield_cont + "\r\n";
 			tot_rows++;
-			cfields_labels.push(cfield_name+":");
+			cfields_labels.push(cfield_name + ":");
 		}
 	});
 	if (cfields_cont.length) {
@@ -694,6 +808,9 @@ function applyCustomFieldsContent() {
 	jQuery("#vbcustdatatxtarea").val(cfields_cont);
 	jQuery("#vbcustdatatxtarea").attr("rows", tot_rows);
 	// highlight custom fields labels
+	if (jQuery('#vbo-highlight-cfields').length) {
+		jQuery("#vbcustdatatxtarea").highlightTextarea('destroy');
+	}
 	jQuery("#vbcustdatatxtarea").highlightTextarea({
 		words: cfields_labels,
 		color: "#ddd",
@@ -773,11 +890,11 @@ function vbCalcDailyCost(cur_val) {
 		var selopts = jQuery("#avg-daycost").find("select").find("option");
 		// total cost with average cost per night
 		var avg_cost = (cur_float / vbo_glob_sel_nights).toFixed(<?php echo (int)$formatparts[0]; ?>);
-		var avg_cost_str = "<?php echo $currencysymb; ?> "+avg_cost+"/<?php echo addslashes(JText::translate('VBDAY')); ?> = <?php echo $currencysymb; ?> "+cur_float.toFixed(<?php echo (int)$formatparts[0]; ?>);
+		var avg_cost_str = "<?php echo $currencysymb; ?> " + avg_cost + "/" + Joomla.JText._('VBDAY') + " = <?php echo $currencysymb; ?> " + cur_float.toFixed(<?php echo (int)$formatparts[0]; ?>);
 		selopts.first().text(avg_cost_str);
 		// cost multiplied by number of nights
 		var final_cost = (cur_float * vbo_glob_sel_nights).toFixed(<?php echo (int)$formatparts[0]; ?>);
-		var final_cost_str = "<?php echo $currencysymb; ?> "+cur_float.toFixed(<?php echo (int)$formatparts[0]; ?>)+"/<?php echo addslashes(JText::translate('VBDAY')); ?> = <?php echo $currencysymb; ?> "+final_cost;
+		var final_cost_str = "<?php echo $currencysymb; ?> " + cur_float.toFixed(<?php echo (int)$formatparts[0]; ?>) + "/" + Joomla.JText._('VBDAY') + " = <?php echo $currencysymb; ?> " + final_cost;
 		selopts.last().text(final_cost_str);
 		// show drop down
 		jQuery("#avg-daycost").show();
@@ -797,7 +914,7 @@ function vboCalcWebsiteRates() {
 	var adults = jQuery("#vbo-sel-adults").val();
 	var children = jQuery("#vbo-sel-children").val();
 	var units = jQuery("#vbo-sel-numrooms").val();
-	if (!checkinfdate.length || vbo_glob_sel_nights < 1 || jQuery("input[name=\"setclosed\"]").is(":checked")) {
+	if (!checkinfdate.length || vbo_glob_sel_nights < 1 || jQuery("input[name=\"setclosed\"]").is(":checked") || <?php echo !empty($split_stay) ? 'true' : 'false'; ?>) {
 		jQuery("#vbo-website-rates-row").hide();
 		return false;
 	}
@@ -817,11 +934,11 @@ function vboCalcWebsiteRates() {
 	}).done(function(resp) {
 		var obj_res = null;
 		try {
-			obj_res = JSON.parse(resp);
+			obj_res = typeof resp === 'string' ? JSON.parse(resp) : resp;
 		} catch(err) {
 			console.error("could not parse JSON response", resp);
 		}
-		if (obj_res === null || !jQuery.isArray(obj_res)) {
+		if (obj_res === null || !Array.isArray(obj_res)) {
 			jQuery("#vbo-website-rates-row").hide();
 			console.info("invalid JSON response", resp);
 			return false;
@@ -905,7 +1022,57 @@ function vboUnsetWebsiteRate() {
 	jQuery('#cust_cost').attr('readonly', false);
 }
 
+function vboReloadStates(country_3_code) {
+	var states_elem = jQuery('select.vbo-calendar-cfield-state');
+
+	// unset the current states/provinces
+	states_elem.html('');
+
+	if (!country_3_code || !country_3_code.length) {
+		return;
+	}
+
+	// make a request to load the states/provinces of the selected country
+	VBOCore.doAjax(
+		"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=states.load_from_country'); ?>",
+		{
+			country_3_code: country_3_code,
+			tmpl: "component"
+		},
+		(response) => {
+			try {
+				var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
+				if (!obj_res) {
+					console.error('Unexpected JSON response', obj_res);
+					return false;
+				}
+
+				// append empty value
+				states_elem.append('<option value="">-----</option>');
+
+				for (var i = 0; i < obj_res.length; i++) {
+					// append state
+					states_elem.append('<option value="' + obj_res[i]['state_2_code'] + '">' + obj_res[i]['state_name'] + '</option>');
+				}
+			} catch(err) {
+				console.error('could not parse JSON response', err, response);
+			}
+		},
+		(error) => {
+			console.error(error);
+		}
+	);
+}
+
 jQuery(function() {
+
+	jQuery('.vbo-calendar-cfield-country').on('change', function() {
+		// trigger event for phone number
+		jQuery('.vbo-calendar-cfield-phone').trigger('vboupdatephonenumber', jQuery(this).find('option:selected').attr('data-c2code'));
+		// reload state/province
+		vboReloadStates(jQuery(this).find('option:selected').attr('data-ccode'));
+	});
+
 	jQuery('td.free').click(function() {
 		var indate = jQuery('#checkindate').val();
 		var outdate = jQuery('#checkoutdate').val();
@@ -927,9 +1094,35 @@ jQuery(function() {
 		}, 200);
 	});
 
+	jQuery('#vbo-calendar-newb-form').on('submit', function() {
+		if (!document.newb.checkindate.value.match(/\S/)) {
+			alert(Joomla.JText._('VBMSGTHREE'));
+			return false;
+		}
+
+		if (!document.newb.checkoutdate.value.match(/\S/)) {
+			alert(Joomla.JText._('VBMSGFOUR'));
+			return false;
+		}
+
+		if (!jQuery(this).find('[name="setclosed"]').prop('checked') && !jQuery(this).find('[name="custmail"]').val() && <?php echo $room['units'] > 1 ? 'true' : 'false'; ?>) {
+			// no closure, no customer email, multiple units, ask if the units should be marked as closed
+			if (confirm(Joomla.JText._('VBO_MARK_UNITS_CLOSED'))) {
+				// append hidden field to form
+				jQuery(this).append('<input type="hidden" name="setunitsclosed" value="1" />');
+				// check if "room closed" should be added
+				if (!jQuery('#vbcustdatatxtarea').val()) {
+					jQuery('#vbcustdatatxtarea').val(Joomla.JText._('VBDBTEXTROOMCLOSED'));
+				}
+			}
+		}
+
+		return true;
+	});
+
 	jQuery("#vbo-calendar-changeroom").select2();
 	if (jQuery("#vbo-calendar-closeall").length) {
-		jQuery("#vbo-calendar-closeall").select2({placeholder: "- <?php echo addslashes(JText::translate('VBOCALCLOSEOTHERROOMS')); ?> -", width: "300px"});
+		jQuery("#vbo-calendar-closeall").select2({placeholder: "- " + Joomla.JText._('VBOCALCLOSEOTHERROOMS') + " -", width: "300px"});
 	}
 
 	jQuery("#vbo-sel-numrooms, #vbo-sel-adults").change(function() {
@@ -948,9 +1141,11 @@ jQuery(function() {
 					tmpl: "component"
 				}
 			}).done(function(cont) {
-				if (cont.length) {
-					var obj_res = JSON.parse(cont);
-					alert("<?php echo addslashes(JText::translate('VBERRCUSTOMEREMAILEXISTS')); ?> ("+obj_res['first_name']+" "+obj_res['last_name']+")");
+				try {
+					var obj_res = typeof cont === 'string' ? JSON.parse(cont) : cont;
+					alert(Joomla.JText._('VBERRCUSTOMEREMAILEXISTS') + " (" + obj_res['first_name'] + " " + obj_res['last_name'] + ")");
+				} catch(e) {
+					console.error(e);
 				}
 			}).fail(function() {
 				console.log("Error searching for existing email");
@@ -962,16 +1157,6 @@ jQuery(function() {
 		showCustomFields();
 	});
 
-	jQuery(document).mouseup(function(e) {
-		if (!cfields_overlay) {
-			return false;
-		}
-		var vbdialogcf_cont = jQuery(".vbo-calendar-cfields-filler");
-		if (!vbdialogcf_cont.is(e.target) && vbdialogcf_cont.has(e.target).length === 0) {
-			hideCustomFields();
-		}
-	});
-
 	// search customer - start
 	var vbocustsdelay = (function() {
 		var timer = 0;
@@ -980,6 +1165,7 @@ jQuery(function() {
 			timer = setTimeout(callback, ms);
 		};
 	})();
+
 	function vboCustomerSearch(words) {
 		jQuery("#vbo-searchcust-res").hide().html("");
 		jQuery("#vbo-searchcust-loading").show();
@@ -991,8 +1177,8 @@ jQuery(function() {
 				tmpl: "component"
 			}
 		}).done(function(cont) {
-			if (cont.length) {
-				var obj_res = JSON.parse(cont);
+			if (cont) {
+				var obj_res = typeof cont === 'string' ? JSON.parse(cont) : cont;
 				customers_search_vals = obj_res[0];
 				jQuery("#vbo-searchcust-res").html(obj_res[1]);
 			} else {
@@ -1003,9 +1189,10 @@ jQuery(function() {
 			jQuery("#vbo-searchcust-loading").hide();
 		}).fail(function() {
 			jQuery("#vbo-searchcust-loading").hide();
-			alert("Error Searching.");
+			alert("Error searching");
 		});
 	}
+
 	jQuery("#vbo-searchcust").keyup(function(event) {
 		vbocustsdelay(function() {
 			var keywords = jQuery("#vbo-searchcust").val();

@@ -62,7 +62,7 @@ class VikBookingModelShortcodes extends JModelForm
 
 		$records = $dbo->loadObjectList();
 
-		if ($full && $fetch != '*' && strpos($fetch, ',') === false)
+		if ($full && is_string($fetch) && $fetch != '*' && strpos($fetch, ',') === false)
 		{
 			// filter the records by non-empty column
 			$records = array_filter($records, function($record) use ($fetch)
@@ -126,6 +126,12 @@ class VikBookingModelShortcodes extends JModelForm
 			
 			foreach ($shortcodes as $k => $v)
 			{
+				// ignore shortcodes not linked to a valid page
+				if (empty($v->post_id))
+				{
+					continue;
+				}
+
 				// start the score counter
 				$count = 0;
 

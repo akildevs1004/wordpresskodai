@@ -27,7 +27,10 @@ if (VIKBOOKING_DEBUG || (isset($_GET['debug']) && $_GET['debug'] == 'on'))
 // include internal loader if not exists
 if (!class_exists('JLoader'))
 {
-	$loaded = require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . 'libraries' . DIRECTORY_SEPARATOR . 'adapter' . DIRECTORY_SEPARATOR . 'loader' . DIRECTORY_SEPARATOR . 'loader.php';
+	require_once implode(DIRECTORY_SEPARATOR, [dirname(__FILE__), 'libraries', 'adapter', 'loader', 'loader.php']);
+
+	// setup auto-loader
+	JLoader::setup();
 
 	// setup base path
 	JLoader::$base = VIKBOOKING_LIBRARIES;

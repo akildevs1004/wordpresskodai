@@ -10,8 +10,11 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-$vbo_app = new VboApplication();
+$vbo_app = VikBooking::getVboApplication();
 $vbo_app->prepareModalBox();
+
+// JS lang def
+JText::script('VBCONFIGFLUSHSESSIONCONF')
 
 ?>
 <div class="vbo-admin-body vbo-config-body">
@@ -20,8 +23,9 @@ $vbo_app->prepareModalBox();
 
 		<div class="vbo-config-tabs-wrap">
 			<dl class="tabs" id="tab_group_id">
-				<dt style="display:none;"></dt>
-				<dd style="display:none;"></dd>
+				<dt class="vbo-renewsession-dt">
+					<a href="javascript: void(0);" class="vbflushsession" onclick="vbFlushSession();"><?php echo JText::translate('VBCONFIGFLUSHSESSION'); ?></a>
+				</dt>
 				<dt class="tabs <?php echo $this->curtabid == 1 ? 'open' : 'closed'; ?>" data-ptid="1" style="cursor: pointer;">
 					<span>
 						<h3>
@@ -72,9 +76,6 @@ $vbo_app->prepareModalBox();
 						</h3>
 					</span>
 				</dt>
-				<dt class="vbo-renewsession-dt">
-					<a href="javascript: void(0);" class="vbflushsession" onclick="vbFlushSession();"><?php echo JText::translate('VBCONFIGFLUSHSESSION'); ?></a>
-				</dt>
 			</dl>
 		</div>
 
@@ -118,28 +119,47 @@ $vbo_app->prepareModalBox();
 
 		<input type="hidden" name="task" value="config">
 		<input type="hidden" name="option" value="com_vikbooking"/>
+		<?php echo JHtml::fetch('form.token'); ?>
 	</form>
 	
 </div>
 
 <script type="text/javascript">
 function vbFlushSession() {
-	if (confirm('<?php echo addslashes(JText::translate('VBCONFIGFLUSHSESSIONCONF')); ?>')) {
-		location.href='index.php?option=com_vikbooking&task=renewsession';
+	if (confirm(Joomla.JText._('VBCONFIGFLUSHSESSIONCONF'))) {
+		window.location.href = 'index.php?option=com_vikbooking&task=renewsession';
 	} else {
 		return false;
 	}
 }
-jQuery(document).ready(function() {
+
+jQuery(function() {
 	jQuery('dt.tabs').click(function() {
-		var ptid = jQuery(this).attr('data-ptid');
+		var clicked_tab = jQuery(this);
+		var ptid = clicked_tab.attr('data-ptid');
 		jQuery('dt.tabs').removeClass('open').addClass('closed');
-		jQuery(this).removeClass('closed').addClass('open');
+		clicked_tab.removeClass('closed').addClass('open');
 		jQuery('dd.tabs').hide();
 		jQuery('dd#pt'+ptid).show();
+
 		var nd = new Date();
 		nd.setTime(nd.getTime() + (365*24*60*60*1000));
 		document.cookie = "vbConfPt="+ptid+"; expires=" + nd.toUTCString() + "; path=/; SameSite=Lax";
+
+		try {
+			// build proper URL
+			let re = new RegExp(/&tab=([0-9])$/, 'i');
+			let base_uri = window.location.href;
+			base_uri = base_uri.replace(re, '');
+
+			// register clicked tab
+			VBOCore.registerAdminMenuAction({
+				name: clicked_tab.find('a').text(),
+				href: base_uri + '&tab=' + ptid,
+			}, 'global');
+		} catch(e) {
+			console.error(e);
+		}
 	});
 });
 </script>

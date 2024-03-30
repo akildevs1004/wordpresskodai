@@ -61,8 +61,8 @@ class VikBookingViewGencheckindoc extends JViewVikBooking {
 			exit;
 		}
 		
-		$this->row = &$row;
-		$this->customer = &$customer;
+		$this->row = $row;
+		$this->customer = $customer;
 		
 		// Display the template
 		parent::display($tpl);

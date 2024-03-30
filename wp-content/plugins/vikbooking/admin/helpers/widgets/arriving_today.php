@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     VikBooking
  * @subpackage  com_vikbooking
@@ -13,7 +14,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 /**
  * Class handler for admin widget "arriving today".
  * 
- * @since 	1.4.0
+ * @since 	1.14 (J) - 1.4.0 (WP)
  */
 class VikBookingAdminWidgetArrivingToday extends VikBookingAdminWidget
 {
@@ -71,31 +72,32 @@ class VikBookingAdminWidgetArrivingToday extends VikBookingAdminWidget
 		// render the necessary PHP/JS code for the modal window only once
 		if (!defined('VBO_JMODAL_CHECKIN_BOOKING')) {
 			define('VBO_JMODAL_CHECKIN_BOOKING', 1);
-			?>
+?>
 			<script type="text/javascript">
-			function vboJModalShowCallback() {
-				if (typeof vbo_t_on == "undefined") {
-					return;
+				function vboJModalShowCallback() {
+					if (typeof vbo_t_on == "undefined") {
+						return;
+					}
+					// simulate STOP click
+					if (vbo_t_on) {
+						vbo_t_on = false;
+						clearTimeout(vbo_t);
+						jQuery(".vbo-dashboard-refresh-play").fadeIn();
+					}
 				}
-				// simulate STOP click
-				if (vbo_t_on) {
-					vbo_t_on = false;
-					clearTimeout(vbo_t);
-					jQuery(".vbo-dashboard-refresh-play").fadeIn();
+
+				function vboJModalHideCallback() {
+					if (typeof vbo_t_on == "undefined") {
+						return;
+					}
+					// simulate PLAY click
+					if (!vbo_t_on) {
+						vboStartTimer();
+						jQuery(".vbo-dashboard-refresh-play").fadeOut();
+					}
 				}
-			}
-			function vboJModalHideCallback() {
-				if (typeof vbo_t_on == "undefined") {
-					return;
-				}
-				// simulate PLAY click
-				if (!vbo_t_on) {
-					vboStartTimer();
-					jQuery(".vbo-dashboard-refresh-play").fadeOut();
-				}
-			}
 			</script>
-			<?php
+		<?php
 			echo $this->vbo_app->getJmodalScript('', 'vboJModalHideCallback();', 'vboJModalShowCallback();');
 			echo $this->vbo_app->getJmodalHtml('vbo-checkin-booking', JText::translate('VBOMANAGECHECKSINOUT'));
 		}
@@ -147,16 +149,16 @@ class VikBookingAdminWidgetArrivingToday extends VikBookingAdminWidget
 				<div class="vbo-admin-widget-head-inline">
 					<h4>
 						<?php echo $this->widgetIcon; ?>
-						<span class="arrivals-when"><?php echo JText::translate('VBOARRIVING'); ?></span> 
+						<span class="arrivals-when"><?php echo JText::translate('VBOARRIVING'); ?></span>
 						<span class="arrivals-tot"><?php echo $tot_arrivals; ?></span>
 					</h4>
-					<div class="vbo-widget-today-checkin-tristate"><?php echo $this->vbo_app->multiStateToggleSwitchField('when_arriving', 'today', $multistate_vals, $multistate_lbls, $multistate_attrs, $wrap_attrs); ?></div>
-				</div>
-				<div class="btn-toolbar pull-right vbo-dashboard-search-checkin">
-					<div class="btn-wrapper input-append pull-right">
-						<input type="text" class="checkin-search form-control" placeholder="<?php echo JText::translate('VBODASHSEARCHKEYS'); ?>">
-						<button type="button" class="btn" onclick="jQuery('.checkin-search').val('').trigger('keyup');"><i class="icon-remove"></i></button>
+					<div class="vbo-dashboard-search-input vbo-dashboard-search-checkin">
+						<div class="btn-wrapper input-append pull-right">
+							<input type="text" class="checkin-search form-control" placeholder="<?php echo JText::translate('VBODASHSEARCHKEYS'); ?>">
+							<button type="button" class="btn" onclick="jQuery('.checkin-search').val('').trigger('keyup');"><i class="icon-remove"></i></button>
+						</div>
 					</div>
+					<div class="vbo-widget-today-checkin-tristate"><?php echo $this->vbo_app->multiStateToggleSwitchField('when_arriving' . $widget_instance, 'today', $multistate_vals, $multistate_lbls, $multistate_attrs, $wrap_attrs); ?></div>
 				</div>
 			</div>
 			<div class="vbo-dashboard-today-checkin table-responsive">
@@ -166,6 +168,7 @@ class VikBookingAdminWidgetArrivingToday extends VikBookingAdminWidget
 							<th class="left"><?php echo JText::translate('VBDASHUPRESONE'); ?></th>
 							<th class="left"><?php echo JText::translate('VBCUSTOMERNOMINATIVE'); ?></th>
 							<th class="center"><?php echo JText::translate('VBDASHUPRESSIX'); ?></th>
+							<th class="center">HMS API Reservastion Number</th>
 							<th class="center"><?php echo JText::translate('VBDASHUPRESTWO'); ?></th>
 							<th class="center"><?php echo JText::translate('VBDASHUPRESFOUR'); ?></th>
 							<th class="center"><?php echo JText::translate('VBDASHUPRESFIVE'); ?></th>
@@ -176,10 +179,10 @@ class VikBookingAdminWidgetArrivingToday extends VikBookingAdminWidget
 						</tr>
 					</thead>
 					<tbody>
-					<?php
-					// render the rows for the arrivals (if any)
-					echo $this->buildArrivalRows($checkin_today);
-					?>
+						<?php
+						// render the rows for the arrivals (if any)
+						echo $this->buildArrivalRows($checkin_today);
+						?>
 					</tbody>
 				</table>
 			</div>
@@ -187,84 +190,89 @@ class VikBookingAdminWidgetArrivingToday extends VikBookingAdminWidget
 
 		<?php
 		if (static::$instance_counter === 0 || $is_ajax) {
-			?>
-		<script type="text/javascript">
-			/**
-			 * Retrieves the arrivals for the given day by making an AJAX request
-			 */
-			function vboWidgetLoadArrivals(when, winstance) {
-				// the widget method to call
-				var call_method = 'loadArrivals';
+		?>
+			<script type="text/javascript">
+				/**
+				 * Retrieves the arrivals for the given day by making an AJAX request
+				 */
+				function vboWidgetLoadArrivals(when, winstance) {
+					// the widget method to call
+					var call_method = 'loadArrivals';
 
-				// make a silent request to get the arrivals
-				VBOCore.doAjax(
-					"<?php echo $this->getExecWidgetAjaxUri(); ?>",
-					{
-						widget_id: "<?php echo $this->getIdentifier(); ?>",
-						call: call_method,
-						tmpl: "component",
-						when: when,
-					},
-					function(response) {
-						try {
-							var obj_res = JSON.parse(response);
-							if (!obj_res.hasOwnProperty(call_method)) {
-								console.error('Unexpected JSON response', obj_res);
-								return;
+					// make a silent request to get the arrivals
+					VBOCore.doAjax(
+						"<?php echo $this->getExecWidgetAjaxUri(); ?>", {
+							widget_id: "<?php echo $this->getIdentifier(); ?>",
+							call: call_method,
+							tmpl: "component",
+							when: when,
+						},
+						function(response) {
+							try {
+								var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
+								if (!obj_res.hasOwnProperty(call_method)) {
+									console.error('Unexpected JSON response', obj_res);
+									return;
+								}
+
+								var widget_cont = jQuery('#vbo-widget-today-checkin-' + winstance);
+								if (!widget_cont || !widget_cont.length) {
+									console.error('Widget instance not found', winstance);
+									return;
+								}
+
+								// display the list of arrivals for the given day
+								widget_cont.find('table.vbo-table-search-cin tbody').html(obj_res[call_method]);
+
+								// update counter
+								var tot_arrivals = widget_cont.find('table.vbo-table-search-cin tbody').find('tr').not('.warning').length;
+								widget_cont.find('.arrivals-tot').text(tot_arrivals);
+							} catch (err) {
+								console.error('could not parse JSON response', err, response);
 							}
+						},
+						function(error) {
+							console.error(error);
+						}
+					);
+				}
 
-							var widget_cont = jQuery('#vbo-widget-today-checkin-' + winstance);
-							if (!widget_cont || !widget_cont.length) {
-								console.error('Widget instance not found', winstance);
-								return;
+				jQuery(function() {
+					/* Attempt to append the modal container to the body for the multitask panel */
+					let modal_container = jQuery('[id*="vbo-checkin-booking"][class*="modal"]');
+					if (modal_container.length) {
+						modal_container.first().appendTo('body');
+					}
+
+					/* Check-in Search */
+					jQuery(".checkin-search").keyup(function() {
+						var inp_elem = jQuery(this);
+						var instance_elem = inp_elem.closest('.vbo-admin-widget-wrapper');
+						var searchTerm = inp_elem.val();
+						var listItem = instance_elem.find('.vbo-table-search-cin tbody').children('tr');
+						var searchSplit = searchTerm.replace(/ /g, "'):containsi('");
+						jQuery.extend(jQuery.expr[':'], {
+							'containsi': function(elem, i, match, array) {
+								return (elem.textContent || elem.innerText || '').toLowerCase().indexOf((match[3] || "").toLowerCase()) >= 0;
 							}
-
-							// display the list of arrivals for the given day
-							widget_cont.find('table.vbo-table-search-cin tbody').html(obj_res[call_method]);
-
-							// update counter
-							var tot_arrivals = widget_cont.find('table.vbo-table-search-cin tbody').find('tr').not('.warning').length;
-							widget_cont.find('.arrivals-tot').text(tot_arrivals);
-						} catch(err) {
-							console.error('could not parse JSON response', err, response);
-						}
-					},
-					function(error) {
-						console.error(error);
-					}
-				);
-			}
-
-			jQuery(document).ready(function() {
-				/* Check-in Search */
-				jQuery(".checkin-search").keyup(function() {
-					var inp_elem = jQuery(this);
-					var instance_elem = inp_elem.closest('.vbo-admin-widget-wrapper');
-					var searchTerm = inp_elem.val();
-					var listItem = instance_elem.find('.vbo-table-search-cin tbody').children('tr');
-					var searchSplit = searchTerm.replace(/ /g, "'):containsi('");
-					jQuery.extend(jQuery.expr[':'], {'containsi': 
-						function(elem, i, match, array) {
-							return (elem.textContent || elem.innerText || '').toLowerCase().indexOf((match[3] || "").toLowerCase()) >= 0;
+						});
+						instance_elem.find(".vbo-table-search-cin tbody tr td.searchable").not(":containsi('" + searchSplit + "')").each(function(e) {
+							jQuery(this).parent('tr').attr('visible', 'false');
+						});
+						instance_elem.find(".vbo-table-search-cin tbody tr td.searchable:containsi('" + searchSplit + "')").each(function(e) {
+							jQuery(this).parent('tr').attr('visible', 'true');
+						});
+						var jobCount = parseInt(instance_elem.find('.vbo-table-search-cin tbody tr[visible="true"]').length);
+						instance_elem.find('.arrivals-tot').text(jobCount);
+						if (jobCount > 0) {
+							instance_elem.find('.vbo-table-search-cin').find('.no-results').hide();
+						} else {
+							instance_elem.find('.vbo-table-search-cin').find('.no-results').show();
 						}
 					});
-					instance_elem.find(".vbo-table-search-cin tbody tr td.searchable").not(":containsi('" + searchSplit + "')").each(function(e) {
-						jQuery(this).parent('tr').attr('visible', 'false');
-					});
-					instance_elem.find(".vbo-table-search-cin tbody tr td.searchable:containsi('" + searchSplit + "')").each(function(e) {
-						jQuery(this).parent('tr').attr('visible', 'true');
-					});
-					var jobCount = parseInt(instance_elem.find('.vbo-table-search-cin tbody tr[visible="true"]').length);
-					instance_elem.find('.arrivals-tot').text(jobCount);
-					if (jobCount > 0) {
-						instance_elem.find('.vbo-table-search-cin').find('.no-results').hide();
-					} else {
-						instance_elem.find('.vbo-table-search-cin').find('.no-results').show();
-					}
 				});
-			});
-		</script>
-		<?php
+			</script>
+<?php
 		}
 	}
 
@@ -294,8 +302,6 @@ class VikBookingAdminWidgetArrivingToday extends VikBookingAdminWidget
 	{
 		$dbo = JFactory::getDbo();
 
-		$arrivals = array();
-
 		if ($when == 'tomorrow') {
 			$today_start_ts = mktime(0, 0, 0, date("n"), (date("j") + 1), date("Y"));
 			$today_end_ts = mktime(23, 59, 59, date("n"), (date("j") + 1), date("Y"));
@@ -307,15 +313,12 @@ class VikBookingAdminWidgetArrivingToday extends VikBookingAdminWidget
 			$today_start_ts = mktime(0, 0, 0, date("n"), date("j"), date("Y"));
 			$today_end_ts = mktime(23, 59, 59, date("n"), date("j"), date("Y"));
 		}
-		
-		$q = "SELECT `o`.`id`,`o`.`custdata`,`o`.`status`,`o`.`checkin`,`o`.`checkout`,`o`.`roomsnum`,`o`.`country`,`o`.`closure`,`o`.`checked`,(SELECT CONCAT_WS(' ',`or`.`t_first_name`,`or`.`t_last_name`) FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`o`.`id` LIMIT 1) AS `nominative`,(SELECT SUM(`or`.`adults`) FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`o`.`id`) AS `tot_adults`,(SELECT SUM(`or`.`children`) FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`o`.`id`) AS `tot_children` FROM `#__vikbooking_orders` AS `o` WHERE `o`.`checkin`>=".$today_start_ts." AND `o`.`checkin`<=".$today_end_ts." AND `o`.`closure`=0 ORDER BY `o`.`checkin` ASC;";
-		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$arrivals = $dbo->loadAssocList();
-		}
 
-		return $arrivals;
+		$q = "SELECT `o`.`id`,`o`.`custdata`,`hms_api_reservation_number`,`o`.`status`,`o`.`checkin`,`o`.`checkout`,`o`.`roomsnum`,`o`.`country`,`o`.`closure`,`o`.`checked`,`o`.`type`,(SELECT CONCAT_WS(' ',`or`.`t_first_name`,`or`.`t_last_name`) FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`o`.`id` LIMIT 1) AS `nominative`,(SELECT SUM(`or`.`adults`) FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`o`.`id`) AS `tot_adults`,(SELECT SUM(`or`.`children`) FROM `#__vikbooking_ordersrooms` AS `or` WHERE `or`.`idorder`=`o`.`id`) AS `tot_children` FROM `#__vikbooking_orders` AS `o` WHERE `o`.`checkin`>=" . $today_start_ts . " AND `o`.`checkin`<=" . $today_end_ts . " AND `o`.`status`=" . $dbo->q('confirmed') . " AND `o`.`closure`=0 ORDER BY `o`.`checkin` ASC;";
+
+		$dbo->setQuery($q);
+
+		return $dbo->loadAssocList();
 	}
 
 	/**
@@ -339,7 +342,8 @@ class VikBookingAdminWidgetArrivingToday extends VikBookingAdminWidget
 		$vbo_auth_bookings = JFactory::getUser()->authorise('core.vbo.bookings', 'com_vikbooking');
 
 		foreach ($arrivals as $ink => $intoday) {
-			$totpeople_str = $intoday['tot_adults']." ".($intoday['tot_adults'] > 1 ? JText::translate('VBMAILADULTS') : JText::translate('VBMAILADULT')).($intoday['tot_children'] > 0 ? ", ".$intoday['tot_children']." ".($intoday['tot_children'] > 1 ? JText::translate('VBMAILCHILDREN') : JText::translate('VBMAILCHILD')) : "");
+
+			$totpeople_str = $intoday['tot_adults'] . " " . ($intoday['tot_adults'] > 1 ? JText::translate('VBMAILADULTS') : JText::translate('VBMAILADULT')) . ($intoday['tot_children'] > 0 ? ", " . $intoday['tot_children'] . " " . ($intoday['tot_children'] > 1 ? JText::translate('VBMAILCHILDREN') : JText::translate('VBMAILCHILD')) : "");
 			$room_names = array();
 			$rooms = VikBooking::loadOrdersRoomsData($intoday['id']);
 			foreach ($rooms as $rr) {
@@ -355,7 +359,7 @@ class VikBookingAdminWidgetArrivingToday extends VikBookingAdminWidget
 							if ($rind == $rooms[0]['roomindex']) {
 								foreach ($rfeatures as $fname => $fval) {
 									if (strlen($fval)) {
-										$unit_index = ' #'.$fval;
+										$unit_index = ' #' . $fval;
 										break;
 									}
 								}
@@ -365,52 +369,58 @@ class VikBookingAdminWidgetArrivingToday extends VikBookingAdminWidget
 					}
 				}
 				//
-				$roomstr = '<span class="vbo-smalltext">'.$room_names[0].$unit_index.'</span>';
+				$roomstr = '<span class="vbo-smalltext">' . $room_names[0] . $unit_index . '</span>';
 			} else {
-				$roomstr = '<span class="hasTooltip vbo-tip-small" title="'.implode(', ', $room_names).'">'.$intoday['roomsnum'].'</span><span class="hidden-for-search">'.implode(', ', $room_names).'</span>';
+				$roomstr = '<span class="hasTooltip vbo-tip-small" title="' . implode(', ', $room_names) . '">' . $intoday['roomsnum'] . '</span><span class="hidden-for-search">' . implode(', ', $room_names) . '</span>';
 			}
 			$act_status = '';
 			if ($intoday['status'] == 'confirmed') {
 				switch ($intoday['checked']) {
 					case -1:
-						$ord_status = '<span class="label label-error vbo-status-label" style="background-color: #d9534f;">'.JText::translate('VBOCHECKEDSTATUSNOS').'</span>';
+						$ord_status = '<span class="label label-error vbo-status-label">' . JText::translate('VBOCHECKEDSTATUSNOS') . '</span>';
 						break;
 					case 1:
-						$ord_status = '<span class="label label-success vbo-status-label">'.JText::translate('VBOCHECKEDSTATUSIN').'</span>';
+						$ord_status = '<span class="label label-success vbo-status-label">' . JText::translate('VBOCHECKEDSTATUSIN') . '</span>';
 						break;
 					case 2:
-						$ord_status = '<span class="label label-success vbo-status-label">'.JText::translate('VBOCHECKEDSTATUSOUT').'</span>';
+						$ord_status = '<span class="label label-success vbo-status-label">' . JText::translate('VBOCHECKEDSTATUSOUT') . '</span>';
 						break;
 					default:
-						$ord_status = '<span class="label label-success vbo-status-label">'.JText::translate('VBCONFIRMED').'</span>';
+						$ord_status = '<span class="label label-success vbo-status-label">' . JText::translate('VBCONFIRMED') . '</span>';
 						break;
 				}
+				if (!strcasecmp((string)$intoday['type'], 'overbooking')) {
+					$ord_status .= '<div class="vbo-orders-substatus"><span class="label label-error">' . JText::translate('VBO_BTYPE_OVERBOOKING') . '</span></div>';
+				}
 				if ($vbo_auth_bookings && $intoday['closure'] != 1) {
-					$act_status = '<button type="button" class="btn btn-small btn-primary" onclick="vboOpenJModal(\'vbo-checkin-booking\', \'index.php?option=com_vikbooking&task=bookingcheckin&cid[]='.$intoday['id'].'&tmpl=component\');">'.JText::translate('VBOMANAGECHECKIN').'</button>';
+					$act_status = '<button type="button" class="btn btn-small btn-primary" onclick="vboOpenJModal(\'vbo-checkin-booking\', \'index.php?option=com_vikbooking&task=bookingcheckin&cid[]=' . $intoday['id'] . '&tmpl=component\');">' . JText::translate('VBOMANAGECHECKIN') . '</button>';
 				}
 			} elseif ($intoday['status'] == 'standby') {
-				$ord_status = '<span class="label label-warning vbo-status-label">'.JText::translate('VBSTANDBY').'</span>';
+				$ord_status = '<span class="label label-warning vbo-status-label">' . JText::translate('VBSTANDBY') . '</span>';
 			} else {
-				$ord_status = '<span class="label label-error vbo-status-label" style="background-color: #d9534f;">'.JText::translate('VBCANCELLED').'</span>';
+				$ord_status = '<span class="label label-error vbo-status-label">' . JText::translate('VBCANCELLED') . '</span>';
 			}
 			$nominative = strlen($intoday['nominative']) > 1 ? $intoday['nominative'] : VikBooking::getFirstCustDataField($intoday['custdata']);
 			$country_flag = '';
-			if (file_exists(VBO_ADMIN_PATH.DS.'resources'.DS.'countries'.DS.$intoday['country'].'.png')) {
-				$country_flag = '<img src="'.VBO_ADMIN_URI.'resources/countries/'.$intoday['country'].'.png'.'" title="'.$intoday['country'].'" class="vbo-country-flag vbo-country-flag-left"/>';
+			if (file_exists(VBO_ADMIN_PATH . DS . 'resources' . DS . 'countries' . DS . $intoday['country'] . '.png')) {
+				$country_flag = '<img src="' . VBO_ADMIN_URI . 'resources/countries/' . $intoday['country'] . '.png' . '" title="' . $intoday['country'] . '" class="vbo-country-flag vbo-country-flag-left"/>';
 			}
-			
+
 			$rows .= '<tr class="vbo-dashboard-today-checkin-rows">' . "\n";
 			$rows .= '	<td class="searchable left"><a href="index.php?option=com_vikbooking&amp;task=editorder&amp;cid[]=' . $intoday['id'] . '">' . $intoday['id'] . '</a></td>' . "\n";
+
 			$rows .= '	<td class="searchable left">' . $country_flag . $nominative . '</td>' . "\n";
+
 			$rows .= '	<td class="center">' . $totpeople_str . '</td>' . "\n";
+			$rows .= '	<td class="searchable center">' . $intoday['hms_api_reservation_number']  . '</td>' . "\n";
 			$rows .= '	<td class="searchable center">' . $roomstr . '</td>' . "\n";
-			$rows .= '	<td class="searchable center">' . date(str_replace("/", $this->datesep, $this->df).' H:i', $intoday['checkout']) . '</td>' . "\n";
+			$rows .= '	<td class="searchable center">' . date(str_replace("/", $this->datesep, $this->df) . ' H:i', $intoday['checkout']) . '</td>' . "\n";
 			$rows .= '	<td class="searchable center" data-status="' . $intoday['id'] . '">' . $ord_status . '</td>' . "\n";
 			$rows .= '	<td class="vbo-tdright pro-feature">' . $act_status . '</td>' . "\n";
 			$rows .= '</tr>' . "\n";
 		}
 
-		if (!count($arrivals)) {
+		if (!$arrivals) {
 			// display just the TR with the warning message
 			$no_arrivals_when = JText::translate('VBONOCHECKINSTODAY');
 			if ($when == 'yesterday') {

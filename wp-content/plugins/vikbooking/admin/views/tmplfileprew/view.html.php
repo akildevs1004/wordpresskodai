@@ -35,6 +35,8 @@ class VikBookingViewTmplfileprew extends JViewVikBooking {
 		// load template file preview
 		$dbo = JFactory::getDbo();
 
+		$force_bid = VikRequest::getInt('bid', 0, 'request');
+
 		switch ($fbase) {
 			case 'email_tmpl.php':
 				// find the last confirmed booking
@@ -42,7 +44,8 @@ class VikBookingViewTmplfileprew extends JViewVikBooking {
 				$dbo->setQuery($q);
 				$dbo->execute();
 				if ($dbo->getNumRows()) {
-					$htmlpreview = VikBooking::sendBookingEmail($dbo->loadResult(), array(), false);
+					$use_bid = !empty($force_bid) ? $force_bid : $dbo->loadResult();
+					$htmlpreview = VikBooking::sendBookingEmail($use_bid, [], false);
 				} else {
 					$htmlpreview = '<p class="warn">' . JText::translate('VBNOORDERSFOUND') . '</p>';
 				}
@@ -51,9 +54,9 @@ class VikBookingViewTmplfileprew extends JViewVikBooking {
 				break;
 		}
 		
-		$this->fpath = &$fpath;
-		$this->fbase = &$fbase;
-		$this->htmlpreview = &$htmlpreview;
+		$this->fpath = $fpath;
+		$this->fbase = $fbase;
+		$this->htmlpreview = $htmlpreview;
 		
 		// Display the template
 		parent::display($tpl);

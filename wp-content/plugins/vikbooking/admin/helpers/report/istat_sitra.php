@@ -93,6 +93,8 @@ class VikBookingReportIstatSitra extends VikBookingReport
 			'14' => 'Non specificato'
 		);
 
+		$this->registerExportFileName();
+
 		parent::__construct();
 	}
 
@@ -138,7 +140,7 @@ class VikBookingReportIstatSitra extends VikBookingReport
 				}';
 	 	$doc->addStyleDeclaration($css);
 		//get VBO Application Object
-		$vbo_app = new VboApplication();
+		$vbo_app = VikBooking::getVboApplication();
 
 		//load the jQuery UI Datepicker
 		$this->loadDatePicker();
@@ -1070,6 +1072,7 @@ class VikBookingReportIstatSitra extends VikBookingReport
 		if (!$this->getReportData()) {
 			return false;
 		}
+
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$ptodate = VikRequest::getString('todate', '', 'request');
 		$pcodstru = VikRequest::getString('codstru', '', 'request');
@@ -1296,13 +1299,42 @@ class VikBookingReportIstatSitra extends VikBookingReport
 		$xml .= '</movimento> '."\n";
 		$xml .= '</movimenti>';
 
-		$filename = str_replace(' ', '_', $this->reportName).'-'.str_replace('/', '_', $pfromdate).'.xml';
+		// format XML document
+		$this->formatXML($xml);
 
-		header('Content-Disposition: attachment; filename='.$filename.'');
+		/**
+		 * Custom export method supports a custom export handler, if previously set.
+		 * 
+		 * @since 	1.16.1 (J) - 1.6.1 (WP)
+		 */
+		if ($this->hasExportHandler()) {
+			// write data onto the custom file handler
+			$fp = $this->getExportCSVHandler();
+			fwrite($fp, $xml);
+			fclose($fp);
+
+			return true;
+		}
+
+		header('Content-Disposition: attachment; filename=' . $this->getExportCSVFileName());
 		header('Content-type: text/xml');
-		echo $this->formatXML($xml);
+		echo $xml;
 
 		exit;
+	}
+
+	/**
+	 * Registers the name to give to the file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	private function registerExportFileName()
+	{
+		$pfromdate = VikRequest::getString('fromdate', '', 'request');
+
+		$this->setExportCSVFileName(str_replace(' ', '_', $this->reportName) . '-' . str_replace('/', '_', $pfromdate) . '.xml');
 	}
 
 	/**

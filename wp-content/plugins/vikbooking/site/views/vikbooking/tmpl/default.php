@@ -48,7 +48,11 @@ if (VikBooking::allowBooking()) {
 			$rval = $dr;
 		}
 	}
-	$selform = "<div class=\"vbdivsearch vbo-search-mainview\"><form action=\"".JRoute::rewrite('index.php?option=com_vikbooking'.(!empty($pitemid) ? '&Itemid='.$pitemid : ''))."\" method=\"post\"><div class=\"vb-search-inner\">\n";
+
+	// form method is dependant to the platform
+	$form_method = VBOPlatformDetection::isWordPress() ? 'post' : 'get';
+
+	$selform = "<div class=\"vbdivsearch vbo-search-mainview\"><form action=\"".JRoute::rewrite('index.php?option=com_vikbooking'.(!empty($pitemid) ? '&Itemid='.$pitemid : ''))."\" method=\"{$form_method}\"><div class=\"vb-search-inner\">\n";
 	$selform .= "<input type=\"hidden\" name=\"option\" value=\"com_vikbooking\"/>\n";
 	$selform .= "<input type=\"hidden\" name=\"task\" value=\"search\"/>\n";
 	
@@ -111,10 +115,10 @@ var vbrestrctarange, vbrestrctdrange, vbrestrcta, vbrestrctd;';
 		if ($totrestrictions > 0) {
 			foreach ($restrictions as $rmonth => $restr) {
 				if ($rmonth != 'range') {
-					if (strlen($restr['wday']) > 0) {
+					if (strlen((string)$restr['wday'])) {
 						$wdaysrestrictions[] = "'".($rmonth - 1)."': '".$restr['wday']."'";
 						$wdaysrestrictionsmonths[] = $rmonth;
-						if (strlen($restr['wdaytwo']) > 0) {
+						if (strlen((string)$restr['wdaytwo'])) {
 							$wdaystworestrictions[] = "'".($rmonth - 1)."': '".$restr['wdaytwo']."'";
 							$monthscomborestr[($rmonth - 1)] = VikBooking::parseJsDrangeWdayCombo($restr);
 						}
@@ -135,12 +139,12 @@ var vbrestrctarange, vbrestrctdrange, vbrestrcta, vbrestrctd;';
 					}
 				} else {
 					foreach ($restr as $kr => $drestr) {
-						if (strlen($drestr['wday']) > 0) {
+						if (strlen((string)$drestr['wday'])) {
 							$wdaysrestrictionsrange[$kr][0] = date('Y-m-d', $drestr['dfrom']);
 							$wdaysrestrictionsrange[$kr][1] = date('Y-m-d', $drestr['dto']);
 							$wdaysrestrictionsrange[$kr][2] = $drestr['wday'];
 							$wdaysrestrictionsrange[$kr][3] = $drestr['multiplyminlos'];
-							$wdaysrestrictionsrange[$kr][4] = strlen($drestr['wdaytwo']) > 0 ? $drestr['wdaytwo'] : -1;
+							$wdaysrestrictionsrange[$kr][4] = strlen((string)$drestr['wdaytwo']) ? $drestr['wdaytwo'] : -1;
 							$wdaysrestrictionsrange[$kr][5] = VikBooking::parseJsDrangeWdayCombo($drestr);
 						} elseif (!empty($drestr['ctad']) || !empty($drestr['ctdd'])) {
 							$ctfrom = date('Y-m-d', $drestr['dfrom']);
@@ -204,27 +208,27 @@ function vbRefreshCheckout(darrive) {
 		}
 	}
 }
-function vbSetMinCheckoutDate () {
+function vbSetMinCheckoutDate(selectedDate) {
 	var minlos = ".VikBooking::getDefaultNightsCalendar().";
 	var maxlosrange = 0;
 	var nowcheckin = jQuery('#checkindate').datepicker('getDate');
 	var nowd = nowcheckin.getDay();
 	var nowcheckindate = new Date(nowcheckin.getTime());
 	vbcombowdays = {};
-	if(vbFullObject(vbrestrminlosrangejn)) {
+	if (vbFullObject(vbrestrminlosrangejn)) {
 		for (var rk in vbrestrminlosrangejn) {
-			if(vbrestrminlosrangejn.hasOwnProperty(rk)) {
+			if (vbrestrminlosrangejn.hasOwnProperty(rk)) {
 				var minldrangeinit = vbGetDateObject(vbrestrminlosrangejn[rk][0]);
-				if(nowcheckindate >= minldrangeinit) {
+				if (nowcheckindate >= minldrangeinit) {
 					var minldrangeend = vbGetDateObject(vbrestrminlosrangejn[rk][1]);
-					if(nowcheckindate <= minldrangeend) {
+					if (nowcheckindate <= minldrangeend) {
 						minlos = parseInt(vbrestrminlosrangejn[rk][2]);
-						if(vbFullObject(vbrestrmaxlosrangejn)) {
-							if(rk in vbrestrmaxlosrangejn) {
+						if (vbFullObject(vbrestrmaxlosrangejn)) {
+							if (rk in vbrestrmaxlosrangejn) {
 								maxlosrange = parseInt(vbrestrmaxlosrangejn[rk]);
 							}
 						}
-						if(rk in vbrestrwdaysrangejn && nowd in vbrestrwdaysrangejn[rk][5]) {
+						if (rk in vbrestrwdaysrangejn && nowd in vbrestrwdaysrangejn[rk][5]) {
 							vbcombowdays = vbrestrwdaysrangejn[rk][5][nowd];
 						}
 					}
@@ -233,30 +237,46 @@ function vbSetMinCheckoutDate () {
 		}
 	}
 	var nowm = nowcheckin.getMonth();
-	if(vbFullObject(vbrestrmonthscombojn) && vbrestrmonthscombojn.hasOwnProperty(nowm)) {
-		if(nowd in vbrestrmonthscombojn[nowm]) {
+	if (vbFullObject(vbrestrmonthscombojn) && vbrestrmonthscombojn.hasOwnProperty(nowm)) {
+		if (nowd in vbrestrmonthscombojn[nowm]) {
 			vbcombowdays = vbrestrmonthscombojn[nowm][nowd];
 		}
 	}
-	if(jQuery.inArray((nowm + 1), vbrestrmonths) != -1) {
+	if (jQuery.inArray((nowm + 1), vbrestrmonths) != -1) {
 		minlos = parseInt(vbrestrminlos[nowm]);
 	}
 	nowcheckindate.setDate(nowcheckindate.getDate() + minlos);
 	jQuery('#checkoutdate').datepicker( 'option', 'minDate', nowcheckindate );
-	if(maxlosrange > 0) {
+	if (maxlosrange > 0) {
 		var diffmaxminlos = maxlosrange - minlos;
 		var maxcheckoutdate = new Date(nowcheckindate.getTime());
 		maxcheckoutdate.setDate(maxcheckoutdate.getDate() + diffmaxminlos);
 		jQuery('#checkoutdate').datepicker( 'option', 'maxDate', maxcheckoutdate );
 	}
-	if(nowm in vbrestrmaxlos) {
+	if (nowm in vbrestrmaxlos) {
 		var diffmaxminlos = parseInt(vbrestrmaxlos[nowm]) - minlos;
 		var maxcheckoutdate = new Date(nowcheckindate.getTime());
 		maxcheckoutdate.setDate(maxcheckoutdate.getDate() + diffmaxminlos);
 		jQuery('#checkoutdate').datepicker( 'option', 'maxDate', maxcheckoutdate );
 	}
-	if(!vbFullObject(vbcombowdays)) {
-		jQuery('#checkoutdate').datepicker( 'setDate', nowcheckindate );
+	if (!vbFullObject(vbcombowdays)) {
+		var is_checkout_disabled = false;
+		if (typeof selectedDate !== 'undefined' && typeof jQuery('#checkoutdate').datepicker('option', 'beforeShowDay') === 'function') {
+			// let the datepicker validate if the min date to set for check-out is disabled due to CTD rules
+			is_checkout_disabled = !jQuery('#checkoutdate').datepicker('option', 'beforeShowDay')(nowcheckindate)[0];
+		}
+		if (!is_checkout_disabled) {
+			jQuery('#checkoutdate').datepicker( 'setDate', nowcheckindate );
+		} else {
+			setTimeout(() => {
+				// make sure the minimum date just set for the checkout has not populated a CTD date that we do not want
+				var current_out_dt = jQuery('#checkoutdate').datepicker('getDate');
+				if (current_out_dt && current_out_dt.getTime() === nowcheckindate.getTime()) {
+					jQuery('#checkoutdate').datepicker( 'setDate', null );
+				}
+				jQuery('#checkoutdate').focus();
+			}, 100);
+		}
 	} else {
 		vbRefreshCheckout(nowcheckin);
 	}
@@ -436,7 +456,7 @@ jQuery(function(){
 		showOn: 'focus',
 		numberOfMonths: ".($is_mobile ? '1' : '2').",".((isset($wdaysrestrictions) && count($wdaysrestrictions)) || (isset($wdaysrestrictionsrange) && count($wdaysrestrictionsrange)) ? "\nbeforeShowDay: vbIsDayDisabled,\n" : "\nbeforeShowDay: vbCheckClosingDatesIn,\n")."
 		onSelect: function( selectedDate ) {
-			".($totrestrictions > 0 ? "vbSetMinCheckoutDate();" : "vbSetGlobalMinCheckoutDate();")."
+			".($totrestrictions > 0 ? "vbSetMinCheckoutDate(selectedDate);" : "vbSetGlobalMinCheckoutDate();")."
 			vbCalcNights();
 		}
 	});
@@ -452,7 +472,6 @@ jQuery(function(){
 	});
 	jQuery('#checkoutdate').datepicker( 'option', 'dateFormat', '".$juidf."');
 	jQuery('#checkoutdate').datepicker( 'option', 'minDate', '".VikBooking::getMinDaysAdvance()."d');
-	jQuery('#checkoutdate').datepicker( 'option', 'maxDate', '".VikBooking::getMaxDateFuture()."');
 	jQuery('#checkindate').datepicker( 'option', jQuery.datepicker.regional[ 'vikbooking' ] );
 	jQuery('#checkoutdate').datepicker( 'option', jQuery.datepicker.regional[ 'vikbooking' ] );
 	jQuery('.vb-cal-img, .vbo-caltrigger').click(function(){
@@ -463,18 +482,23 @@ jQuery(function(){
 	});
 });";
 		$document->addScriptDeclaration($sdecl);
-		$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkindate\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkindate\" id=\"checkindate\" size=\"16\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkinh\" value=\"".$hcheckin."\"/><input type=\"hidden\" name=\"checkinm\" value=\"".$mcheckin."\"/></div>\n";
-		$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkoutdate\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkoutdate\" id=\"checkoutdate\" size=\"16\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkouth\" value=\"".$hcheckout."\"/><input type=\"hidden\" name=\"checkoutm\" value=\"".$mcheckout."\"/></div>\n";
+		$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkin\"><label for=\"checkindate\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkindate\" id=\"checkindate\" size=\"10\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkinh\" value=\"".$hcheckin."\"/><input type=\"hidden\" name=\"checkinm\" value=\"".$mcheckin."\"/></div>\n";
+		$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkout\"><label for=\"checkoutdate\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkoutdate\" id=\"checkoutdate\" size=\"10\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkouth\" value=\"".$hcheckout."\"/><input type=\"hidden\" name=\"checkoutm\" value=\"".$mcheckout."\"/></div>\n";
 	} else {
 		//default Joomla Calendar
-		$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkindate\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkindate', 'checkindate', $vbdateformat, array ('class' => '','size' => '16','maxlength' => '19'));
+		$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkin\"><label for=\"checkindate\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkindate', 'checkindate', $vbdateformat, array ('class' => '','size' => '10','maxlength' => '19'));
 		$selform .= "<input type=\"hidden\" name=\"checkinh\" value=\"".$hcheckin."\"/><input type=\"hidden\" name=\"checkinm\" value=\"".$mcheckin."\"/></div></div>\n";
-		$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkoutdate\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkoutdate', 'checkoutdate', $vbdateformat, array ('class' => '','size' => '16','maxlength' => '19')); 
+		$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkout\"><label for=\"checkoutdate\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkoutdate', 'checkoutdate', $vbdateformat, array ('class' => '','size' => '10','maxlength' => '19')); 
 		$selform .= "<input type=\"hidden\" name=\"checkouth\" value=\"".$hcheckout."\"/><input type=\"hidden\" name=\"checkoutm\" value=\"".$mcheckout."\"/></div></div>\n";
 	}
 	//
 	//rooms, adults, children
 	$showchildren = VikBooking::showChildrenFront();
+	$guests_label = VBOFactory::getConfig()->get('guests_label', 'adults');
+	$use_guests_label = 'VBFORMADULTS';
+	if (!$showchildren && !strcasecmp($guests_label, 'guests')) {
+		$use_guests_label = 'VBOINVTOTGUESTS';
+	}
 	//max number of rooms
 	$maxsearchnumrooms = VikBooking::getSearchNumRooms();
 	if (intval($maxsearchnumrooms) > 1) {
@@ -505,12 +529,12 @@ jQuery(function(){
 	}
 	$childrensel .= "</select>";
 	//
-	$selform .= "<div class=\"vbo-search-num-racblock col-lg-4\">\n";
+	$selform .= "<div class=\"vbo-search-num-racblock\">\n";
 	$selform .= "	<div class=\"vbo-search-num-rooms\">".$roomsel."</div>\n";
 	$selform .= "	<div class=\"vbo-search-num-aduchild-block\" id=\"vbo-search-num-aduchild-block\">\n";
 	$selform .= "		<div class=\"vbo-search-num-aduchild-entry\">".(intval($maxsearchnumrooms) > 1 ? "<span class=\"vbo-search-roomnum\">".JText::translate('VBFORMNUMROOM')." 1</span>" : "")."\n";
-	$selform .= "			<div class=\"vbo-search-num-adults-entry\"><label class=\"vbo-search-num-adults-entry-label\">".JText::translate('VBFORMADULTS')."</label><span class=\"vbo-search-num-adults-entry-inp\">".$adultsel."</span></div>\n";
-	if($showchildren) {
+	$selform .= "			<div class=\"vbo-search-num-adults-entry\"><label class=\"vbo-search-num-adults-entry-label\">".JText::translate($use_guests_label)."</label><span class=\"vbo-search-num-adults-entry-inp\">".$adultsel."</span></div>\n";
+	if ($showchildren) {
 		$selform .= "		<div class=\"vbo-search-num-children-entry\"><label class=\"vbo-search-num-children-entry-label\">".JText::translate('VBFORMCHILDREN')."</label><span class=\"vbo-search-num-children-entry-inp\">".$childrensel."</span></div>\n";
 	}
 	$selform .= "		</div>\n";
@@ -548,8 +572,29 @@ jQuery(function(){
 	$selform .= (!empty($pitemid) ? "<input type=\"hidden\" name=\"Itemid\" value=\"" . $pitemid . "\"/>" : "") . "</form></div>";
 
 	?>
+	<div class="vbo-js-helpers" style="display: none;">
+		<div class="vbo-add-element-html">
+			<div class="vbo-search-num-aduchild-entry">
+				<span class="vbo-search-roomnum"><?php echo JText::translate('VBFORMNUMROOM'); ?> %d</span>
+				<div class="vbo-search-num-adults-entry">
+					<label class="vbo-search-num-adults-entry-label"><?php echo JText::translate($use_guests_label); ?></label>
+					<span class="vbo-search-num-adults-entry-inp"><?php echo $adultsel; ?></span>
+				</div>
+			<?php
+			if ($showchildren) {
+				?>
+				<div class="vbo-search-num-children-entry">
+					<label class="vbo-search-num-children-entry-label"><?php echo JText::translate('VBFORMCHILDREN'); ?></label>
+					<span class="vbo-search-num-adults-entry-inp"><?php echo $childrensel; ?></span>
+				</div>
+				<?php
+			}
+			?>
+			</div>
+		</div>
+	</div>
+
 	<script type="text/javascript">
-	/* <![CDATA[ */
 	function vbAddElement() {
 		var ni = document.getElementById('vbo-search-num-aduchild-block');
 		var numi = document.getElementById('vbroomhelper');
@@ -557,8 +602,10 @@ jQuery(function(){
 		numi.value = num;
 		var newdiv = document.createElement('div');
 		var divIdName = 'vb'+num+'racont';
-		newdiv.setAttribute('id',divIdName);
-		newdiv.innerHTML = '<div class=\'vbo-search-num-aduchild-entry\'><span class=\'vbo-search-roomnum\'><?php echo addslashes(JText::translate('VBFORMNUMROOM')); ?> '+ num +'</span><div class=\'vbo-search-num-adults-entry\'><label class=\'vbo-search-num-adults-entry-label\'><?php echo addslashes(JText::translate('VBFORMADULTS')); ?></label><span class=\'vbo-search-num-adults-entry-inp\'><?php echo addslashes(str_replace('"', "'", $adultsel)); ?></span></div><?php if($showchildren): ?><div class=\'vbo-search-num-children-entry\'><label class=\'vbo-search-num-children-entry-label\'><?php echo addslashes(JText::translate('VBFORMCHILDREN')); ?></label><span class=\'vbo-search-num-adults-entry-inp\'><?php echo addslashes(str_replace('"', "'", $childrensel)); ?></span></div><?php endif; ?></div>';
+		newdiv.setAttribute('id', divIdName);
+		var new_element_html = document.getElementsByClassName('vbo-add-element-html')[0].innerHTML;
+		var rp_rgx = new RegExp('%d', 'g');
+		newdiv.innerHTML = new_element_html.replace(rp_rgx, num);
 		ni.appendChild(newdiv);
 	}
 	function vbSetRoomsAdults(totrooms) {
@@ -643,7 +690,6 @@ jQuery(function(){
 			document.getElementById('vbjstotnights').innerHTML = '';
 		}
 	}
-	/* ]]> */
 	</script>
 	<input type="hidden" id="vbroomhelper" value="1"/>
 	<?php
@@ -668,7 +714,15 @@ jQuery(function(){
 	?>
 	<div class="vbo-intro-main"><?php echo VikBooking::getIntroMain(); ?></div>
 	<?php
+	// write the form
 	echo $selform;
+
+	// check for guests allowed policy
+	if (!$showchildren && $guests_allowed_policy = VikBooking::getGuestsAllowedPolicy($vbo_tn)) {
+		?>
+	<div class="vbo-guests-allowed-policy"><?php echo $guests_allowed_policy; ?></div>
+		<?php
+	}
 	?>
 	<div class="vbo-closing-main"><?php echo VikBooking::getClosingMain(); ?></div>
 	<?php
@@ -677,7 +731,7 @@ jQuery(function(){
 		if ($calendartype == "jqueryui") {
 			?>
 	<script type="text/javascript">
-	jQuery(document).ready(function() {
+	jQuery(function() {
 		jQuery('#checkindate').val('<?php echo $pval; ?>');
 		jQuery('#checkoutdate').val('<?php echo $rval; ?>');
 	});
@@ -696,4 +750,3 @@ jQuery(function(){
 } else {
 	echo VikBooking::getDisabledBookingMsg();
 }
-?>

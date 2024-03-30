@@ -10,7 +10,7 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-$vbo_app = new VboApplication();
+$vbo_app = VikBooking::getVboApplication();
 ?>
 <div class="vbo-info-overlay-block vbo-info-overlay-block-animation">
 	<a class="vbo-info-overlay-close" href="javascript: void(0);"></a>

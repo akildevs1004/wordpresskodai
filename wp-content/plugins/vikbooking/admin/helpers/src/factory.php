@@ -88,7 +88,7 @@ final class VBOFactory
 		// check if platform class is already instantiated
 		if (is_null(static::$platform))
 		{
-			if (defined('ABSPATH') && function_exists('wp_die'))
+			if (VBOPlatformDetection::isWordPress())
 			{
 				// running WordPress platform
 				static::$platform = new VBOPlatformOrgWordpress();
@@ -133,7 +133,7 @@ final class VBOFactory
 			 * 
 			 * @since   1.5.10
 			 */
-			JFactory::getApplication()->triggerEvent('onCreateCronJobsFactoryVikBooking', [static::$cronFactory]);
+			VBOFactory::getPlatform()->getDispatcher()->trigger('onCreateCronJobsFactoryVikBooking', [static::$cronFactory]);
 		}
 
 		return static::$cronFactory;

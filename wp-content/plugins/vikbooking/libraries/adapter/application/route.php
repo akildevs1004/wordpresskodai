@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.application
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -237,9 +237,10 @@ class JRoute
 			// process only if the given post ID matches the one assigned to the shortcode
 			if ($post_id == $shortcode->post_id)
 			{
-				// get shortcodes args and view
+				// get shortcodes parameters, view and language
 				$json = (array) json_decode($shortcode->json, true);
 				$json['view'] = $shortcode->type;
+				$json['lang'] = $shortcode->lang;
 
 				// get the keys that the shortcode doesn't contain
 				$diff = self::diff($args, $json);
@@ -401,6 +402,31 @@ class JRoute
 
 		foreach ($array1 as $key => $value)
 		{
+			/**
+			 * Improved the comparison of the language tag, which might be
+			 * handled in different ways from different sections of WP.
+			 * 
+			 * @since 10.1.49
+			 */
+			if ($key === 'lang')
+			{
+				// check whether at least a language code doesn't mention the country code
+				if (!preg_match("/[_\-]/", $value) || !preg_match("/[_\-]/", $array2[$key]))
+				{
+					// remove country code from locale assigned to the shortcode
+					$array2[$key] = preg_split("/[_\-]/", $array2[$key]);
+					$array2[$key] = array_shift($array2[$key]);
+
+					// remove country code from URL locale
+					$value = preg_split("/[_\-]/", $value);
+					$value = array_shift($value);
+				}
+
+				// normalize locale separators
+				$array2[$key] = str_replace('-', '_', $array2[$key]);
+				$value        = str_replace('-', '_', $value);
+			}
+
 			if (is_array($value))
 			{
 				if (!isset($array2[$key]) || !is_array($array2[$key]))

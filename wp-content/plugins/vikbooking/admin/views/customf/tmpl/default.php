@@ -41,6 +41,17 @@ if (empty($rows)) {
 		</tr>
 		</thead>
 	<?php
+	$field_type_map = [
+		'text' 		=> JText::translate('VBNEWCUSTOMFTHREE'),
+		'textarea' 	=> JText::translate('VBNEWCUSTOMFTEN'),
+		'select' 	=> JText::translate('VBNEWCUSTOMFFOUR'),
+		'checkbox' 	=> JText::translate('VBNEWCUSTOMFFIVE'),
+		'date' 		=> JText::translate('VBNEWCUSTOMFDATETYPE'),
+		'country' 	=> JText::translate('VBNEWCUSTOMFCOUNTRY'),
+		'state' 	=> JText::translate('VBO_STATE_PROVINCE'),
+		'separator' => JText::translate('VBNEWCUSTOMFSEPARATOR'),
+	];
+
 	$k = 0;
 	$i = 0;
 	for ($i = 0, $n = count($rows); $i < $n; $i++) {
@@ -67,6 +78,9 @@ if (empty($rows)) {
 		if ($row['isemail'] > 0) {
 			$field_badge = ' <span class="badge">'.JText::translate('VBPVIEWCUSTOMFFIVE').'</span>';
 		}
+		if ($row['type'] == 'state') {
+			$field_badge = ' <a href="index.php?option=com_vikbooking&view=states" class="label label-info"><i class="' . VikBookingIcons::i('edit') . '"></i> '.JText::translate('VBO_MANAGE').'</a>';
+		}
 		?>
 		<tr class="row<?php echo $k; ?>">
 			<td><input type="checkbox" id="cb<?php echo $i;?>" name="cid[]" value="<?php echo $row['id']; ?>" onclick="Joomla.isChecked(this.checked);"></td>
@@ -79,10 +93,10 @@ if (empty($rows)) {
 					<?php endif; ?>
 				</div>
 			</td>
-			<td><?php echo ucwords($row['type']).$field_badge; ?></td>
+			<td><?php echo (isset($field_type_map[$row['type']]) ? $field_type_map[$row['type']] : ucwords($row['type'])) . $field_badge; ?></td>
 			<td class="center">
-				<a href="index.php?option=com_vikbooking&amp;task=sortfield&amp;cid[]=<?php echo $row['id']; ?>&amp;mode=up"><?php VikBookingIcons::e('arrow-up', 'vbo-icn-img'); ?></a> 
-				<a href="index.php?option=com_vikbooking&amp;task=sortfield&amp;cid[]=<?php echo $row['id']; ?>&amp;mode=down"><?php VikBookingIcons::e('arrow-down', 'vbo-icn-img'); ?></a>
+				<a href="<?php echo VBOFactory::getPlatform()->getUri()->addCSRF('index.php?option=com_vikbooking&task=sortfield&cid[]=' . $row['id'] . '&mode=up', true); ?>"><?php VikBookingIcons::e('arrow-up', 'vbo-icn-img'); ?></a> 
+				<a href="<?php echo VBOFactory::getPlatform()->getUri()->addCSRF('index.php?option=com_vikbooking&task=sortfield&cid[]=' . $row['id'] . '&mode=down', true); ?>"><?php VikBookingIcons::e('arrow-down', 'vbo-icn-img'); ?></a>
 			</td>
 			<td class="center"><?php echo intval($row['required']) == 1 ? "<i class=\"".VikBookingIcons::i('check', 'vbo-icn-img')."\" style=\"color: #099909;\"></i>" : "<i class=\"".VikBookingIcons::i('times-circle', 'vbo-icn-img')."\" style=\"color: #ff0000;\"></i>"; ?></td>
 		</tr>	

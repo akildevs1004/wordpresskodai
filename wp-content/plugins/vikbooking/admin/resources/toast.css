@@ -27,13 +27,14 @@
 	box-shadow: 0 2px 5px rgba(0,0,0,.20);
 }
 .vbo-toast-wrapper .toast-message-content.error {
-	background-color: rgba(153, 0, 0, 0.20)
+	background-color: rgba(153, 0, 0, 0.90);
+	color: #ddd !important;
 }
 .vbo-toast-wrapper .toast-message-content.success {
-	background-color: rgba(112, 204, 135, 0.40);
+	background-color: rgba(112, 204, 135, 0.90);
 }
 .vbo-toast-wrapper .toast-message-content.warning {
-	background-color: rgba(224, 137, 80, 0.35);
+	background-color: rgba(224, 137, 80, 0.90);
 }
 .vbo-toast-wrapper .toast-message-content.notice {
 	background-color: #fff;
@@ -174,6 +175,7 @@
 	width: 48px;
 	height: 48px;
 	border-radius: 50%;
+	object-fit: cover;
 }
 .vbo-pushnotif-wrapper .push-notif-text .push-notif-title {
 	font-size: larger;

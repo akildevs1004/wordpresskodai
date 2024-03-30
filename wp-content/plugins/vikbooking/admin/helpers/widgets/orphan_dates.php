@@ -51,19 +51,19 @@ class VikBookingAdminWidgetOrphanDates extends VikBookingAdminWidget
 		?>
 		<div class="vbo-admin-widget-wrapper vbo-admin-widget-wrapper-orphandates" style="<?php echo !$is_multitask ? 'display: none;' : ''; ?>">
 			<div class="vbo-admin-widget-head">
-				<h4><?php echo $this->vbo_app->createPopover(array('title' => JText::translate('VBORPHANSFOUND'), 'content' => JText::translate('VBORPHANSFOUNDSHELP'), 'icon_class' => VikBookingIcons::i('exclamation-triangle'))); ?> <?php echo JText::translate('VBORPHANSFOUND'); ?></h4>
+				<h4><?php echo $this->vbo_app->createPopover(array('title' => JText::translate('VBORPHANSFOUND'), 'content' => JText::translate('VBORPHANSFOUNDSHELP'), 'icon_class' => VikBookingIcons::i('exclamation-triangle'))); ?> <span><?php echo JText::translate('VBORPHANSFOUND'); ?></span></h4>
 			</div>
 			<div class="vbo-orphans-info-list">
 				<div style="min-height: 152px;">
 					<div class="vbo-orphans-info-room">
-						<h4>0</h4>
+						<h4>&nbsp;&nbsp; ----- </h4>
 					</div>
 				</div>
 			</div>
 		</div>
 
 		<script type="text/JavaScript">
-		jQuery(document).ready(function() {
+		jQuery(function() {
 			// check orphans (only if not disabled through the original cookie of the previous versions of Vik Booking)
 			var hideorphans = false;
 			var buiscuits = document.cookie;
@@ -82,7 +82,7 @@ class VikBookingAdminWidgetOrphanDates extends VikBookingAdminWidget
 						tmpl: "component"
 					}
 				}).done(function(res) {
-					var obj_res = JSON.parse(res);
+					var obj_res = typeof res === 'string' ? JSON.parse(res) : res;
 					var orphans_list = '';
 					for (var rid in obj_res) {
 						if (!obj_res.hasOwnProperty(rid)) {

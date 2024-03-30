@@ -351,7 +351,7 @@ class VikBookingRssFeeds
 			if ($context == 'post')
 			{
 				// add support for input field
-				$tags['input'] = array(
+				$tags['input'] = [
 					'type'     => true,
 					'name'     => true,
 					'id'       => true,
@@ -360,10 +360,10 @@ class VikBookingRssFeeds
 					'style'    => true,
 					'disabled' => true,
 					'readonly' => true,
-				);
+				];
 
 				// add support for textarea field
-				$tags['textarea'] = array(
+				$tags['textarea'] = [
 					'name'     => true,
 					'id'       => true,
 					'class'    => true,
@@ -372,7 +372,7 @@ class VikBookingRssFeeds
 					'cols'     => true,
 					'disabled' => true,
 					'readonly' => true,
-				);
+				];
 
 				// add support for button
 				if (isset($tags['button']))
@@ -383,15 +383,20 @@ class VikBookingRssFeeds
 				else
 				{
 					// define all supported attributes
-					$tags['button'] = array(
+					$tags['button'] = [
 						'type'     => true,
 						'id'       => true,
 						'class'    => true,
 						'style'    => true,
 						'onclick'  => true,
 						'disabled' => true,
-					);
+					];
 				}
+
+				// add support for source under a <video> tag
+				$tags['source'] = [
+					'src' => true,
+				];
 			}
 
 			return $tags;

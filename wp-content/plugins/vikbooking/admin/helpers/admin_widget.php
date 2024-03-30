@@ -90,7 +90,16 @@ abstract class VikBookingAdminWidget
 	 *
 	 * @var 	string
 	 */
-	private $widgetId = null;
+	protected $widgetId = null;
+
+	/**
+	 * The widget multitask options registry.
+	 *
+	 * @var 	VBOMultitaskOptions
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	protected $options;
 
 	/**
 	 * Class constructors should define some vars for the widget in use.
@@ -98,6 +107,8 @@ abstract class VikBookingAdminWidget
 	public function __construct()
 	{
 		$this->vbo_app = VikBooking::getVboApplication();
+		$this->datesep = VikBooking::getDateSeparator(true);
+
 		$nowdf = VikBooking::getDateFormat(true);
 		if ($nowdf == "%d/%m/%Y") {
 			$this->df = 'd/m/Y';
@@ -106,7 +117,8 @@ abstract class VikBookingAdminWidget
 		} else {
 			$this->df = 'Y/m/d';
 		}
-		$this->datesep = VikBooking::getDateSeparator(true);
+
+		$this->options = VBOMultitaskOptions::getInstance();
 	}
 
 	/**
@@ -226,6 +238,91 @@ abstract class VikBookingAdminWidget
 	}
 
 	/**
+	 * Binds the widget options at runtime when multitask data is available.
+	 * Options live on a separate layer than regular multitask data.
+	 * 
+	 * @param 	VBOMultitaskData|VBOMultitaskOptions|array|object 	$options 	options to bind.
+	 * 
+	 * @return 	self
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function bindOptions($options)
+	{
+		if ($options instanceof VBOMultitaskData) {
+			// set options by extracting them from multitask data
+			$this->options->setProperties($options->getDataOptions());
+		} elseif ($options instanceof VBOMultitaskOptions) {
+			// replace options with given instance
+			$this->options = $options;
+		} elseif (is_array($options) || is_object($options)) {
+			// bind new options
+			$this->options = VBOMultitaskOptions::getInstance($options);
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Gets all widget options previously set through Multitask data.
+	 * Options live on a separate layer than regular Multitask data.
+	 * 
+	 * @param 	bool 	$public 	true to get only the public options.
+	 * 
+	 * @return 	array 				associative list of options, if any.
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function getOptions($public = false)
+	{
+		return $this->options->getProperties($public);
+	}
+
+	/**
+	 * Proxy to access the multitask options object.
+	 * 
+	 * @return 	VBOMultitaskOptions
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function options()
+	{
+		return $this->options;
+	}
+
+	/**
+	 * Sets a widget option value.
+	 * 
+	 * @param 	string 	$key 	the option key identifier.
+	 * @param 	mixed 	$value 	the option value to set.
+	 * 
+	 * @return 	self
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function setOption($key, $value)
+	{
+		$this->options->set($key, $value);
+
+		return $this;
+	}
+
+	/**
+	 * Gets the value for the given widget option key.
+	 * 
+	 * @param 	string 	$key 		the option key identifier.
+	 * @param 	mixed 	$default 	the default value to get.
+	 * 
+	 * @return 	mixed
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function getOption($key, $default = null)
+	{
+		return $this->options->get($key, $default);
+	}
+
+	/**
 	 * Extending Classes should define this method to render the actual
 	 * output of the admin widget. Multitask data can be passed along.
 	 * 
@@ -275,6 +372,18 @@ abstract class VikBookingAdminWidget
 	}
 
 	/**
+	 * Tells the widget if VCM is available.
+	 * 
+	 * @return 	bool 	true if Vik Channel Manager is available.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	protected function hasChannelManager()
+	{
+		return is_file(VCM_SITE_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARATOR . 'lib.vikchannelmanager.php');
+	}
+
+	/**
 	 * Gets the configuration parameter name for the widget's settings.
 	 * 
 	 * @return 	string 	the param name of the settings record.
@@ -282,27 +391,6 @@ abstract class VikBookingAdminWidget
 	protected function getSettingsParamName()
 	{
 		return 'admin_widget_' . $this->getIdentifier();
-	}
-
-	/**
-	 * Gets the configuration parameter name for the widget's settings.
-	 * For backward compatibility with older versions, the admin widget
-	 * name and related param will contain the ending ".php" extension.
-	 * By updating and by using these widgets, the new param name will
-	 * be moved to the new nomenclature with no ending ".php" extension.
-	 * 
-	 * @return 	string 	the param name of the settings record.
-	 * 
-	 * @since 	1.15.0 (J) - 1.5.0 (WP)
-	 * 
-	 * @deprecated  Admin widget names no longer contain the ".php" extension.
-	 * 				Until this update, only the "sticky_notes" widget was using
-	 * 				its own settings, and upon updating, they will be supported
-	 * 				just for BC. However, future updates will drop this BC support.
-	 */
-	protected function getBCSettingsParamName()
-	{
-		return 'admin_widget_' . $this->getIdentifier() . '.php';
 	}
 
 	/**
@@ -317,36 +405,11 @@ abstract class VikBookingAdminWidget
 
 		$param_name = $this->getSettingsParamName();
 
-		$q = "SELECT `setting` FROM `#__vikbooking_config` WHERE `param`=" . $dbo->quote($param_name) . ";";
-		$dbo->setQuery($q);
-		$dbo->execute();
+		$q = "SELECT `setting` FROM `#__vikbooking_config` WHERE `param`=" . $dbo->quote($param_name);
+		$dbo->setQuery($q, 0, 1);
+		$settings = $dbo->loadResult();		
 
-		if (!$dbo->getNumRows()) {
-			/**
-			 * For BC support, we attempt to load the legacy settings
-			 * param name inclusive of the ".php" extension.
-			 * 
-			 * @deprecated 	this will be dismissed in future updates.
-			 */
-			$bc_param_name = $this->getBCSettingsParamName();
-			$q = "SELECT `setting` FROM `#__vikbooking_config` WHERE `param`=" . $dbo->quote($bc_param_name) . ";";
-			$dbo->setQuery($q);
-			$dbo->execute();
-			if (!$dbo->getNumRows()) {
-
-				// insert settings record for the widget & return null
-				$q = "INSERT INTO `#__vikbooking_config` (`param`,`setting`) VALUES (" . $dbo->quote($param_name) . ", '');";
-				$dbo->setQuery($q);
-				$dbo->execute();
-
-				return null;
-
-			}
-		}
-
-		$settings = $dbo->loadResult();
-
-		if (!strlen($settings)) {
+		if (!$settings) {
 			return null;
 		}
 

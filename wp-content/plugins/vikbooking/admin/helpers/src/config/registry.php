@@ -210,6 +210,27 @@ abstract class VBOConfigRegistry
 	}
 
 	/**
+	 * Removes the specified property.
+	 *
+	 * @param 	string   $key  The name of the setting.
+	 *
+	 * @return  self    This object to support chaining.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	final public function remove($key)
+	{
+		// if the deletion of the setting went fine
+		if ($this->delete($key))
+		{
+			// unset the value of the setting
+			unset($this->pool[$key]);
+		}
+
+		return $this;
+	}
+
+	/**
 	 * Retrieve the value of the setting from the instance in which it is stored. 
 	 *
 	 * @param   string  $key  The name of the setting.
@@ -227,4 +248,15 @@ abstract class VBOConfigRegistry
 	 * @return  boolean  True in case of success, otherwise false.
 	 */
 	abstract protected function register($key, $val);
+
+	/**
+	 * Delete the setting from the instance where it's stored.
+	 *
+	 * @param   string   $key  The name of the setting.
+	 *
+	 * @return  boolean  True in case of success, otherwise false.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	abstract protected function delete($key);
 }

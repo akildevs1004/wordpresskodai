@@ -1,4 +1,12 @@
 <?php
+/**
+ * @package     VikBooking
+ * @subpackage  com_vikbooking
+ * @author      Alessio Gaggii - E4J srl
+ * @copyright   Copyright (C) 2023 E4J srl. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE
+ * @link        https://vikwp.com
+ */
 
 // No direct access
 defined('ABSPATH') or die('No script kiddies please!');
@@ -7,6 +15,32 @@ $app = JFactory::getApplication();
 $vik = VikApplication::getInstance();
 
 $dt_format = $app->get('date_format') . ' ' . $app->get('time_format');
+
+/**
+ * Attempt to register the visited menu page.
+ * 
+ * @since 	1.6.0
+ */
+$menu_action = [
+	'name' => __('Shortcodes', 'vikbooking'),
+	'href' => 'admin.php?option=com_vikbooking&view=shortcodes',
+];
+
+$action_obj = json_encode($menu_action);
+
+JFactory::getDocument()->addScriptDeclaration(
+<<<JS
+;(function($) {
+	$(function() {
+		try {
+			VBOCore.registerAdminMenuAction($action_obj, 'global');
+		} catch(e) {
+			console.error(e);
+		}
+	});
+})(jQuery);
+JS
+);
 
 ?>
 
@@ -117,7 +151,7 @@ $dt_format = $app->get('date_format') . ' ' . $app->get('time_format');
 				<td style="text-align: center;">
 					<?php if ($row->post_id) { ?>
 						
-						<a href="<?php echo get_permalink($row->post_id); ?>" target="_blank" class="btn btn-primary vbo-link-btn-small">
+						<a href="<?php echo get_permalink($row->post_id); ?>" target="_blank" data-postid="<?php echo $row->post_id; ?>" class="btn btn-primary vbo-link-btn-small">
 							<?php echo JText::translate('VBO_SC_VIEWFRONT'); ?> <i class="<?php echo VikBookingIcons::i('external-link-square'); ?>"></i>
 						</a>
 

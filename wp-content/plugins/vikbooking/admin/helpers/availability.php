@@ -30,21 +30,21 @@ class VikBookingAvailability
 	 *
 	 * @var array
 	 */
-	protected $stay_dates = array();
+	protected $stay_dates = [];
 
 	/**
 	 * An array containing the stay date timestamps.
 	 *
 	 * @var array
 	 */
-	protected $stay_ts = array();
+	protected $stay_ts = [];
 
 	/**
 	 * An array containing the room parties.
 	 *
 	 * @var array
 	 */
-	protected $room_parties = array();
+	protected $room_parties = [];
 
 	/**
 	 * The total number of days to go "back and forth".
@@ -58,7 +58,7 @@ class VikBookingAvailability
 	 *
 	 * @var array
 	 */
-	protected $room_ids = array();
+	protected $room_ids = [];
 
 	/**
 	 * Whether to ignore restrictions.
@@ -73,6 +73,20 @@ class VikBookingAvailability
 	 * @var bool
 	 */
 	protected $inonout_allowed = true;
+
+	/**
+	 * The percent ratio for nights/transfers in split stays.
+	 * 
+	 * @var int
+	 */
+	protected $nights_transfers_ratio = 100;
+
+	/**
+	 * Whether we need to behave for the front-end booking process.
+	 * 
+	 * @var bool
+	 */
+	protected $is_front_booking = false;
 
 	/**
 	 * The warning string occurred.
@@ -100,21 +114,28 @@ class VikBookingAvailability
 	 *
 	 * @var array
 	 */
-	protected $fully_booked = array();
+	protected $fully_booked = [];
 
 	/**
 	 * Associative list of all rooms.
 	 *
 	 * @var array
 	 */
-	protected $all_rooms = array();
+	protected $all_rooms = [];
 
 	/**
 	 * Associative list of all rate plans.
 	 *
 	 * @var array
 	 */
-	protected $all_rplans = array();
+	protected $all_rplans = [];
+
+	/**
+	 * Map of min/max LOS tariffs defined per room.
+	 *
+	 * @var array
+	 */
+	protected $min_max_los_tariffs_map = [];
 
 	/**
 	 * Class constructor is protected.
@@ -148,15 +169,28 @@ class VikBookingAvailability
 	/**
 	 * Counts the total number of nights of stay according to the stay dates.
 	 * 
+	 * @param 	int 	$from_ts 	optional check-in timestamp.
+	 * @param 	int 	$to_ts 		optional check-out timestamp.
+	 * 
 	 * @return 	int 	the total number of nights of stay.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP) added args to make this an helper method.
 	 */
-	protected function countNightsOfStay()
+	public function countNightsOfStay($from_ts = null, $to_ts = null)
 	{
-		if (!count($this->stay_ts)) {
+		if (!count($this->stay_ts) && (empty($from_ts) || empty($to_ts))) {
 			return 1;
 		}
 
-		$secdiff = $this->stay_ts[1] - $this->stay_ts[0];
+		if (!empty($from_ts) && !empty($to_ts)) {
+			$use_from = $from_ts;
+			$use_to   = $to_ts;
+		} else {
+			$use_from = $this->stay_ts[0];
+			$use_to   = $this->stay_ts[1];
+		}
+
+		$secdiff = $use_to - $use_from;
 		$daysdiff = $secdiff / 86400;
 		if (is_int($daysdiff)) {
 			$daysdiff = $daysdiff < 1 ? 1 : $daysdiff;
@@ -176,40 +210,6 @@ class VikBookingAvailability
 		}
 
 		return $daysdiff;
-	}
-
-	/**
-	 * Returns the number of guests requested from the given room-party index.
-	 * 
-	 * @param 	string 	$guest 	either "adults", "children" or "guests".
-	 * @param 	int 	$party 	the party index number, 0 by default.
-	 * 
-	 * @return 	int 			the total number of guests requested in the party.
-	 */
-	protected function getPartyGuests($guest = 'adults', $party = 0)
-	{
-		if (!isset($this->room_parties[$party])) {
-			return 0;
-		}
-
-		if (!strcasecmp($guest, 'adults')) {
-			// adults
-			return $this->room_parties[$party]['adults'];
-		}
-
-		if (!strcasecmp($guest, 'children')) {
-			// children
-			return $this->room_parties[$party]['children'];
-		}
-
-		// total guests
-		$tot_guests = 0;
-		foreach ($this->room_parties as $rparty) {
-			$tot_guests += $rparty['adults'];
-			$tot_guests += $rparty['children'];
-		}
-
-		return $tot_guests;
 	}
 
 	/**
@@ -271,27 +271,49 @@ class VikBookingAvailability
 	 */
 	public function loadRooms()
 	{
-		if (count($this->all_rooms)) {
+		if ($this->all_rooms) {
 			// return previously cached array if available
 			return $this->all_rooms;
 		}
 
 		$dbo = JFactory::getDbo();
 
-		$q = "SELECT `id`, `name`, `img`, `avail`, `units`, `fromadult`, `toadult`, 
+		$q = "SELECT `id`, `name`, `img`, `idcat`, `avail`, `units`, `fromadult`, `toadult`, 
 			`fromchild`, `tochild`, `totpeople`, `mintotpeople` FROM `#__vikbooking_rooms` 
 			ORDER BY `avail` DESC, `name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
+		$room_rows = $dbo->loadAssocList();
 
-		if ($dbo->getNumRows()) {
-			$room_rows = $dbo->loadAssocList();
-			foreach ($room_rows as $room) {
-				$this->all_rooms[$room['id']] = $room;
-			}
+		if (!$room_rows) {
+			return $this->all_rooms;
+		}
+
+		if ($this->isFrontBooking()) {
+			// apply translations on rooms
+			$vbo_tn = VikBooking::getTranslator();
+			$vbo_tn->translateContents($room_rows, '#__vikbooking_rooms');
+		}
+
+		foreach ($room_rows as $room) {
+			$this->all_rooms[$room['id']] = $room;
 		}
 
 		return $this->all_rooms;
+	}
+
+	/**
+	 * Sets the current rooms as an associative array of information. The
+	 * array keys represent the room IDs as an associative array of details.
+	 * 
+	 * @param 	array 	$rooms 	the associatve list of rooms.
+	 * 
+	 * @return 	self
+	 */
+	public function setRooms(array $rooms = [])
+	{
+		$this->all_rooms = $rooms;
+
+		return $this;
 	}
 
 	/**
@@ -326,14 +348,13 @@ class VikBookingAvailability
 
 		$dbo = JFactory::getDbo();
 
-		$rate_plans = array();
+		$rate_plans = [];
 
 		$q = "SELECT * FROM `#__vikbooking_prices` ORDER BY `name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
+		$rplan_rows = $dbo->loadAssocList();
 
-		if ($dbo->getNumRows()) {
-			$rplan_rows = $dbo->loadAssocList();
+		if ($rplan_rows) {
 			foreach ($rplan_rows as $rplan) {
 				$rate_plans[$rplan['id']] = $rplan;
 			}
@@ -353,7 +374,7 @@ class VikBookingAvailability
 	 * 
 	 * @return 	mixed 	boolean false in case of errors or array result of TACVBO class.
 	 */
-	public function getRates($params = array())
+	public function getRates($params = [])
 	{
 		if (!count($this->stay_dates)) {
 			$this->setError('No dates provided');
@@ -369,15 +390,15 @@ class VikBookingAvailability
 		$tot_rooms = count($this->room_ids);
 
 		// build options array for TACVBO
-		$options = array(
+		$options = [
 			'start_date' => $this->stay_dates[0],
 			'end_date' 	 => $this->stay_dates[1],
 			'nights' 	 => $this->countNightsOfStay(),
 			'num_rooms'  => ($tot_rooms > 0 ? $tot_rooms : 1),
-			'adults' 	 => array($this->getPartyGuests('adults', 0)),
-			'children' 	 => array($this->getPartyGuests('children', 0)),
+			'adults' 	 => [$this->getPartyGuests('adults', 0)],
+			'children' 	 => [$this->getPartyGuests('children', 0)],
 			'only_rates' => 1,
-		);
+		];
 
 		if ($tot_rooms > 1 && count($this->room_parties) == $tot_rooms) {
 			// re-build list of adults and children
@@ -420,7 +441,7 @@ class VikBookingAvailability
 
 		// optional filter by room IDs will be applied on this flow
 		$found_rids = array_keys($website_rates);
-		$unwanted_rids = $tot_rooms ? array_diff($found_rids, $this->room_ids) : array();
+		$unwanted_rids = $tot_rooms ? array_diff($found_rids, $this->room_ids) : [];
 		foreach ($unwanted_rids as $rid) {
 			unset($website_rates[$rid]);
 		}
@@ -437,17 +458,20 @@ class VikBookingAvailability
 	 * @param 	int 	$force_code 	the error code to force (no availability or party unsatisfied).
 	 * @param 	array 	$force_rooms 	an optional list of room IDs to consider for the suggestions.
 	 * 
-	 * @return 	array 	array of alternative dates and alternative room-parties.
+	 * @return 	array 	array of alternative dates, alternative room-parties and split stays.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP) list of split stays available is also returned.
 	 */
-	public function findSuggestions($force_code = 0, $force_rooms = array())
+	public function findSuggestions($force_code = 0, $force_rooms = [])
 	{
 		// reset error and warning strings to start a new calculation
 		$this->error = '';
 		$this->warning = '';
 
 		// build containers for the two types of suggestions
-		$alternative_dates 	 = array();
-		$alternative_parties = array();
+		$alternative_dates 	 = [];
+		$alternative_parties = [];
+		$split_stay_sols 	 = [];
 
 		// the error code to parse
 		$use_ecode = $force_code ? $force_code : $this->errorCode;
@@ -455,13 +479,15 @@ class VikBookingAvailability
 		if (empty($use_ecode)) {
 			// do not continue if no valid errors previously occurred or forced
 			$this->setError('Empty error code');
-			return array($alternative_dates, $alternative_parties);
+			return [$alternative_dates, $alternative_parties, $split_stay_sols];
 		}
 
 		if ($use_ecode == 7 && (count($this->fully_booked) || count($force_rooms))) {
 			// get the closest booking dates for the compatible, yet unavailable, rooms
 			$use_rooms = count($force_rooms) ? $force_rooms : $this->fully_booked;
 			$alternative_dates = $this->findClosestRoomDateSolutions($use_rooms);
+			// calculate the split stay solutions available for the compatible rooms
+			$split_stay_sols = $this->findSplitStays($use_rooms);
 		}
 
 		if ($use_ecode == 3) {
@@ -475,7 +501,401 @@ class VikBookingAvailability
 			$alternative_parties = $this->matchSolutionsParty($all_solutions);
 		}
 
-		return array($alternative_dates, $alternative_parties);
+		return [$alternative_dates, $alternative_parties, $split_stay_sols];
+	}
+
+	/**
+	 * Given a list of unavailable room IDs, yet compatible with the party and LOS requested,
+	 * we build a list of available solutions for booking split stays on the same dates. The
+	 * visibility should be public so that other Views could use just this method.
+	 * 
+	 * @param 	array 	$room_ids 	list of unavailable, yet compatible, room IDs.
+	 * @param 	array 	$busy_list 	optional list of busy records for the involved dates.
+	 * 
+	 * @return 	array 				associative list of available split stays, or empty array.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function findSplitStays(array $room_ids = [], array $busy_list = null)
+	{
+		if (!$room_ids) {
+			return [];
+		}
+
+		// get all website rooms
+		$all_rooms = $this->loadRooms();
+
+		// validate max occupancy for the given rooms
+		if (count($this->room_parties) === 1) {
+			// we only use the first party for the occupancy validation
+			$party_adults 	= $this->getPartyGuests('adults', $party = 0);
+			$party_children = $this->getPartyGuests('children', $party = 0);
+			foreach ($room_ids as $rindex => $rid) {
+				if (!isset($all_rooms[$rid])) {
+					unset($room_ids[$rindex]);
+					continue;
+				}
+				if ($party_adults > $all_rooms[$rid]['toadult'] || $party_children > $all_rooms[$rid]['tochild'] || ($party_adults + $party_children) > $all_rooms[$rid]['totpeople']) {
+					// max occupancy not met
+					unset($room_ids[$rindex]);
+					continue;
+				}
+			}
+
+			if (!$room_ids) {
+				return [];
+			}
+
+			// reset array keys
+			$room_ids = array_values($room_ids);
+		}
+
+		// get original check-in and check-out timestamps
+		list($orig_checkin_ts, $orig_checkout_ts) = $this->getStayDates(true);
+		$info_from = getdate($orig_checkin_ts);
+		$info_to   = getdate($orig_checkout_ts);
+
+		// the final check-out date
+		$final_checkout_ymd = date('Y-m-d', $orig_checkout_ts);
+
+		// count original length of stay and nights involved
+		$tot_nights = $this->countNightsOfStay();
+		$groupdays  = VikBooking::getGroupDays($orig_checkin_ts, $orig_checkout_ts, $tot_nights);
+
+		if ($tot_nights < 2) {
+			// useless to waste time on finding a split stay if not at least 2 nights
+			return [];
+		}
+
+		// load the occupied records for these dates and rooms
+		$busy_records = !is_null($busy_list) ? $busy_list : VikBooking::loadBusyRecords($room_ids, $orig_checkin_ts, strtotime('+1 day', $orig_checkout_ts));
+
+		// calculate available rooms for each night
+		$avroom_nights = [];
+		foreach ($room_ids as $rid) {
+			if (!isset($all_rooms[$rid])) {
+				continue;
+			}
+			$room = $all_rooms[$rid];
+			foreach ($groupdays as $gday) {
+				$day_key = date('Y-m-d', $gday);
+				$bfound = 0;
+				if (!isset($busy_records[$rid])) {
+					$busy_records[$rid] = [];
+				}
+				foreach ($busy_records[$rid] as $bu) {
+					$busy_info_in = getdate($bu['checkin']);
+					$busy_info_out = getdate($bu['checkout']);
+					$busy_in_ts = mktime(0, 0, 0, $busy_info_in['mon'], $busy_info_in['mday'], $busy_info_in['year']);
+					$busy_out_ts = mktime(0, 0, 0, $busy_info_out['mon'], $busy_info_out['mday'], $busy_info_out['year']);
+					if ($gday >= $busy_in_ts && $gday == $busy_out_ts && !$this->inonout_allowed && $room['units'] < 2) {
+						// check-ins on check-outs not allowed
+						$bfound++;
+						if ($bfound >= $room['units']) {
+							break;
+						}
+					}
+					if ($gday >= $busy_in_ts && $gday < $busy_out_ts) {
+						$bfound++;
+						if ($bfound >= $room['units']) {
+							break;
+						}
+					}
+				}
+				if ($bfound < $room['units']) {
+					// push this night as available for this room
+					if (!isset($avroom_nights[$rid])) {
+						$avroom_nights[$rid] = [];
+					}
+					$avroom_nights[$rid][] = $day_key;
+				} else {
+					// room not available on this night, make sure to unset any previous value
+					if (isset($avroom_nights[$rid]) && in_array($day_key, $avroom_nights[$rid])) {
+						$unav_key = array_search($day_key, $avroom_nights[$rid]);
+						unset($avroom_nights[$rid][$unav_key]);
+						$avroom_nights[$rid] = array_values($avroom_nights[$rid]);
+					}
+				}
+			}
+		}
+
+		if (!count($avroom_nights)) {
+			// no rooms available at all, there's no way to do anything
+			return [];
+		}
+
+		// make sure all nights requested can be satisfied by at least one room
+		foreach ($groupdays as $gday) {
+			$day_key = date('Y-m-d', $gday);
+			$day_av  = false;
+			foreach ($avroom_nights as $rid => $av_nights) {
+				if (in_array($day_key, $av_nights)) {
+					// night was found
+					$day_av = true;
+					break;
+				}
+			}
+			if (!$day_av) {
+				// this night is not available in any room, unable to proceed
+				return [];
+			}
+		}
+
+		// count the number of consecutive nights per room
+		$cons_room_nights = [];
+		$tot_gdays = count($groupdays);
+		foreach ($groupdays as $k => $gday) {
+			$day_key = date('Y-m-d', $gday);
+			if (!isset($cons_room_nights[$day_key])) {
+				$cons_room_nights[$day_key] = [];
+			}
+			foreach ($avroom_nights as $rid => $av_nights) {
+				if (in_array($day_key, $av_nights)) {
+					if (!isset($cons_room_nights[$day_key][$rid])) {
+						$cons_room_nights[$day_key][$rid] = [];
+					}
+					// count the next consecutive nights of stay
+					$cons_room_nights[$day_key][$rid][] = $day_key;
+					for ($j = ($k + 1); $j < $tot_gdays; $j++) {
+						$next_day_key = date('Y-m-d', $groupdays[$j]);
+						if (in_array($next_day_key, $av_nights)) {
+							$cons_room_nights[$day_key][$rid][] = $next_day_key;
+						} else {
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		// sort the solutions with the highest number of consecutive nights to reduce the splits
+		$cons_room_nights_sorted = [];
+		foreach ($cons_room_nights as $day_key => $cons_nights) {
+			$cons_room_nights_cnt = [];
+			foreach ($cons_nights as $rid => $cons_dates) {
+				$cons_room_nights_cnt[$rid] = count($cons_dates);
+			}
+			// sort the array in a descending order
+			arsort($cons_room_nights_cnt);
+			// restore sorted values in cloned array
+			$cons_room_nights_sorted[$day_key] = [];
+			foreach ($cons_room_nights_cnt as $rid => $tot_cons_nights) {
+				$cons_room_nights_sorted[$day_key][$rid] = $cons_room_nights[$day_key][$rid];
+			}
+		}
+		$cons_room_nights = $cons_room_nights_sorted;
+
+		// validate the data just built
+		$first_day_key = date('Y-m-d', $groupdays[0]);
+		if (!isset($cons_room_nights[$first_day_key]) || !count($cons_room_nights[$first_day_key]) || count($cons_room_nights) != count($groupdays)) {
+			// unable to proceed
+			return [];
+		}
+
+		// remove the consecutive nights from the check-out date as this won't be a night of stay
+		unset($cons_room_nights[$final_checkout_ymd]);
+
+		// build the split stay solutions
+		$split_stay_sols = [];
+
+		// the number of rooms available on the first night should determine the number of split stay solutions
+		foreach ($cons_room_nights[$first_day_key] as $start_rid => $cons_nights) {
+			// start container of the various splits for this stay
+			$split_stay_sol = [];
+
+			// calculate last consecutive night available
+			$leave_date = end($cons_nights);
+			$leave_date_info = getdate(strtotime($leave_date));
+
+			// set the check-out date to the day after the last night
+			$checkout_ymd = date('Y-m-d', mktime(0, 0, 0, $leave_date_info['mon'], ($leave_date_info['mday'] + 1), $leave_date_info['year']));
+
+			// define the first stay
+			$split_stay = [
+				'idroom' 	=> $start_rid,
+				'room_name' => $all_rooms[$start_rid]['name'],
+				'checkin'  	=> $cons_nights[0],
+				'checkout' 	=> $checkout_ymd,
+				'nights' 	=> $this->countNightsOfStay(strtotime($cons_nights[0]), strtotime($checkout_ymd)),
+			];
+
+			// make sure this room has got a tariff defined for this number of nights of stay
+			if (!$this->roomNightsAllowed($start_rid, $split_stay['nights'])) {
+				// no tariffs found for this los
+				continue;
+			}
+
+			// push first stay
+			$split_stay_sol[] = $split_stay;
+
+			// loop through the next stays
+			while (isset($cons_room_nights[$checkout_ymd])) {
+				/**
+				 * For the next splits, we use just the first available rooms, which is
+				 * the one with the highest number of consecutive nights available.
+				 */
+				foreach ($cons_room_nights[$checkout_ymd] as $rid => $split_cons_nights) {
+					// calculate last consecutive night available
+					$leave_date = end($split_cons_nights);
+					$leave_date_info = getdate(strtotime($leave_date));
+
+					// set the check-out date to the day after the last night
+					$checkout_ymd = date('Y-m-d', mktime(0, 0, 0, $leave_date_info['mon'], ($leave_date_info['mday'] + 1), $leave_date_info['year']));
+					if ($leave_date == $final_checkout_ymd) {
+						// check-out date reached
+						$checkout_ymd = $final_checkout_ymd;
+					}
+
+					// count nights of stay
+					$split_nights = $this->countNightsOfStay(strtotime($split_cons_nights[0]), strtotime($checkout_ymd));
+
+					// make sure this room has got a tariff defined for this number of nights of stay
+					if (!$this->roomNightsAllowed($rid, $split_nights)) {
+						// no tariffs found for this los, abort solution
+						$split_stay_sol = [];
+						break 2;
+					}
+
+					// push split stay
+					$split_stay_sol[] = [
+						'idroom' 	=> $rid,
+						'room_name' => $all_rooms[$rid]['name'],
+						'checkin'  	=> $split_cons_nights[0],
+						'checkout' 	=> $checkout_ymd,
+						'nights' 	=> $split_nights,
+					];
+
+					// we try to reduce the number of splits by considering just the first room
+					break;
+				}
+			}
+
+			if (count($split_stay_sol) < 2) {
+				// not a split stay, but rather a fully available room
+				continue;
+			}
+
+			// push split stay solution
+			$split_stay_sols[] = $split_stay_sol;
+		}
+
+		/**
+		 * Load rooms involved in all split stays in order to validate
+		 * global/room-level restrictions and closing dates on the stay.
+		 */
+		$rooms_involved = [];
+		foreach ($split_stay_sols as $split_stay_sol) {
+			foreach ($split_stay_sol as $split_stay) {
+				if (!in_array($split_stay['idroom'], $rooms_involved)) {
+					$rooms_involved[] = $split_stay['idroom'];
+				}
+			}
+		}
+
+		// load restrictions for all rooms involved
+		$all_restrictions   = VikBooking::loadRestrictions(true, $rooms_involved);
+		$glob_restrictions  = VikBooking::globalRestrictions($all_restrictions);
+		$invalid_room_restr = [];
+
+		// validate global restrictions
+		if (VikBooking::validateRoomRestriction($glob_restrictions, $info_from, $info_to, $tot_nights)) {
+			// global restrictions apply over this stay
+			return [];
+		}
+
+		// validate closing dates
+		if (VikBooking::validateClosingDates($orig_checkin_ts, $orig_checkout_ts)) {
+			// global closing dates apply over this stay
+			return [];
+		}
+
+		// validate restrictions at room level
+		foreach ($rooms_involved as $rid) {
+			// load restrictions at room level
+			$room_level_restr = VikBooking::roomRestrictions($rid, $all_restrictions);
+			if (VikBooking::validateRoomRestriction($room_level_restr, $info_from, $info_to, $tot_nights)) {
+				// room-level restrictions apply over this stay
+				$invalid_room_restr[] = $rid;
+			}
+		}
+
+		// unset the split stays with the restricted rooms (if any)
+		$altered_sols = false;
+		foreach ($invalid_room_restr as $rid) {
+			foreach ($split_stay_sols as $k => $split_stay_sol) {
+				foreach ($split_stay_sol as $split_stay) {
+					if ($rid == $split_stay['idroom']) {
+						// this booking split stay cannot be suggested because of this room
+						unset($split_stay_sols[$k]);
+						$altered_sols = true;
+						continue 2;
+					}
+				}
+			}
+		}
+
+		// apply nights/transfers ratio limit (unless disabled)
+		$nights_transfers_ratio = $this->getNightsTransfersRatio();
+		if ($nights_transfers_ratio > 0 && $nights_transfers_ratio < 100) {
+			// count and apply limits
+			foreach ($split_stay_sols as $k => $split_stay_sol) {
+				// count nights and transfers
+				$split_stay_transfers = count($split_stay_sol) - 1;
+				$split_stay_nights 	  = 0;
+				foreach ($split_stay_sol as $split_stay_room) {
+					$split_stay_nights += $split_stay_room['nights'];
+				}
+				// max allowed transfers
+				$max_transfers = round($split_stay_nights * $nights_transfers_ratio / 100, 0);
+				if (!$split_stay_transfers || $split_stay_transfers > $max_transfers) {
+					// unset solution
+					unset($split_stay_sols[$k]);
+					$altered_sols = true;
+				}
+			}
+		}
+
+		if ($altered_sols && count($split_stay_sols)) {
+			// restore the array keys
+			$split_stay_sols = array_values($split_stay_sols);
+		}
+
+		// return the available booking split stay solutions (if any)
+		return $split_stay_sols;
+	}
+
+	/**
+	 * Returns the number of guests requested from the given room-party index.
+	 * 
+	 * @param 	string 	$guest 	either "adults", "children" or "guests".
+	 * @param 	int 	$party 	the party index number, 0 by default.
+	 * 
+	 * @return 	int 			the total number of guests requested in the party.
+	 */
+	protected function getPartyGuests($guest = 'adults', $party = 0)
+	{
+		if (!isset($this->room_parties[$party])) {
+			return 0;
+		}
+
+		if (!strcasecmp($guest, 'adults')) {
+			// adults
+			return $this->room_parties[$party]['adults'];
+		}
+
+		if (!strcasecmp($guest, 'children')) {
+			// children
+			return $this->room_parties[$party]['children'];
+		}
+
+		// total guests
+		$tot_guests = 0;
+		foreach ($this->room_parties as $rparty) {
+			$tot_guests += $rparty['adults'];
+			$tot_guests += $rparty['children'];
+		}
+
+		return $tot_guests;
 	}
 
 	/**
@@ -486,9 +906,9 @@ class VikBookingAvailability
 	 * 
 	 * @return 	array 				associative list of available room-dates, or empty array.
 	 */
-	protected function findClosestRoomDateSolutions($room_ids = array())
+	protected function findClosestRoomDateSolutions($room_ids = [])
 	{
-		if (!count($room_ids)) {
+		if (!$room_ids) {
 			return [];
 		}
 
@@ -517,7 +937,7 @@ class VikBookingAvailability
 		$sug_to_ts = $sug_to_ts < $sug_from_ts ? $sug_from_ts : $sug_to_ts;
 
 		// get days timestamps for suggestions
-		$groupdays = array();
+		$groupdays = [];
 		$sug_start_info = getdate($sug_from_ts);
 		$sug_from_midnight = mktime(0, 0, 0, $sug_start_info['mon'], $sug_start_info['mday'], $sug_start_info['year']);
 		$sug_start_info = getdate($sug_from_midnight);
@@ -527,8 +947,8 @@ class VikBookingAvailability
 		}
 
 		// build suggestions array of dates with some availability for the given rooms
-		$suggestions = array();
-		$busy_records = VikBooking::loadBusyRecords($room_ids, $sug_from_ts, $sug_to_ts);
+		$suggestions = [];
+		$busy_records = VikBooking::loadBusyRecords($room_ids, $sug_from_ts, strtotime('+1 day', $sug_to_ts));
 		foreach ($room_ids as $rid) {
 			if (!isset($all_rooms[$rid])) {
 				continue;
@@ -538,7 +958,7 @@ class VikBookingAvailability
 				$day_key = date('Y-m-d', $gday);
 				$bfound = 0;
 				if (!isset($busy_records[$rid])) {
-					$busy_records[$rid] = array();
+					$busy_records[$rid] = [];
 				}
 				foreach ($busy_records[$rid] as $bu) {
 					$busy_info_in = getdate($bu['checkin']);
@@ -561,28 +981,28 @@ class VikBookingAvailability
 				}
 				if ($bfound < $room['units']) {
 					if (!isset($suggestions[$day_key])) {
-						$suggestions[$day_key] = array();
+						$suggestions[$day_key] = [];
 					}
 					$room_day = $room;
 					$room_day['units_left'] = $room['units'] - $bfound;
-					$suggestions[$day_key] = $suggestions[$day_key] + array($rid => $room_day);
+					$suggestions[$day_key] = $suggestions[$day_key] + [$rid => $room_day];
 				}
 			}
 		}
 
-		if (!count($suggestions)) {
+		if (!$suggestions) {
 			// no available nights found for the prior and next "back and forth" days for the given rooms
 			return [];
 		}
 
 		// build the solutions array with keys=checkin, values=all rooms suited for the requested number of nights
-		$solutions = array();
+		$solutions = [];
 		// get all rooms available for the number of nights requested in the suggestions array of dates
 		foreach ($suggestions as $kday => $rooms) {
 			$day_ts_info = getdate(strtotime($kday));
 			foreach ($rooms as $rid => $room) {
 				$suitable = true;
-				$room_days_av_left = array($kday => $room['units_left']);
+				$room_days_av_left = [$kday => $room['units_left']];
 				for ($i = 1; $i < $tot_nights; $i++) {
 					$next_night = mktime(0, 0, 0, $day_ts_info['mon'], ($day_ts_info['mday'] + $i), $day_ts_info['year']);
 					$next_night_dt = date('Y-m-d', $next_night);
@@ -594,11 +1014,11 @@ class VikBookingAvailability
 				}
 				if ($suitable === true) {
 					if (!isset($solutions[$kday])) {
-						$solutions[$kday] = array();
+						$solutions[$kday] = [];
 					}
 					unset($room['units_left']);
 					$room['days_av_left'] = $room_days_av_left;
-					$solutions[$kday] = $solutions[$kday] + array($rid => $room);
+					$solutions[$kday] = $solutions[$kday] + [$rid => $room];
 				}
 			}
 		}
@@ -609,7 +1029,7 @@ class VikBookingAvailability
 		}
 
 		// sort the solutions by the closest checkin date to the one requested
-		$sortmap = array();
+		$sortmap = [];
 		$orig_checkin_ymd = date('Y-m-d', $orig_checkin_ts);
 		foreach ($solutions as $kday => $solution) {
 			$kdayts = strtotime($kday);
@@ -620,7 +1040,7 @@ class VikBookingAvailability
 			}
 		}
 		asort($sortmap);
-		$sorted = array();
+		$sorted = [];
 		foreach ($sortmap as $kdayts => $v) {
 			$kday = date('Y-m-d', $kdayts);
 			$sorted[$kday] = $solutions[$kday];
@@ -701,7 +1121,7 @@ class VikBookingAvailability
 	 */
 	protected function sortBiggerRoomSolutions($solutions)
 	{
-		if (!is_array($solutions) || !count($solutions)) {
+		if (!is_array($solutions) || !$solutions) {
 			return $solutions;
 		}
 
@@ -732,18 +1152,18 @@ class VikBookingAvailability
 	 */
 	protected function matchSolutionsParty($solutions)
 	{
-		if (!is_array($solutions) || !count($solutions)) {
+		if (!is_array($solutions) || !$solutions) {
 			return [];
 		}
 
 		// build the list of alternative parties
-		$alternative_parties = array();
+		$alternative_parties = [];
 
 		// build list of party guests
-		$party_guests = array(
+		$party_guests = [
 			'adults'   => 0,
 			'children' => 0,
-		);
+		];
 		foreach ($this->room_parties as $rparty) {
 			$party_guests['adults']   += $rparty['adults'];
 			$party_guests['children'] += $rparty['children'];
@@ -751,10 +1171,10 @@ class VikBookingAvailability
 
 		// check if the rooms of each solution can fit the number of guests requested, unset the solution otherwise
 		foreach ($solutions as $kday => $solution) {
-			$solution_guests = array(
+			$solution_guests = [
 				'adults'   => 0,
 				'children' => 0,
-			);
+			];
 			foreach ($solution as $rid => $roomsol) {
 				// count minimum units left for this room
 				$room_min_uleft = min($roomsol['days_av_left']);
@@ -826,14 +1246,14 @@ class VikBookingAvailability
 
 			// if we get to this point we can suggest a booking solution for the party requested, but in different rooms
 			if (!isset($alternative_parties[$kday])) {
-				$alternative_parties[$kday] = array();
+				$alternative_parties[$kday] = [];
 			}
 
 			// re-loop over the rooms in this solution to build the booking solution for this day
-			$guests_allocated = array(
+			$guests_allocated = [
 				'adults' => 0,
 				'children' => 0
-			);
+			];
 
 			/**
 			 * The rooms available for an alternative booking solutions have been sorted by capacity
@@ -851,6 +1271,10 @@ class VikBookingAvailability
 				}
 				if ($party_guests['children'] > 0 && $party_guests['children'] > $roomsol['tochild']) {
 					// too many children requested for this small room
+					continue;
+				}
+				if (($party_guests['adults'] + $party_guests['children']) > $roomsol['totpeople']) {
+					// too many guests requested for this small room
 					continue;
 				}
 				// we've got a fitting room which could be smaller
@@ -873,10 +1297,10 @@ class VikBookingAvailability
 				$room_min_uleft = min($roomsol['days_av_left']);
 				// fullfil all the units of this room
 				for ($units_taken = 0; $units_taken < $room_min_uleft; $units_taken++) { 
-					$current_allocation = array(
+					$current_allocation = [
 						'adults' => 0,
 						'children' => 0
-					);
+					];
 					if ($guests_allocated['adults'] < $party_guests['adults']) {
 						$humans_taken 	= $roomsol['toadult'];
 						$missing_humans = $party_guests['adults'] - $guests_allocated['adults'];
@@ -923,7 +1347,7 @@ class VikBookingAvailability
 	 */
 	public function allocateAltDatesInquiry($alt_dates, $customer)
 	{
-		if (!is_array($alt_dates) || !count($alt_dates)) {
+		if (!is_array($alt_dates) || !$alt_dates) {
 			return 0;
 		}
 
@@ -953,9 +1377,9 @@ class VikBookingAvailability
 				$this->setStayDates($sugg_checkin_dt, $sugg_checkout_dt);
 
 				// build the room rate plan array without any rate plan information
-				$room_rplan = array(
+				$room_rplan = [
 					'idroom' => $alt_stay['id'],
-				);
+				];
 
 				// create the inquiry reservation for the closest alternative dates
 				return $this->createInquiryReservation($room_rplan, $customer);
@@ -977,12 +1401,12 @@ class VikBookingAvailability
 	 */
 	public function allocateAltPartyInquiry($alt_parties, $customer)
 	{
-		if (!is_array($alt_parties) || !count($alt_parties)) {
+		if (!is_array($alt_parties) || !$alt_parties) {
 			return 0;
 		}
 
 		// build list of rooms to assign to the inquiry reservation
-		$room_rates = array();
+		$room_rates = [];
 
 		// start party counter
 		$party_counter = 0;
@@ -1023,9 +1447,9 @@ class VikBookingAvailability
 				$party_counter++;
 
 				// push current room with no rate plan information
-				array_push($room_rates, array(
+				array_push($room_rates, [
 					'idroom' => $alt_room['id'],
-				));
+				]);
 			}
 
 			if (count($room_rates)) {
@@ -1046,7 +1470,7 @@ class VikBookingAvailability
 		$room_rplan = $room_rates[0];
 
 		// build extra rooms
-		$extra_rooms = array();
+		$extra_rooms = [];
 		if ($tot_room_party > 1) {
 			// grab the remaining rooms
 			unset($room_rates[0]);
@@ -1121,7 +1545,7 @@ class VikBookingAvailability
 		// check if mandatory options should be assigned (not in case of suggestions)
 		$room_options = null;
 		if (!empty($room_rplan['idprice']) && isset($res_obj->tot_city_taxes)) {
-			$mand_taxes = VikBooking::getMandatoryTaxesFees(array($room_rplan['idroom']), $this->getPartyGuests('adults', 0), $res_obj->days);
+			$mand_taxes = VikBooking::getMandatoryTaxesFees([$room_rplan['idroom']], $this->getPartyGuests('adults', 0), $res_obj->days);
 			if (is_array($mand_taxes) && !empty($mand_taxes['options'])) {
 				$room_options = implode(';', $mand_taxes['options']);
 			}
@@ -1189,9 +1613,10 @@ class VikBookingAvailability
 
 		$q = "SELECT `id` FROM `#__vikbooking_dispcost` WHERE `idroom`={$room_id} AND `days`={$nights} AND `idprice`={$rplan_id}";
 		$dbo->setQuery($q, 0, 1);
-		$dbo->execute();
-		if ($dbo->getNumRows()) {
-			return (int)$dbo->loadResult();
+		$res = $dbo->loadResult();
+
+		if ($res) {
+			return (int)$res;
 		}
 
 		return null;
@@ -1210,18 +1635,55 @@ class VikBookingAvailability
 
 		$dbo = JFactory::getDbo();
 
-		$q = "SELECT `o`.*, `co`.`idcustomer`, CONCAT_WS(' ', `c`.`first_name`, `c`.`last_name`) AS `customer_fullname` 
+		$q = "SELECT `o`.*, `co`.`idcustomer`, CONCAT_WS(' ', `c`.`first_name`, `c`.`last_name`) AS `customer_fullname`, `c`.`country` AS `customer_country`, `c`.`pic` 
 			FROM `#__vikbooking_orders` AS `o` 
 			LEFT JOIN `#__vikbooking_customers_orders` AS `co` ON `co`.`idorder`=`o`.`id` 
 			LEFT JOIN `#__vikbooking_customers` AS `c` ON `c`.`id`=`co`.`idcustomer` 
 			WHERE `o`.`id`={$bid}";
 		$dbo->setQuery($q, 0, 1);
-		$dbo->execute();
-		if ($dbo->getNumRows()) {
-			return $dbo->loadAssoc();
+		$row = $dbo->loadAssoc();
+		if ($row) {
+			return $row;
 		}
 
 		return [];
+	}
+
+	/**
+	 * Validates if the room allows the given number of nights of stay by checking if a
+	 * tariff is defined for the given length of stay. Useful for particular rate tables.
+	 * 
+	 * @param 	int 	$room_id 	the ID of the VBO room.
+	 * @param 	int 	$nights 	the number of nights of stay.
+	 * 
+	 * @return 	bool 				true if a tariff is found between min and max nights.
+	 * 
+	 * @since 	1.16.3 (J) - 1.6.3 (WP)
+	 */
+	public function roomNightsAllowed($room_id, $nights)
+	{
+		if (!isset($this->min_max_los_tariffs_map[$room_id])) {
+			$dbo = JFactory::getDbo();
+
+			$q = $dbo->getQuery(true)
+				->select('MIN(' . $dbo->qn('t.days') . ') AS ' . $dbo->qn('min_nights'))
+				->select('MAX(' . $dbo->qn('t.days') . ') AS ' . $dbo->qn('max_nights'))
+				->from($dbo->qn('#__vikbooking_dispcost', 't'))
+				->where($dbo->qn('t.idroom') . ' = ' . (int)$room_id);
+
+			$dbo->setQuery($q, 0, 1);
+			$tariffs = $dbo->loadObject();
+
+			if (!$tariffs || !$tariffs->min_nights || !$tariffs->max_nights) {
+				return false;
+			}
+
+			// set values
+			$this->min_max_los_tariffs_map[$room_id] = [$tariffs->min_nights, $tariffs->max_nights];
+		}
+
+		// check if the number of nights of stay is within the range of tariffs los map
+		return ($nights >= min($this->min_max_los_tariffs_map[$room_id]) && $nights <= max($this->min_max_los_tariffs_map[$room_id]));
 	}
 
 	/**
@@ -1259,8 +1721,8 @@ class VikBookingAvailability
 		$to_ts 	 = VikBooking::getDateTimestamp($to, $checkouth, $checkoutm);
 
 		// set stay dates and timestamps
-		$this->stay_dates = array(date('Y-m-d', $from_ts), date('Y-m-d', $to_ts));
-		$this->stay_ts 	  = array($from_ts, $to_ts);
+		$this->stay_dates = [date('Y-m-d', $from_ts), date('Y-m-d', $to_ts)];
+		$this->stay_ts 	  = [$from_ts, $to_ts];
 
 		return $this;
 	}
@@ -1288,13 +1750,13 @@ class VikBookingAvailability
 	 */
 	public function setRoomParty($adults, $children = 0, $replace = false)
 	{
-		$room_party = array(
+		$room_party = [
 			'adults'   => $adults,
 			'children' => $children,
-		);
+		];
 
 		if ($replace) {
-			$this->room_parties = array($room_party);
+			$this->room_parties = [$room_party];
 		} else {
 			array_push($this->room_parties, $room_party);
 		}
@@ -1339,13 +1801,139 @@ class VikBookingAvailability
 
 		$q = "SELECT `id`, `name` FROM `#__vikbooking_gpayments` WHERE `published`=1 ORDER BY `ordering` ASC";
 		$dbo->setQuery($q, 0, 1);
-		$dbo->execute();
-		if ($dbo->getNumRows()) {
-			$data = $dbo->loadAssoc();
+		$data = $dbo->loadAssoc();
+
+		if ($data) {
 			return $data['id'] . '=' . $data['name'];
 		}
 
 		return null;
+	}
+
+	/**
+	 * Returns the current nights/transfers ratio for split stays.
+	 * 
+	 * @return 	int 	the nights transfers ratio for the percent calculation.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function getNightsTransfersRatio()
+	{
+		return $this->nights_transfers_ratio;
+	}
+
+	/**
+	 * Returns the default nights/transfers ratio for split stays.
+	 * 
+	 * @return 	int 	the nights transfers ratio defined in the configuration.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function getDefaultNightsTransfersRatio()
+	{
+		$config = VBOFactory::getConfig();
+
+		return (int)$config->get('split_stay_ratio', 50);
+	}
+
+	/**
+	 * Sets the nights/transfers ratio for split stays. Use it to start applying limits.
+	 * 
+	 * @param 	mixed 	$ratio 	integer value, or the default config setting will be applied.
+	 * 
+	 * @return 	self
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function setNightsTransfersRatio($ratio = null)
+	{
+		if (is_int($ratio)) {
+			$this->nights_transfers_ratio = $ratio;
+		} else {
+			$this->nights_transfers_ratio = $this->getDefaultNightsTransfersRatio();
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Tells whether we need to behave for the front-end booking process.
+	 * 
+	 * @return 	bool 	true if we are in the front-end booking process or false.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function isFrontBooking()
+	{
+		return (bool)$this->is_front_booking;
+	}
+
+	/**
+	 * Toggles the flag to behave for the front-end booking process.
+	 * 
+	 * @return 	self
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function setIsFrontBooking($is_front = true)
+	{
+		$this->is_front_booking = (bool)$is_front;
+
+		return $this;
+	}
+
+	/**
+	 * This helper method aims to collect the stay dates of each room in
+	 * a booking with split stay. Records will be loaded by ID ascending,
+	 * so in the same exact way as the rooms get stored. For this reason,
+	 * it is then possible to match the stay dates of a room by array-key,
+	 * even if bookings with split stay should always have different room IDs.
+	 * 
+	 * @param 	int 	$bid 	the website reservation ID.
+	 * 
+	 * @return 	array 			the list of busy records with stay dates information.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function loadSplitStayBusyRecords($bid)
+	{
+		$dbo = JFactory::getDbo();
+
+		$bid = (int)$bid;
+
+		/**
+		 * It is fundamental to keep the ID column as the busy record ID
+		 * to allow the room switching in case of booking modification.
+		 */
+		$q = "SELECT `ob`.`idorder`, `b`.`id`, `b`.`idroom`, `b`.`checkin`, `b`.`checkout`, `b`.`sharedcal` 
+			FROM `#__vikbooking_ordersbusy` AS `ob` 
+			LEFT JOIN `#__vikbooking_busy` AS `b` ON `ob`.`idbusy`=`b`.`id` 
+			WHERE `ob`.`idorder`={$bid} 
+			ORDER BY `b`.`sharedcal` ASC, `b`.`id` ASC;";
+		$dbo->setQuery($q);
+		$records = $dbo->loadAssocList();
+
+		if (!$records) {
+			// the booking may no longer exist, or maybe it was cancelled
+			return [];
+		}
+
+		return $records;
+	}
+
+	/**
+	 * Returns a list of the tax rate records.
+	 * 
+	 * @return 	array 	the list of tax rates.
+	 * 
+	 * @since 	1.16.0 (J) - 1.6.0 (WP)
+	 */
+	public function getTaxRates()
+	{
+		$dbo = JFactory::getDbo();
+		$dbo->setQuery("SELECT * FROM `#__vikbooking_iva`;");
+
+		return $dbo->loadAssocList();
 	}
 
 	/**
@@ -1355,11 +1943,11 @@ class VikBookingAvailability
 	 * 
 	 * @return 	self
 	 */
-	public function setRoomIds($room_ids = array())
+	public function setRoomIds($room_ids = [])
 	{
 		if (is_scalar($room_ids)) {
 			// single room ID integer
-			$room_ids = array($room_ids);
+			$room_ids = [$room_ids];
 		}
 
 		$this->room_ids = $room_ids;

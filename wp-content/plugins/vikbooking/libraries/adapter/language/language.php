@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.language
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -18,6 +18,7 @@ JLoader::import('adapter.language.handler');
  *
  * @since 10.0
  */
+#[\AllowDynamicProperties]
 class JLanguage
 {
 	/**
@@ -370,12 +371,12 @@ class JLanguage
 	/**
 	 * Attaches an handler to evaluate the key to translate.
 	 *
-	 * @param 	string 	$file 	 The file containing the handler.
-	 * @param 	string 	$domain  The plugin domain name.
+	 * @param 	mixed 	$handler  Either a file path or an handler (@since 10.1.46 added support to JLanguageHandler).
+	 * @param 	string 	$domain   The plugin domain name.
 	 *
 	 * @return 	self 	This object to support chaining.
 	 */
-	public function attachHandler($file, $domain)
+	public function attachHandler($handler, $domain)
 	{
 		/**
 		 * Strip any unexpected characters from domain.
@@ -384,17 +385,25 @@ class JLanguage
 		 */
 		$domain = preg_replace("/[^a-z0-9_]+/i", '', $domain);
 
-		$sign = serialize(array($file, $domain));
+		$sign = serialize([$handler, $domain]);
 
 		if (!isset($this->handlers[$sign]))
 		{
-			require_once $file;
+			/**
+			 * Auto-load the class handler only in case a file path is provided.
+			 *
+			 * @since 10.1.46
+			 */
+			if (is_string($handler))
+			{
+				require_once $handler;
 
-			$name = basename($file);
-			$name = substr($name, 0, strrpos($name, '.'));
+				$name = basename($handler);
+				$name = substr($name, 0, strrpos($name, '.'));
 
-			$classname = ucwords($domain) . 'Language' . ucwords($name);
-			$handler   = new $classname();
+				$classname = ucwords($domain) . 'Language' . ucwords($name);
+				$handler   = new $classname();
+			}
 
 			if ($handler instanceof JLanguageHandler)
 			{

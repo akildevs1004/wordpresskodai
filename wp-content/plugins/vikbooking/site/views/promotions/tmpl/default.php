@@ -121,7 +121,7 @@ if(count($promotions) > 0) {
 							<?php
 							if(!empty($room['img'])) {
 								?>
-								<img alt="<?php echo $room['name']; ?>" src="<?php echo VBO_SITE_URI; ?>resources/uploads/<?php echo $room['img']; ?>"/>
+								<img alt="<?php echo htmlspecialchars($room['name']); ?>" src="<?php echo VBO_SITE_URI; ?>resources/uploads/<?php echo $room['img']; ?>"/>
 								<?php
 							}
 							?>

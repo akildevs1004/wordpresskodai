@@ -36,9 +36,9 @@ class VikBookingViewIva extends JViewVikBooking {
 			$navbut = "<table align=\"center\"><tr><td>".$pageNav->getListFooter()."</td></tr></table>";
 		}
 		
-		$this->rows = &$rows;
-		$this->lim0 = &$lim0;
-		$this->navbut = &$navbut;
+		$this->rows = $rows;
+		$this->lim0 = $lim0;
+		$this->navbut = $navbut;
 		
 		// Display the template
 		parent::display($tpl);

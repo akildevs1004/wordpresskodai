@@ -54,8 +54,8 @@ if (empty($rows)) {
 			</td>
 			<td><?php echo $row['textimg']; ?></td>
 			<td class="center">
-				<a href="index.php?option=com_vikbooking&amp;task=sortcarat&amp;cid[]=<?php echo $row['id']; ?>&amp;mode=up"><?php VikBookingIcons::e('arrow-up', 'vbo-icn-img'); ?></a> 
-				<a href="index.php?option=com_vikbooking&amp;task=sortcarat&amp;cid[]=<?php echo $row['id']; ?>&amp;mode=down"><?php VikBookingIcons::e('arrow-down', 'vbo-icn-img'); ?></a>
+				<a href="<?php echo VBOFactory::getPlatform()->getUri()->addCSRF('index.php?option=com_vikbooking&task=sortcarat&cid[]=' . $row['id'] . '&mode=up', true); ?>"><?php VikBookingIcons::e('arrow-up', 'vbo-icn-img'); ?></a> 
+				<a href="<?php echo VBOFactory::getPlatform()->getUri()->addCSRF('index.php?option=com_vikbooking&task=sortcarat&cid[]=' . $row['id'] . '&mode=down', true); ?>"><?php VikBookingIcons::e('arrow-down', 'vbo-icn-img'); ?></a>
 			</td>
 		</tr>	
 		  <?php

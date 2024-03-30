@@ -75,7 +75,7 @@ jQuery(document).ready(function() {
 										<label style="display: inline;" for="autoresize"><?php echo JText::translate('VBNEWOPTNINE'); ?></label> 
 										<input type="checkbox" id="autoresize" name="autoresize" value="1" onclick="showResizeSel();"/> 
 									</span>
-									<span id="resizesel" style="display: none;"><span><?php echo JText::translate('VBNEWOPTTEN'); ?></span><input type="text" name="resizeto" value="250" size="3" class="vbo-small-input"/> px</span>
+									<span id="resizesel" style="display: none;"><span><?php echo JText::translate('VBNEWOPTTEN'); ?></span><input type="number" name="resizeto" value="250" min="0" class="vbo-medium-input"/> px</span>
 								</div>
 							</div>
 						</div>

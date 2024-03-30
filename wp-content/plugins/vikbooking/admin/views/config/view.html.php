@@ -26,7 +26,7 @@ class VikBookingViewConfig extends JViewVikBooking {
 		VikBookingUpdateManager::triggerExtendableClassesBackup('smsapi');
 		//
 
-		$dbo = JFactory::getDBO();
+		$dbo = JFactory::getDbo();
 		$preset_tags = VikRequest::getInt('reset_tags', '', 'request');
 		if ($preset_tags > 0) {
 			$q = "UPDATE `#__vikbooking_orders` SET `colortag`=NULL;";

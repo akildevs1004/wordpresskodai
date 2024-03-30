@@ -25,6 +25,7 @@ if (is_file(VCM_ADMIN_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTORY_SEPARAT
 		$vcm_festivites = true;
 	}
 }
+
 if ($vcm_festivites === true) {
 	// we can use the updated, native and main class of VCM
 	class VikBookingFestivitiesBC extends VCMFestivities { }
@@ -691,9 +692,8 @@ class VikBookingFestivities extends VikBookingFestivitiesBC
 		$dbo = JFactory::getDbo();
 		$q = "SELECT `setting` FROM `#__vikbooking_config` WHERE `param`='fests_last_check';";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows()) {
-			$last_check = $dbo->loadResult();
+		$last_check = $dbo->loadResult();
+		if ($last_check) {
 			$should_check = ($last_check != $current_check);
 			if ($should_check) {
 				// update last time we checked
@@ -769,11 +769,10 @@ class VikBookingFestivities extends VikBookingFestivitiesBC
 		$dbo = JFactory::getDbo();
 		$q = "SELECT * FROM `#__vikbooking_fests_dates` WHERE `dt`=".$dbo->quote($ymd);
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if (!$dbo->getNumRows()) {
+		$festivity = $dbo->loadAssoc();
+		if (!$festivity) {
 			return false;
 		}
-		$festivity  = $dbo->loadAssoc();
 		
 		$fests_info = json_decode($festivity['festinfo']);
 		if (!$fests_info) {
@@ -907,9 +906,8 @@ class VikBookingFestivities extends VikBookingFestivitiesBC
 		$dbo = JFactory::getDbo();
 		$q = "SELECT * FROM `#__vikbooking_fests_dates` WHERE `dt`>=".$dbo->quote($from_ymd).(!empty($to_ymd) ? " AND `dt`<=".$dbo->quote($to_ymd) : '')." ORDER BY `dt` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows()) {
-			$all_fests = $dbo->loadAssocList();
+		$all_fests = $dbo->loadAssocList();
+		if ($all_fests) {
 			// make sure to decode all festivity infos
 			foreach ($all_fests as $k => $v) {
 				$v['festinfo'] = json_decode($v['festinfo']);
@@ -1064,11 +1062,11 @@ class VikBookingFestivities extends VikBookingFestivitiesBC
 	{
 		// load the VCM admin language file
 		$vcm_admin_lang_path = '';
-		if (!defined('ABSPATH') && defined('JPATH_ADMINISTRATOR')) {
+		if (VBOPlatformDetection::isJoomla()) {
 			$vcm_admin_lang_path = JPATH_ADMINISTRATOR;
 		} elseif (defined('VIKCHANNELMANAGER_ADMIN_LANG')) {
 			$vcm_admin_lang_path = VIKCHANNELMANAGER_ADMIN_LANG;
-		} elseif (defined('ABSPATH') && defined('VIKBOOKING_ADMIN_LANG')) {
+		} elseif (VBOPlatformDetection::isWordPress()) {
 			/**
 			 * If running within Vik Booking, the constant VIKCHANNELMANAGER_ADMIN_LANG may not be available
 			 * 
@@ -1082,7 +1080,7 @@ class VikBookingFestivities extends VikBookingFestivitiesBC
 		
 		$lang = JFactory::getLanguage();
 		$lang->load('com_vikchannelmanager', $vcm_admin_lang_path);
-		if (defined('VIKCHANNELMANAGER_LIBRARIES') && method_exists($lang, 'attachHandler')) {
+		if (VBOPlatformDetection::isWordPress() && defined('VIKCHANNELMANAGER_LIBRARIES')) {
 			/**
 			 * @wponly  load language admin handler as well for WP.
 			 * 			We do this only because of WordPress, but in a way also compatible with Joomla as

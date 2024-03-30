@@ -67,7 +67,7 @@ class VBOHttpDocument
 		$this->app->setHeader('status', $code, $replace = true);
 		$this->app->sendHeaders();
 
-		if (defined('ABSPATH') && !headers_sent())
+		if (VBOPlatformDetection::isWordPress() && !headers_sent())
 		{
 			// this is necessary for the HTTP2 protocol
 			http_response_code($code);

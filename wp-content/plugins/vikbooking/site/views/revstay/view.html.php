@@ -50,10 +50,10 @@ class VikbookingViewRevstay extends JViewVikBooking
 		$grev_services = VikBooking::guestReviewsServices();
 		$vbo_tn->translateContents($grev_services, '#__vikbooking_greview_service');
 		
-		$this->order = &$order;
-		$this->customer = &$customer;
-		$this->grev_services = &$grev_services;
-		$this->vbo_tn = &$vbo_tn;
+		$this->order = $order;
+		$this->customer = $customer;
+		$this->grev_services = $grev_services;
+		$this->vbo_tn = $vbo_tn;
 		
 		parent::display($tpl);
 	}

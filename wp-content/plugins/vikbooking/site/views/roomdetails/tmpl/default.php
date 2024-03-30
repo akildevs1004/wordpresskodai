@@ -16,6 +16,11 @@ $seasons_cal = $this->seasons_cal;
 $promo_season = $this->promo_season;
 $vbo_tn = $this->vbo_tn;
 
+// register lang vars for JS
+JText::script('VBODISTFEATURERUNIT');
+JText::script('VBO_GEO_ADDRESS');
+JText::script('VBSELPRDATE');
+
 $vbo_app = VikBooking::getVboApplication();
 $vbo_app->loadDatePicker();
 
@@ -47,13 +52,28 @@ $carats = VikBooking::getRoomCaratOriz($room['idcarat'], $vbo_tn);
 $pitemid = VikRequest::getInt('Itemid', '', 'request');
 
 $min_days_advance = VikBooking::getMinDaysAdvance();
-$max_date_future  = VikBooking::getMaxDateFuture();
+$max_date_future  = VikBooking::getMaxDateFuture($room['id']);
+
+$timeopst = VikBooking::getTimeOpenStore();
+if (is_array($timeopst)) {
+	$opent = VikBooking::getHoursMinutes($timeopst[0]);
+	$closet = VikBooking::getHoursMinutes($timeopst[1]);
+	$hcheckin = $opent[0];
+	$mcheckin = $opent[1];
+	$hcheckout = $closet[0];
+	$mcheckout = $closet[1];
+} else {
+	$hcheckin = 0;
+	$mcheckin = 0;
+	$hcheckout = 0;
+	$mcheckout = 0;
+}
 
 $document = JFactory::getDocument();
 $document->addStyleSheet(VBO_SITE_URI.'resources/jquery.fancybox.css');
 JHtml::fetch('script', VBO_SITE_URI.'resources/jquery.fancybox.js');
 $navdecl = '
-jQuery(document).ready(function() {
+jQuery(function() {
 	jQuery(".vbomodalframe").fancybox({
 		"helpers": {
 			"overlay": {
@@ -92,7 +112,7 @@ if (strlen($room['moreimgs']) > 0) {
 	}
 	if (count($gallery_data)) {
 		$vikfx = '
-jQuery(document).ready(function() {
+jQuery(function() {
 	window["vikfxgallery"] = jQuery(".vikfx-gallery a").vikFxGallery();
 	jQuery(".vikfx-gallery-previous-image").click(function() {
 		if (typeof window["vikfxgallery"] !== "undefined") {
@@ -122,7 +142,7 @@ jQuery(document).ready(function() {
 		?>
 		<div class="vikfx-gallery-container vikfx-roomdetails-gallery-container">
 			<div class="vikfx-gallery-fade-container">
-				<img src="<?php echo VBO_SITE_URI; ?>resources/uploads/<?php echo $room['img']; ?>" alt="<?php echo $room['name']; ?>" class="vikfx-gallery-image vblistimg"/>
+				<img src="<?php echo VBO_SITE_URI; ?>resources/uploads/<?php echo $room['img']; ?>" alt="<?php echo htmlspecialchars($room['name']); ?>" class="vikfx-gallery-image vblistimg"/>
 			<?php
 			if (count($gallery_data)) {
 				?>
@@ -162,11 +182,34 @@ jQuery(document).ready(function() {
 	<div class="vbo-rdet-descprice-block">
 		<div class="vbo-rdet-desc-cont">
 	<?php
-	/**
-	 * @wponly 	we try to parse any shortcode inside the HTML description of the room
-	 */
-	echo do_shortcode(wpautop($room['info']));
-	//
+	if (VBOPlatformDetection::isWordPress()) {
+		/**
+		 * @wponly 	we try to parse any shortcode inside the HTML description of the room
+		 */
+		echo do_shortcode(wpautop($room['info']));
+	} else {
+		//BEGIN: Joomla Content Plugins Rendering
+		JPluginHelper::importPlugin('content');
+		$myItem = JTable::getInstance('content');
+		$myItem->text = $room['info'];
+		$objparams = array();
+		if (class_exists('JEventDispatcher')) {
+			$dispatcher = JEventDispatcher::getInstance();
+			$dispatcher->trigger('onContentPrepare', array('com_vikbooking.roomdetails', &$myItem, &$objparams, 0));
+		} else {
+			/**
+			 * @joomla4only
+			 */
+			$dispatcher = JFactory::getApplication();
+			if (method_exists($dispatcher, 'triggerEvent')) {
+				$dispatcher->triggerEvent('onContentPrepare', array('com_vikbooking.roomdetails', &$myItem, &$objparams, 0));
+			}
+		}
+		$room['info'] = $myItem->text;
+		//END: Joomla Content Plugins Rendering
+		echo $room['info'];
+	}
+
 	if ((bool)VikBooking::getRoomParam('reqinfo', $room['params'])) {
 		//Request Information form
 		$reqinfotoken = rand(1, 999);
@@ -220,7 +263,7 @@ jQuery(document).ready(function() {
 							?>
 							<div class="vbdialog-reqinfo-formentry vbdialog-reqinfo-formentry-ckbox">
 								<label id="vbof" for="vbof-inp" style="display: inline-block;"><?php echo JText::translate('ORDER_TERMSCONDITIONS'); ?></label>
-								<input type="checkbox" name="vbof" id="vbof-inp" value="<?php echo JText::translate('VBYES'); ?>"/>
+								<input type="checkbox" name="vbof" id="vbof-inp" value="<?php echo JText::translate('VBYES'); ?>" required />
 							</div>
 							<?php
 						}
@@ -239,6 +282,7 @@ jQuery(document).ready(function() {
 					</form>
 				</div>
 			</div>
+
 			<script type="text/javascript">
 			var vbdialog_on = false;
 			function vboShowRequestInfo() {
@@ -315,9 +359,6 @@ jQuery(document).ready(function() {
 	if ($geo->isSupported()) {
 		// load assets
 		$geo->loadAssets();
-		// register lang vars for JS
-		JText::script('VBODISTFEATURERUNIT');
-		JText::script('VBO_GEO_ADDRESS');
 		// get all geo params
 		$rparams = json_decode($room['params']);
 		$geo_params = $geo->getRoomGeoParams($rparams);
@@ -330,7 +371,7 @@ jQuery(document).ready(function() {
 				$main_marker_pos->lng = (float)$geo_params->marker_lng;
 			}
 			$current_units_pos = new stdClass;
-			if (isset($geo_params->units_pos) && count(get_object_vars($geo_params->units_pos))) {
+			if (isset($geo_params->units_pos) && is_object($geo_params->units_pos) && count(get_object_vars($geo_params->units_pos))) {
 				$current_units_pos = $geo_params->units_pos;
 			}
 			$current_goverlay = null;
@@ -360,7 +401,7 @@ jQuery(document).ready(function() {
 						$tn_featname = JText::translate($featname);
 						if ($tn_featname == $featname) {
 							// no translation was applied
-							if (defined('ABSPATH')) {
+							if (VBOPlatformDetection::isWordPress()) {
 								// try to apply a translation through Gettext even if we have to pass a variable
 								$tn_featname = __($featname);
 							} else {
@@ -559,7 +600,7 @@ jQuery(document).ready(function() {
 			}
 		}
 
-		jQuery(document).ready(function() {
+		jQuery(function() {
 
 			// init geo map with current markers, if any
 			vboInitGeoMap();
@@ -819,7 +860,7 @@ jQuery(document).ready(function() {
 			/**
 			 * Default number of future months is 12, but if a max date in the future is defined for at least one month, we use that number.
 			 * 
-			 * @since 	1.3.5
+			 * @since 	1.13.5 (J) - 1.3.5 (WP)
 			 */
 			$max_months_future = 12;
 			$lim_months = $max_months_future;
@@ -843,6 +884,7 @@ jQuery(document).ready(function() {
 				$arr = getdate($dayts);
 			}
 			?>
+
 		<div id="vbo-bookingpart-init"></div>
 
 		<div class="vbo-availcalendars-cont">
@@ -896,14 +938,18 @@ jQuery(document).ready(function() {
 				$dayts = strtotime($day);
 				$newarr = getdate($dayts);
 			}
-			//price calendar
+
+			// price calendar
 			$veryfirst = $newarr[0];
 			$untilmonth = (int)$newarr['mon'] + intval(($numcalendars - 1));
 			$addyears = $untilmonth > 12 ? intval(($untilmonth / 12)) : 0;
 			$monthop = $addyears > 0 ? ($addyears * 12) : 0;
 			$untilmonth = $untilmonth > 12 ? ($untilmonth - $monthop) : $untilmonth;
 			$verylast = mktime(23, 59, 59, $untilmonth, date('t', mktime(0, 0, 0, $untilmonth, 1, ($newarr['year'] + $addyears))), ($newarr['year'] + $addyears));
-			$priceseasons = array();
+
+			$priceseasons = [];
+			$roomrate = [];
+			$assumedailycost = 0;
 			$usepricecal = false;
 			if (intval(VikBooking::getRoomParam('pricecal', $room['params'])) == 1) {
 				// turn flag on
@@ -946,32 +992,43 @@ jQuery(document).ready(function() {
 				$assumedailycost = VikBooking::getRoomParam('defcalcost', $room['params']);
 				$assumedailycost = empty($assumedailycost) && !empty($room['base_cost']) ? $room['base_cost'] : $assumedailycost;
 
-				// loop through all dates interval just built
-				foreach ($parse_dates as $dates_intv) {
-					$dummy_checkin  = $dates_intv['from'];
-					$dummy_checkout = $dates_intv['to'];
-					$current_year 	= date('Y', $dummy_checkin);
+				/**
+				 * Get the default room rate plan rates for a more accurate calculation of the nightly rates.
+				 * 
+				 * @since 	1.16.3 (J) - 1.6.3 (WP)
+				 */
+				$def_rplan_id = (int)VikBooking::getRoomParam('defrplan', $room['params']);
+				$roomrate = $def_rplan_id ? VBORoomHelper::getInstance($room)->getRatePlans($room['id'], $def_rplan_id) : [];
 
-					$assumedays = floor((($dummy_checkout - $dummy_checkin) / (60 * 60 * 24)));
-					$assumedays++;
-					$assumeprice = $assumedailycost * $assumedays;
-					$parserates = array(
-						array(
-							'id' => -1,
-							'idroom' => $room['id'],
-							'days' => $assumedays,
-							'idprice' => -1,
-							'cost' => $assumeprice,
-							'attrdata' => ''
-						)
-					);
-					$priceseasons[$current_year] = VikBooking::applySeasonsRoom($parserates, $dummy_checkin, $dummy_checkout);
+				if (!$roomrate) {
+					// loop through all dates interval just built (old method with the default cost)
+					foreach ($parse_dates as $dates_intv) {
+						$dummy_checkin  = $dates_intv['from'];
+						$dummy_checkout = $dates_intv['to'];
+						$current_year 	= date('Y', $dummy_checkin);
+
+						$assumedays = floor((($dummy_checkout - $dummy_checkin) / (60 * 60 * 24)));
+						$assumedays++;
+						$assumeprice = $assumedailycost * $assumedays;
+						$parserates = array(
+							array(
+								'id' 			 => -1,
+								'idroom' 		 => $room['id'],
+								'days' 			 => $assumedays,
+								'idprice' 		 => -1,
+								'cost' 			 => $assumeprice,
+								'booking_nights' => 1,
+								'attrdata' 		 => '',
+							)
+						);
+						$priceseasons[$current_year] = VikBooking::applySeasonsRoom($parserates, $dummy_checkin, $dummy_checkout);
+					}
 				}
 				?>
 				<p class="vbpricecalwarning"><?php echo JText::translate('VBPRICECALWARNING'); ?></p>
 				<?php
 			}
-			//
+
 			$firstwday = (int)VikBooking::getFirstWeekDay();
 			$days_labels = array(
 				JText::translate('VBSUN'),
@@ -989,6 +1046,7 @@ jQuery(document).ready(function() {
 			?>
 			<div class="vbcalsblock <?php echo ($usepricecal === true ? 'vbcalsblock-price' : 'vbcalsblock-regular'); ?>">
 			<?php
+			$today_ts = mktime(0, 0, 0, date('n'), date('j'), date('Y'));
 			$previousdayclass = "";
 			for ($jj = 1; $jj <= $numcalendars; $jj++) {
 				$d_count = 0;
@@ -1035,7 +1093,6 @@ jQuery(document).ready(function() {
 									if ($newarr[0] >= $checkin_ts && $newarr[0] == $checkout_ts) {
 										$ischeckoutday = true;
 									}
-									// if ($newarr[0] >= $checkin_ts && $newarr[0] <= $checkout_ts) {
 									if ($newarr[0] >= $checkin_ts && $newarr[0] < $checkout_ts) {
 										$totfound++;
 										if ($newarr[0] == $checkin_ts) {
@@ -1049,9 +1106,9 @@ jQuery(document).ready(function() {
 									if (!$ischeckinday || $previousdayclass == "vbtdbusy" || $previousdayclass == "vbtdbusy vbtdbusyforcheckin") {
 										$push_disabled_out[] = '"'.date('Y-m-d', $newarr[0]).'"';
 									}
-									if ($ischeckinday && $showcheckinoutonly && !$usepricecal && $inonout_allowed && $previousdayclass != "vbtdbusy" && $previousdayclass != "vbtdbusy vbtdbusyforcheckin") {
+									if ($ischeckinday && $showcheckinoutonly && $inonout_allowed && $previousdayclass != "vbtdbusy" && $previousdayclass != "vbtdbusy vbtdbusyforcheckin") {
 										$dclass = "vbtdbusy vbtdbusyforcheckin";
-									} elseif ($ischeckinday && !$usepricecal && !$inonout_allowed && $previousdayclass != "vbtdbusy" && $previousdayclass != "vbtdbusy vbtdbusyforcheckin") {
+									} elseif ($ischeckinday && !$inonout_allowed && $previousdayclass != "vbtdbusy" && $previousdayclass != "vbtdbusy vbtdbusyforcheckin") {
 										//check-out not allowed on a day where someone is already checking-in
 										$dclass = "vbtdbusy";
 										$push_disabled_out[] = '"'.date('Y-m-d', $newarr[0]).'"';
@@ -1061,9 +1118,9 @@ jQuery(document).ready(function() {
 										$dclass = "vbtdwarning";
 									}
 								} else {
-									if ($ischeckoutday && !$usepricecal && $showcheckinoutonly && $inonout_allowed && !($room['units'] > 1)) {
+									if ($ischeckoutday && $showcheckinoutonly && $inonout_allowed && !($room['units'] > 1)) {
 										$dclass = "vbtdbusy vbtdbusyforcheckout";
-									} elseif ($ischeckoutday && !$usepricecal && !$inonout_allowed && !($room['units'] > 1)) {
+									} elseif ($ischeckoutday && !$inonout_allowed && !($room['units'] > 1)) {
 										$dclass = "vbtdbusy";
 										$push_disabled_in[] = '"'.date('Y-m-d', $newarr[0]).'"';
 									}
@@ -1079,24 +1136,36 @@ jQuery(document).ready(function() {
 							}
 							$previousdayclass = $dclass;
 							$useday = ($newarr['mday'] < 10 ? "0".$newarr['mday'] : $newarr['mday']);
-							//price calendar
+							// price calendar
 							$useday = $usepricecal === true ? '<div class="vbcalpricedaynum"><span>'.$useday.'</span></div>' : $useday;
 							if ($usepricecal === true) {
 								$todaycost = $assumedailycost;
-								$check_priceseasons = isset($priceseasons[$newarr['year']]) ? $priceseasons[$newarr['year']][0] : array();
-								if (array_key_exists('affdayslist', $check_priceseasons) && array_key_exists($newarr['wday'].'-'.$newarr['mday'].'-'.$newarr['mon'], $check_priceseasons['affdayslist'])) {
-									$todaycost = $check_priceseasons['affdayslist'][$newarr['wday'].'-'.$newarr['mday'].'-'.$newarr['mon']];
+								if ($roomrate) {
+									// new accurate calculation method (slower)
+									$today_tsin = mktime($hcheckin, $mcheckin, 0, $newarr['mon'], $newarr['mday'], $newarr['year']);
+									$today_tsout = mktime($hcheckout, $mcheckout, 0, $newarr['mon'], ($newarr['mday'] + 1), $newarr['year']);
+									$tars = VikBooking::applySeasonsRoom([$roomrate], $today_tsin, $today_tsout);
+									$todaycost = $tars[0]['cost'];
+								} else {
+									// fallback to old default cost (faster)
+									$check_priceseasons = isset($priceseasons[$newarr['year']]) ? $priceseasons[$newarr['year']][0] : array();
+									if (array_key_exists('affdayslist', $check_priceseasons) && array_key_exists($newarr['wday'].'-'.$newarr['mday'].'-'.$newarr['mon'], $check_priceseasons['affdayslist'])) {
+										$todaycost = $check_priceseasons['affdayslist'][$newarr['wday'].'-'.$newarr['mday'].'-'.$newarr['mon']];
+									}
 								}
 								$writecost = ($todaycost - intval($todaycost)) > 0.00 ? VikBooking::numberFormat($todaycost) : number_format($todaycost, 0);
-								$useday .= '<div class="vbcalpricedaycost"><div><span class="vbo_currency">'.$currencysymb.'</span> <span class="vbo_price">'.$writecost.'</span></div></div>';
+								$useday .= '<div class="vbcalpricedaycost"><div><span class="vbo_currency">' . $currencysymb . '</span> <span class="vbo_price">' . $writecost . '</span></div></div>';
+							} else {
+								$useday = '<span>' . $useday . '</span>';
 							}
 							//
+							$past_dclass = $newarr[0] < $today_ts ? ' vbtdpast' : '';
 							if ($totfound == 1) {
-								$cal .= "<td align=\"center\" class=\"".$dclass."\" data-daydate=\"".date($df, $newarr[0])."\">".$useday."</td>\n";
+								$cal .= "<td align=\"center\" class=\"" . $dclass . $past_dclass . "\" data-daydate=\"" . date($df, $newarr[0]) . "\" data-ymd=\"" . date('Y-m-d', $newarr[0]) . "\">" . $useday . "</td>\n";
 							} elseif ($totfound > 1) {
-								$cal .= "<td align=\"center\" class=\"".$dclass."\" data-daydate=\"".date($df, $newarr[0])."\">".$useday."</td>\n";
+								$cal .= "<td align=\"center\" class=\"" . $dclass . $past_dclass . "\" data-daydate=\"" . date($df, $newarr[0]) . "\" data-ymd=\"" . date('Y-m-d', $newarr[0]) . "\">" . $useday . "</td>\n";
 							} else {
-								$cal .= "<td align=\"center\" class=\"".$dclass."\" data-daydate=\"".date($df, $newarr[0])."\">".$useday."</td>\n";
+								$cal .= "<td align=\"center\" class=\"" . $dclass . $past_dclass . "\" data-daydate=\"" . date($df, $newarr[0]) . "\" data-ymd=\"" . date('Y-m-d', $newarr[0]) . "\">" . $useday . "</td>\n";
 							}
 							$next = $newarr['mday'] + 1;
 							$dayts = mktime(0, 0, 0, $newarr['mon'], $next, $newarr['year']);
@@ -1149,7 +1218,7 @@ jQuery(document).ready(function() {
 		var vboAvCalsNavNext = '<?php echo $nav_next_start; ?>';
 		var vboAvCalsNavPrev = '<?php echo $nav_prev_start; ?>';
 		var vboAvCalsNavLoading = false;
-		jQuery(document).ready(function() {
+		jQuery(function() {
 		<?php
 		if ($nav_next) {
 			?>
@@ -1188,9 +1257,9 @@ jQuery(document).ready(function() {
 				}).done(function(res) {
 					// parse the JSON response that contains the calendars objects for the requested navigation
 					try {
-						var cal_data = JSON.parse(res);
+						var cal_data = typeof res === 'string' ? JSON.parse(res) : res;
 						
-						if (!cal_data['calendars'] || !cal_data['calendars'].length) {
+						if (!cal_data || !cal_data['calendars'] || !cal_data['calendars'].length) {
 							console.error('no availability calendars to parse');
 							return false;
 						}
@@ -1210,7 +1279,9 @@ jQuery(document).ready(function() {
 							cal_html += '<tbody>' + "\n";
 							// month name row
 							cal_html += '<tr class="vbcaltrmonth">' + "\n";
-							cal_html += '<td class="vbo-pref-bordercolor" colspan="7" align="center"><strong>' + cal_data['calendars'][i].month + ' ' + cal_data['calendars'][i].year + '</strong></td>' + "\n";
+							cal_html += '<td class="vbo-pref-bordercolor" colspan="7" align="center">' + "\n";
+							cal_html += '<strong class="vbcaltrmonth-month">' + cal_data['calendars'][i].month + '</strong> <strong class="vbcaltrmonth-year">' + cal_data['calendars'][i].year + '</strong>' + "\n";
+							cal_html += '</td>' + "\n";
 							cal_html += '</tr>' + "\n";
 							// ordered week days row
 							cal_html += '<tr class="vbcaldays">' + "\n";
@@ -1239,7 +1310,7 @@ jQuery(document).ready(function() {
 										cal_html += '<td align="center">' + rowcells[rc]['cont'] + '</td>' + "\n";
 									} else {
 										// real day cell
-										cal_html += '<td align="center" class="' + rowcells[rc]['class'] + '" data-daydate="' + rowcells[rc]['dt'] + '">' + rowcells[rc]['cont'] + '</td>' + "\n";
+										cal_html += '<td align="center" class="' + rowcells[rc]['class'] + rowcells[rc]['past_class'] + '" data-daydate="' + rowcells[rc]['dt'] + '" data-ymd="' + rowcells[rc]['ymd'] + '"><span>' + rowcells[rc]['cont'] + '</span></td>' + "\n";
 									}
 								}
 								// finalise calendar week row
@@ -1285,15 +1356,15 @@ jQuery(document).ready(function() {
 							jQuery('.vbcaldivcont').first().find('.vbcaltrmonth td').prepend('<span class="vbo-rdet-avcal-nav vbo-rdet-avcal-nav-prev vbo-pref-color-btn">&lt;</span>');
 						}
 					} catch (e) {
-						console.log(res);
 						console.log(e);
 						alert('Invalid response');
 						jQuery('.vbcaldivcont').removeClass('vbcaldivcont-loading');
 						vboAvCalsNavLoading = false;
 						return false;
 					}
-				}).fail(function() {
-					alert('Could not navigate more');
+				}).fail(function(err) {
+					console.error(err);
+					alert('Could not navigate');
 					jQuery('.vbcaldivcont').removeClass('vbcaldivcont-loading');
 					vboAvCalsNavLoading = false;
 				});
@@ -1309,7 +1380,7 @@ jQuery(document).ready(function() {
 		 * For this reason we loop for another extra year into the future for
 		 * the sole purpose of pushing other dates onto $push_disabled_in/out.
 		 * 
-		 * @since 	1.2.0
+		 * @since 	1.12.0 (J) - 1.2.0 (WP)
 		 */
 		if (is_array($busy)) {
 			if (!isset($newarr)) {
@@ -1413,30 +1484,17 @@ jQuery(document).ready(function() {
 				//
 				$promo_checkin = VikRequest::getString('checkin', '', 'request');
 				$ispromo = count($promo_season) > 0 ? $promo_season['id'] : 0;
+
+				$form_method = defined('ABSPATH') ? 'post' : 'get';
 				
-				$selform = "<div class=\"vbdivsearch\"><form action=\"".JRoute::rewrite('index.php?option=com_vikbooking'.(!empty($pitemid) ? '&Itemid='.$pitemid : ''))."\" method=\"post\"><div class=\"vb-search-inner\">\n";
+				$selform = "<div class=\"vbdivsearch\"><form action=\"".JRoute::rewrite('index.php?option=com_vikbooking'.(!empty($pitemid) ? '&Itemid='.$pitemid : ''))."\" method=\"{$form_method}\" onsubmit=\"return vboValidateDates();\"><div class=\"vb-search-inner\">\n";
 				$selform .= "<input type=\"hidden\" name=\"option\" value=\"com_vikbooking\"/>\n";
 				$selform .= "<input type=\"hidden\" name=\"task\" value=\"search\"/>\n";
 				if (!empty($pitemid)) {
 					$selform .= "<input type=\"hidden\" name=\"Itemid\" value=\"".$pitemid."\"/>\n";
 				}
 				$selform .= "<input type=\"hidden\" name=\"roomdetail\" value=\"".$room['id']."\"/>\n";
-				
-				$timeopst = VikBooking::getTimeOpenStore();
-				if (is_array($timeopst)) {
-					$opent = VikBooking::getHoursMinutes($timeopst[0]);
-					$closet = VikBooking::getHoursMinutes($timeopst[1]);
-					$hcheckin = $opent[0];
-					$mcheckin = $opent[1];
-					$hcheckout = $closet[0];
-					$mcheckout = $closet[1];
-				} else {
-					$hcheckin = 0;
-					$mcheckin = 0;
-					$hcheckout = 0;
-					$mcheckout = 0;
-				}
-				
+
 				//vikbooking 1.1
 				if ($calendartype == "jqueryui") {
 					if ($vbdateformat == "%d/%m/%Y") {
@@ -1481,10 +1539,10 @@ jQuery(document).ready(function() {
 					if ($totrestrictions > 0) {
 						foreach ($restrictions as $rmonth => $restr) {
 							if ($rmonth != 'range') {
-								if (strlen($restr['wday']) > 0) {
+								if (strlen((string)$restr['wday'])) {
 									$wdaysrestrictions[] = "'".($rmonth - 1)."': '".$restr['wday']."'";
 									$wdaysrestrictionsmonths[] = $rmonth;
-									if (strlen($restr['wdaytwo']) > 0) {
+									if (strlen((string)$restr['wdaytwo'])) {
 										$wdaystworestrictions[] = "'".($rmonth - 1)."': '".$restr['wdaytwo']."'";
 										$monthscomborestr[($rmonth - 1)] = VikBooking::parseJsDrangeWdayCombo($restr);
 									}
@@ -1505,12 +1563,12 @@ jQuery(document).ready(function() {
 								}
 							} else {
 								foreach ($restr as $kr => $drestr) {
-									if (strlen($drestr['wday']) > 0) {
+									if (strlen((string)$drestr['wday'])) {
 										$wdaysrestrictionsrange[$kr][0] = date('Y-m-d', $drestr['dfrom']);
 										$wdaysrestrictionsrange[$kr][1] = date('Y-m-d', $drestr['dto']);
 										$wdaysrestrictionsrange[$kr][2] = $drestr['wday'];
 										$wdaysrestrictionsrange[$kr][3] = $drestr['multiplyminlos'];
-										$wdaysrestrictionsrange[$kr][4] = strlen($drestr['wdaytwo']) > 0 ? $drestr['wdaytwo'] : -1;
+										$wdaysrestrictionsrange[$kr][4] = strlen((string)$drestr['wdaytwo']) ? $drestr['wdaytwo'] : -1;
 										$wdaysrestrictionsrange[$kr][5] = VikBooking::parseJsDrangeWdayCombo($drestr);
 									} elseif (!empty($drestr['ctad']) || !empty($drestr['ctdd'])) {
 										$ctfrom = date('Y-m-d', $drestr['dfrom']);
@@ -1574,7 +1632,7 @@ jQuery(document).ready(function() {
 					}
 				}
 			}
-			function vbSetMinCheckoutDate () {
+			function vbSetMinCheckoutDate(selectedDate) {
 				var minlos = ".VikBooking::getDefaultNightsCalendar().";
 				var maxlosrange = 0;
 				var nowcheckin = jQuery('#checkindate').datepicker('getDate');
@@ -1626,7 +1684,23 @@ jQuery(document).ready(function() {
 					jQuery('#checkoutdate').datepicker( 'option', 'maxDate', maxcheckoutdate );
 				}
 				if (!vbFullObject(vbcombowdays)) {
-					jQuery('#checkoutdate').datepicker( 'setDate', nowcheckindate );
+					var is_checkout_disabled = false;
+					if (typeof selectedDate !== 'undefined' && typeof jQuery('#checkoutdate').datepicker('option', 'beforeShowDay') === 'function') {
+						// let the datepicker validate if the min date to set for check-out is disabled due to CTD rules
+						is_checkout_disabled = !jQuery('#checkoutdate').datepicker('option', 'beforeShowDay')(nowcheckindate)[0];
+					}
+					if (!is_checkout_disabled) {
+						jQuery('#checkoutdate').datepicker( 'setDate', nowcheckindate );
+					} else {
+						setTimeout(() => {
+							// make sure the minimum date just set for the checkout has not populated a CTD date that we do not want
+							var current_out_dt = jQuery('#checkoutdate').datepicker('getDate');
+							if (current_out_dt && current_out_dt.getTime() === nowcheckindate.getTime()) {
+								jQuery('#checkoutdate').datepicker( 'setDate', null );
+							}
+							jQuery('#checkoutdate').focus();
+						}, 100);
+					}
 				} else {
 					vbRefreshCheckout(nowcheckin);
 				}
@@ -1933,7 +2007,7 @@ jQuery(document).ready(function() {
 					showOn: 'focus',
 					numberOfMonths: ".($is_mobile ? '1' : '2').",".(count($wdaysrestrictions) > 0 || count($wdaysrestrictionsrange) > 0 ? "\nbeforeShowDay: vbIsDayDisabled,\n" : (count($push_disabled_in) > 0 ? "\nbeforeShowDay: vbIsDayFull,\n" : "\nbeforeShowDay: vboCheckClosingDatesIn,\n"))."
 					onSelect: function( selectedDate ) {
-						".($totrestrictions > 0 ? "vbSetMinCheckoutDate();" : "vbSetGlobalMinCheckoutDate();")."
+						".($totrestrictions > 0 ? "vbSetMinCheckoutDate(selectedDate);" : "vbSetGlobalMinCheckoutDate();")."
 						vbCalcNights();
 					}
 				});
@@ -1949,7 +2023,6 @@ jQuery(document).ready(function() {
 				});
 				jQuery('#checkoutdate').datepicker( 'option', 'dateFormat', '".$juidf."');
 				jQuery('#checkoutdate').datepicker( 'option', 'minDate', '".$min_days_advance."d');
-				jQuery('#checkoutdate').datepicker( 'option', 'maxDate', '".$max_date_future."');
 				jQuery('#checkindate').datepicker( 'option', jQuery.datepicker.regional[ 'vikbooking' ] );
 				jQuery('#checkoutdate').datepicker( 'option', jQuery.datepicker.regional[ 'vikbooking' ] );
 				jQuery('.vb-cal-img, .vbo-caltrigger').click(function() {
@@ -1960,18 +2033,23 @@ jQuery(document).ready(function() {
 				});
 			});";
 					$document->addScriptDeclaration($sdecl);
-					$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkindate\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkindate\" id=\"checkindate\" size=\"16\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkinh\" value=\"".$hcheckin."\"/><input type=\"hidden\" name=\"checkinm\" value=\"".$mcheckin."\"/></div>\n";
-					$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkoutdate\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkoutdate\" id=\"checkoutdate\" size=\"16\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkouth\" value=\"".$hcheckout."\"/><input type=\"hidden\" name=\"checkoutm\" value=\"".$mcheckout."\"/></div>\n";
+					$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkin\"><label for=\"checkindate\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkindate\" id=\"checkindate\" size=\"10\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkinh\" value=\"".$hcheckin."\"/><input type=\"hidden\" name=\"checkinm\" value=\"".$mcheckin."\"/></div>\n";
+					$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkout\"><label for=\"checkoutdate\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkoutdate\" id=\"checkoutdate\" size=\"10\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkouth\" value=\"".$hcheckout."\"/><input type=\"hidden\" name=\"checkoutm\" value=\"".$mcheckout."\"/></div>\n";
 				} else {
 					//default Joomla Calendar
-					$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkindate\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkindate', 'checkindate', $vbdateformat, array ('class' => '','size' => '16','maxlength' => '19'));
+					$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkin\"><label for=\"checkindate\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkindate', 'checkindate', $vbdateformat, array ('class' => '','size' => '10','maxlength' => '19'));
 					$selform .= "<input type=\"hidden\" name=\"checkinh\" value=\"".$hcheckin."\"/><input type=\"hidden\" name=\"checkinm\" value=\"".$mcheckin."\"/></div></div>\n";
-					$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkoutdate\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkoutdate', 'checkoutdate', $vbdateformat, array ('class' => '','size' => '16','maxlength' => '19')); 
+					$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkout\"><label for=\"checkoutdate\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkoutdate', 'checkoutdate', $vbdateformat, array ('class' => '','size' => '10','maxlength' => '19')); 
 					$selform .= "<input type=\"hidden\" name=\"checkouth\" value=\"".$hcheckout."\"/><input type=\"hidden\" name=\"checkoutm\" value=\"".$mcheckout."\"/></div></div>\n";
 				}
 				//
 				//rooms, adults, children
 				$showchildren = VikBooking::showChildrenFront();
+				$guests_label = VBOFactory::getConfig()->get('guests_label', 'adults');
+				$use_guests_label = 'VBFORMADULTS';
+				if (!$showchildren && !strcasecmp($guests_label, 'guests')) {
+					$use_guests_label = 'VBOINVTOTGUESTS';
+				}
 				//max number of rooms
 				$multi_units = (int)VikBooking::getRoomParam('multi_units', $room['params']);
 				if ($multi_units === 1 && $room['units'] > 1) {
@@ -2002,26 +2080,56 @@ jQuery(document).ready(function() {
 				$childrensel .= "</select>";
 				//
 
-				$selform .= "<div class=\"vbo-search-num-racblock col-lg-4\">\n";
+				$selform .= "<div class=\"vbo-search-num-racblock\">\n";
 				$selform .= "	<div class=\"vbo-search-num-rooms\">".$roomsel."</div>\n";
 				$selform .= "	<div class=\"vbo-search-num-aduchild-block\" id=\"vbo-search-num-aduchild-block\">\n";
 				$selform .= "		<div class=\"vbo-search-num-aduchild-entry\">" . ($multi_units === 1 && $room['units'] > 1 ? "<span class=\"vbo-search-roomnum\">".JText::translate('VBFORMNUMROOM')." 1</span>" : '') . "\n";
-				$selform .= "			<div class=\"vbo-search-num-adults-entry\"><label class=\"vbo-search-num-adults-entry-label\">".JText::translate('VBFORMADULTS')."</label><span class=\"vbo-search-num-adults-entry-inp\">".$adultsel."</span></div>\n";
+				$selform .= "			<div class=\"vbo-search-num-adults-entry\"><label class=\"vbo-search-num-adults-entry-label\">".JText::translate($use_guests_label)."</label><span class=\"vbo-search-num-adults-entry-inp\">".$adultsel."</span></div>\n";
 				if ($showchildren) {
 					$selform .= "		<div class=\"vbo-search-num-children-entry\"><label class=\"vbo-search-num-children-entry-label\">".JText::translate('VBFORMCHILDREN')."</label><span class=\"vbo-search-num-children-entry-inp\">".$childrensel."</span></div>\n";
 				}
 				$selform .= "		</div>\n";
 				$selform .= "	</div>\n";
-				//the tag <div id=\"vbjstotnights\"></div> will be used by javascript to calculate the nights
+				// the tag <div id=\"vbjstotnights\"></div> will be used by javascript to calculate the nights
 				$selform .= "	<div id=\"vbjstotnights\"></div>\n";
 				$selform .= "</div>\n";
 				$selform .= "<div class=\"vbo-search-submit\"><input type=\"submit\" name=\"search\" value=\"" . JText::translate('VBBOOKTHISROOM') . "\" class=\"btn vbdetbooksubmit vbo-pref-color-btn\"/></div>\n";
 				$selform .= "</div>\n";
 				$selform .= "</form></div>";
-				
 				?>
+
+				<div class="vbo-js-helpers" style="display: none;">
+					<div class="vbo-add-element-html">
+						<div class="vbo-search-num-aduchild-entry">
+							<span class="vbo-search-roomnum"><?php echo JText::translate('VBFORMNUMROOM'); ?> %d</span>
+							<div class="vbo-search-num-adults-entry">
+								<label class="vbo-search-num-adults-entry-label"><?php echo JText::translate($use_guests_label); ?></label>
+								<span class="vbo-search-num-adults-entry-inp"><?php echo $adultsel; ?></span>
+							</div>
+						<?php
+						if ($showchildren) {
+							?>
+							<div class="vbo-search-num-children-entry">
+								<label class="vbo-search-num-children-entry-label"><?php echo JText::translate('VBFORMCHILDREN'); ?></label>
+								<span class="vbo-search-num-adults-entry-inp"><?php echo $childrensel; ?></span>
+							</div>
+							<?php
+						}
+						?>
+						</div>
+					</div>
+				</div>
+
 				<script type="text/javascript">
-				/* <![CDATA[ */
+				function vboValidateDates() {
+					var vbcheckin = document.getElementById('checkindate').value;
+					var vbcheckout = document.getElementById('checkoutdate').value;
+					if (!vbcheckin || !vbcheckout) {
+						alert(Joomla.JText._('VBSELPRDATE'));
+						return false;
+					}
+					return true;
+				}
 				function vbCalcNights() {
 					var vbcheckin = document.getElementById('checkindate').value;
 					var vbcheckout = document.getElementById('checkoutdate').value;
@@ -2091,8 +2199,10 @@ jQuery(document).ready(function() {
 					numi.value = num;
 					var newdiv = document.createElement('div');
 					var divIdName = 'vb'+num+'detracont';
-					newdiv.setAttribute('id',divIdName);
-					newdiv.innerHTML = '<div class=\'vbo-search-num-aduchild-entry\'><span class=\'vbo-search-roomnum\'><?php echo addslashes(JText::translate('VBFORMNUMROOM')); ?> '+ num +'</span><div class=\'vbo-search-num-adults-entry\'><label class=\'vbo-search-num-adults-entry-label\'><?php echo addslashes(JText::translate('VBFORMADULTS')); ?></label><span class=\'vbo-search-num-adults-entry-inp\'><?php echo addslashes(str_replace('"', "'", $adultsel)); ?></span></div><?php if ($showchildren): ?><div class=\'vbo-search-num-children-entry\'><label class=\'vbo-search-num-children-entry-label\'><?php echo addslashes(JText::translate('VBFORMCHILDREN')); ?></label><span class=\'vbo-search-num-adults-entry-inp\'><?php echo addslashes(str_replace('"', "'", $childrensel)); ?></span></div><?php endif; ?></div>';
+					newdiv.setAttribute('id', divIdName);
+					var new_element_html = document.getElementsByClassName('vbo-add-element-html')[0].innerHTML;
+					var rp_rgx = new RegExp('%d', 'g');
+					newdiv.innerHTML = new_element_html.replace(rp_rgx, num);
 					ni.appendChild(newdiv);
 				}
 				function vbSetRoomsAdults(totrooms) {
@@ -2123,7 +2233,7 @@ jQuery(document).ready(function() {
 					$ch_ts_enddate = strtotime($ch_end_date);
 					if ($ch_ts_startdate > time() && $ch_ts_startdate < $ch_ts_enddate) {
 						?>
-				jQuery(document).ready(function() {
+				jQuery(function() {
 					document.getElementById('checkindate').value = '<?php echo date($df, $ch_ts_startdate); ?>';
 					document.getElementById('checkoutdate').value = '<?php echo date($df, $ch_ts_enddate); ?>';
 					vbCalcNights();
@@ -2147,7 +2257,7 @@ jQuery(document).ready(function() {
 						}
 					}
 					?>
-				jQuery(document).ready(function() {
+				jQuery(function() {
 					jQuery("#checkin-hidden").val("<?php echo $promo_checkin; ?>");
 					jQuery("#checkindate").datepicker("setDate", new Date(<?php echo date('Y', $promo_checkin); ?>, <?php echo ((int)date('n', $promo_checkin) - 1); ?>, <?php echo date('j', $promo_checkin); ?>));
 					<?php
@@ -2164,7 +2274,7 @@ jQuery(document).ready(function() {
 				}
 				//
 				?>
-				jQuery(document).ready(function() {
+				jQuery(function() {
 				<?php
 				if ($ispromo > 0 || $scroll_booking === true || VikRequest::getInt('booknow', 0, 'request')) {
 					?>
@@ -2175,12 +2285,22 @@ jQuery(document).ready(function() {
 				}
 				?>
 					jQuery(document.body).on('click', 'td.vbtdfree, td.vbtdwarning, td.vbtdbusyforcheckout', function() {
-						if (!jQuery("#checkindate").length) {
+						if (!jQuery("#checkindate").length || jQuery(this).hasClass('vbtdpast')) {
 							return;
 						}
 						var tdday = jQuery(this).attr('data-daydate');
-						if (!tdday || !tdday.length) {
+						var tdymd = jQuery(this).attr('data-ymd');
+						if (!tdday || !tdymd) {
 							return;
+						}
+						// make sure the clicked date is not disabled
+						if (typeof jQuery('#checkindate').datepicker('option', 'beforeShowDay') === 'function') {
+							// let the datepicker validate the clicked day
+							let ymd_parts = tdymd.split('-');
+							let ymd_object = new Date(ymd_parts[0], ymd_parts[1] - 1, ymd_parts[2], 0, 0, 0, 0);
+							if (!jQuery('#checkindate').datepicker('option', 'beforeShowDay')(ymd_object)[0]) {
+								return;
+							}
 						}
 						// set check-in date in datepicker
 						jQuery('#checkindate').datepicker('setDate', tdday);
@@ -2200,7 +2320,6 @@ jQuery(document).ready(function() {
 						});
 					});
 				});
-				/* ]]> */
 				</script>
 
 				<input type="hidden" id="vbroomdethelper" value="1"/>
@@ -2224,6 +2343,15 @@ jQuery(document).ready(function() {
 				}
 				?>
 				</div>
+
+				<?php
+				// check for guests allowed policy
+				if (!$showchildren && $guests_allowed_policy = VikBooking::getGuestsAllowedPolicy($vbo_tn)) {
+					?>
+				<div class="vbo-guests-allowed-policy"><?php echo $guests_allowed_policy; ?></div>
+					<?php
+				}
+				?>
 
 				<div class="vbo-closing-main"><?php echo VikBooking::getClosingMain(); ?></div>
 				<?php

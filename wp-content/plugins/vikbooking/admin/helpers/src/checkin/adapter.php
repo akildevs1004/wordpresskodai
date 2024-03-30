@@ -29,9 +29,13 @@ abstract class VBOCheckinAdapter implements VBOCheckinPaxfields
 	 * Tells whether children should be registered.
 	 * Children registration is disabled by default.
 	 * 
+	 * @param 	bool 	$precheckin 	true if requested for front-end pre check-in.
+	 * 
 	 * @return 	bool    true to also register the children.
+	 * 
+	 * @since 	1.16.3 (J) - 1.6.3 (WP) added $precheckin argument.
 	 */
-	public function registerChildren()
+	public function registerChildren($precheckin = false)
 	{
 		// disabled by default, unless method gets overridden
 		return false;

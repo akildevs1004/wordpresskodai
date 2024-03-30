@@ -116,10 +116,21 @@ class VBOBackupExportArchive
 			throw new Exception(sprintf('Cannot create folder: %s', $folder), 500);
 		}
 
+		$bytes = 0;
+
 		// open file in append mode
 		$fp = fopen($dest, 'a');
-		// attempt to write the buffer into the file
-		$bytes = fwrite($fp, $buffer);
+
+		// divide the whole string in chunks of 2^12 bytes
+		$chunks = str_split($buffer, 4096);
+
+		// copy chunks one by one
+		foreach ($chunks as $chunk)
+		{
+			// attempt to write the buffer into the file
+			$bytes += fwrite($fp, $chunk, strlen($chunk));
+		}
+
 		// close file pointer
 		fclose($fp);
 

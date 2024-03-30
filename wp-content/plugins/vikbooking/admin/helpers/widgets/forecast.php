@@ -54,7 +54,7 @@ class VikBookingAdminWidgetForecast extends VikBookingAdminWidget
 		?>
 		<div class="vbo-admin-widget-wrapper">
 			<div class="vbo-admin-widget-head">
-				<h4><?php VikBookingIcons::e('cloud-sun-rain'); ?> <?php echo JText::translate('VBOFORECAST'); ?></h4>
+				<h4><?php echo $this->widgetIcon; ?> <span><?php echo JText::translate('VBOFORECAST'); ?></span></h4>
 			</div>
 			<div class="vbo-dashboard-forecast-inner">
 				<?php echo JLayoutHelper::render('reports.occupancy', $layout_data); ?>

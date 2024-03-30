@@ -99,6 +99,11 @@ class VikBookingLiteHelper
 	 */
 	public function displayBanners()
 	{
+		if (!$this->app->isAdmin())
+		{
+			return;
+		}
+
 		$input = $this->app->input;
 
 		// get current view
@@ -219,6 +224,11 @@ class VikBookingLiteHelper
 		// check if we should save the TOS field
 		if ($this->app->input->get('task') == 'customf.savetosajax')
 		{
+			if (!JSession::checkToken())
+			{
+				VBOHttpDocument::getInstance($this->app)->close(403, JText::translate('JINVALID_TOKEN'));
+			}
+
 			$db = JFactory::getDbo();
 
 			$data = new stdClass;

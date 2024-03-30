@@ -131,7 +131,7 @@ class VikbookingViewRoomdetails extends JViewVikBooking {
 								$is_dst = date('I', $checkin_base_ts);
 								foreach ($arrtar as $numnights => $tar) {
 									$checkout_base_ts = $s['to_ts'];
-									for($i = 1; $i <= $numnights; $i++) {
+									for ($i = 1; $i <= $numnights; $i++) {
 										$checkout_base_ts += 86400;
 										$is_now_dst = date('I', $checkout_base_ts);
 										if ($is_dst != $is_now_dst) {
@@ -217,12 +217,12 @@ class VikbookingViewRoomdetails extends JViewVikBooking {
 				$document->setMetaData('og:description', strip_tags($room[0]['smalldesc']));
 			}
 			//
-			$this->room = &$room[0];
-			$this->busy = &$busy;
-			$this->seasons_cal = &$seasons_cal;
-			$this->promo_season = &$promo_season;
-			$this->terms_fields = &$terms_fields;
-			$this->vbo_tn = &$vbo_tn;
+			$this->room = $room[0];
+			$this->busy = $busy;
+			$this->seasons_cal = $seasons_cal;
+			$this->promo_season = $promo_season;
+			$this->terms_fields = $terms_fields;
+			$this->vbo_tn = $vbo_tn;
 			//theme
 			$theme = VikBooking::getTheme();
 			if ($theme != 'default') {

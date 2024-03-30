@@ -33,8 +33,8 @@ class VikbookingViewPackagedetails extends JViewVikBooking {
 				$vbo_tn->translateContents($pkg_rooms, '#__vikbooking_rooms', array('id' => 'idroom'));
 				$package['rooms'] = $pkg_rooms;
 			}
-			$this->package = &$package;
-			$this->vbo_tn = &$vbo_tn;
+			$this->package = $package;
+			$this->vbo_tn = $vbo_tn;
 			//theme
 			$theme = VikBooking::getTheme();
 			if($theme != 'default') {
@@ -54,4 +54,3 @@ class VikbookingViewPackagedetails extends JViewVikBooking {
 		}
 	}
 }
-?>

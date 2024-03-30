@@ -214,7 +214,7 @@ if (!empty($prices)) {
 							$los_descr .= "</div>\n";
 						}
 
-						$prvar .= "<th class=\"title center\" width=\"150\">" . VikBooking::getPriceName($kap) . (!empty($ap) ? " - " . $ap : "") . $los_descr . "</th>\n";
+						$prvar .= "<th class=\"title center\" width=\"150\"><span class=\"vbo-tariffs-rplan-name\">" . VikBooking::getPriceName($kap) . "</span>" . (!empty($ap) ? '<span class="vbo-tariffs-rplan-attr" title="' . $this->escape($ap) . '">' . $ap . '</span>' : '') . $los_descr . "</th>\n";
 					}
 					$totrows = count($tottar);
 					$tottar = array_slice($tottar, $lim0, $lim, true);

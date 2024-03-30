@@ -121,8 +121,8 @@
 			// evaluate if toggler checkbox is checked
 			var togglerChecked = props.attributes.toggler && props.attributes.toggler == '1';
 
-			for (var group in VIKBOOKING_SHORTCODES) {
-				var groups = VIKBOOKING_SHORTCODES[group];
+			for (var group in VIKBOOKING_SHORTCODES_BLOCK) {
+				var groups = VIKBOOKING_SHORTCODES_BLOCK[group];
 
 				for (var i = 0; i < groups.length; i++) {
 					var data = groups[i];

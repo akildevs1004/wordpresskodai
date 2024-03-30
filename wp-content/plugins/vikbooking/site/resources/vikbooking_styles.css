@@ -1,3 +1,10 @@
+/** 
+ * @package   	VikBooking
+ * @subpackage 	front-end styles
+ * @author    	E4J s.r.l.
+ * @link 		https://vikwp.com
+ */
+
 /* Variable declarations
  * Guidelines input elements:
  * -- Config Input and Select: 
@@ -18,6 +25,8 @@
 	--vbo-white-bg-color: #fff;
 	--vbo-grey-bg-color: #eee;
 	--vbo-light-grey-bg-color: #f6f6f6;
+	--vbo-light-dark-grey-bg-color: #444;
+	--vbo-light-dark-grey-bg-color-hover: #666;
 	
 	/* Borders */
 	--vbo-border-color: #ddd;
@@ -35,14 +44,16 @@
 
 	/* Colors */
 	--vbo-darkblue-color: #144D5C;
-	--vbo-blue-color: #365868;
-	--vbo-blue-color-hover: #4B7B92;
+	--vbo-blue-color: #3286B8;
+	--vbo-blue-color-hover: #2B74A0;
 	--vbo-lightblue-color: #80b3ca;
 	--vbo-lightblue-color-hover: #649fbb;
 	--vbo-green-color: #52aa20;
 	--vbo-green-color-hover: #4c794c;
 	--vbo-orange-color: #FF8000;
-	--vbo-red-color: #b20000;
+	--vbo-orange-color-hover: #D06800;
+	--vbo-red-color: #c70000;
+	--vbo-red-color-hover: #9f0000;
 }
 
 a:focus {
@@ -55,7 +66,6 @@ a:focus {
 .fancybox-opened .fancybox-skin {
     height: 100% !important;
 }
-
 .vbo-oconfirm-tblcont {
 	display: inline-block;
 	width: 100%;
@@ -352,6 +362,35 @@ a:focus {
 .vbvordroominfo-multi .vbo-booking-roomphoto {
 	max-width: 100%;
 }
+.vbo-booking-details-bookinfo-splitstay {
+	border: 1px solid  var(--vbo-blue-color);
+	padding: 10px;
+	border-radius: 6px;
+}
+.vbo-booking-details-bookinfo-splitstay .vbo-booking-details-bookinfo-lbl {
+	text-transform: initial;
+}
+.vbo-booking-details-bookinfo-splitstay i {
+	margin-right: 4px;
+	color: var(--vbo-blue-color);
+}
+.vbo-booking-splitstay-info {
+	display: block;
+	border-radius: 10px;
+	margin-bottom: 10px;
+}
+.vbo-booking-splitstay-info .vbo-booking-splitstay-info-room > span {
+	padding: 0px 10px;
+	display: inline-block;
+}
+.vbo-booking-splitstay-info .vbo-booking-splitstay-info-room > span:first-child {
+	padding-left: 0;
+}
+.vbo-booking-splitstay-info .vbo-booking-splitstay-info-room > span i {
+	margin-right: 3px;
+	font-size: .9em;
+	opacity: .8;
+}
 .vbvordroominforoom .vbordroomdet + img {
 	border-radius:4px;
 	-moz-border-radius:4px;
@@ -441,18 +480,20 @@ a:focus {
 	transform: translate(-50%, -50%);
 	width: 40%;
 	height: 70%;
+	max-width: 580px;
 	z-index: 101;
 	padding: 0;
-	border-radius: 5px;
+	border-radius: 16px;
 	background-color: var(--vbo-white-bg-color);
 	box-shadow: 0px 0px 20px 0px rgba(0, 0, 0, .5);
 	overflow: auto;
 	text-align: center;
 }
 .offline-cc-overlay-inner > p {
-	background: var(--vbo-light-grey-bg-color);
-	padding: 15px;
-	font-size: 1.2em;
+	border-bottom: 1px solid var(--vbo-border-color);
+    margin-bottom: 25px;
+	padding: 20px 30px 15px;
+    font-size: 16px;
 }
 .offline-cc-overlay-inner h1 {
 	font-size: 1.5em;
@@ -462,35 +503,98 @@ a:focus {
 	margin: 0 30px 30px;
 } 
 .vbo-offline-cc-container .vbo-offline-cc-row {
-	margin-bottom: 10px;
+	margin-bottom: 14px;
+}
+.vbo-offline-cc-container .vbo-offline-cc-row-submit {
+	margin-bottom: 0;
+	margin-top: 10px;
 }
 .vbo-offline-cc-container .vbo-offline-cc-row .vbo-offline-cc-lbl {
-	margin-bottom: 5px;
+	margin-bottom: 3px;
+	text-align: left;
+	font-size: .9em;
 }
 .vbo-offline-cc-container .vbo-offline-cc-row .vbo-offline-cc-val {
 	display: flex;
 }
 .vbo-offline-cc-container .vbo-offline-cc-row .vbo-offline-cc-val > * {
 	flex: 1;
+	height: 50px !important;
+	border: 1px solid var(--vbo-border-color);
+	border-radius: 6px !important;
+	box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
+}
+.vbo-offline-cc-container .vbo-offline-cc-row .vbo-offline-cc-val #credit_card_number {
+	border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+.vbo-offline-cc-container .vbo-offline-cc-row .vbo-offline-cc-val select[name="credit_card_type"] {
+	border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+	border-right: 0;
+}
+.vbo-offline-cc-container .vbo-offline-cc-row-group-validity, .vbo-offline-cc-container .vbo-offline-cc-row-group-cardholder {
+	display: flex;
+    flex-wrap: wrap;
+}
+.vbo-offline-cc-container .vbo-offline-cc-row-group-validity .vbo-offline-cc-row-validity {
+	flex: 1;
+}
+.vbo-offline-cc-container .vbo-offline-cc-row-group-validity .vbo-offline-cc-row-cvv {
+	flex-basis: 120px;
+} 
+.vbo-offline-cc-container .vbo-offline-cc-row .vbo-offline-cc-val select[name="expire_month"] {
+	border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
 }
 .vbo-offline-cc-container .vbo-offline-cc-row .vbo-offline-cc-val select[name="expire_year"] {
 	flex-basis: 100px;
 	flex-grow: 0;
-	margin-left: 10px;
+	border-left: 0;
+	border-radius: 0 !important;
+    border-radius: 0 !important;
+}
+.vbo-offline-cc-container .vbo-offline-cc-row .vbo-offline-cc-val #credit_card_cvv {
+	border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+	border-left: 0;
+}
+.vbo-offline-cc-container .vbo-offline-cc-row-group-cardholder > div {
+	flex: 1;
+}
+.vbo-offline-cc-container .vbo-offline-cc-row-group-cardholder .vbo-offline-cc-row-fname input {
+	border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+	border-right: 0;
+}
+.vbo-offline-cc-container .vbo-offline-cc-row-group-cardholder .vbo-offline-cc-row-lname input {
+	border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+.vbo-offline-cc-row-group-cardpan {
+	display: flex;
+	flex-wrap: wrap;
+}
+.vbo-offline-cc-row-group-cardpan .vbo-offline-cc-row-cardtype {
+	flex-basis: 200px;
+}
+.vbo-offline-cc-row-group-cardpan .vbo-offline-cc-row-cardpan {
+	flex: 1;
 }
 .vbo-offline-cc-container .vbo-offline-cc-row-submit .button {
-	background: #333;
-	border: 1px solid #333;
-	color: #fff;
+	background: var(--vbo-light-dark-grey-bg-color);
+	border: 1px solid var(--vbo-light-dark-grey-bg-color);
+	color: var(--vbo-contrast-text-color);
+	box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
 }
 .vbo-offline-cc-container .vbo-offline-cc-row-submit .button:hover {
-	background: #555;
-	border: 1px solid #555;
+	background: var(--vbo-light-dark-grey-bg-color-hover);
+	border: 1px solid var(--vbo-light-dark-grey-bg-color-hover);
 }
 .offline-cc-overlay-closer {
 	float: right;
 	cursor: pointer;
-	padding: 15px 10px;
+	padding: 8px 15px;
 }
 .vbvordroominforoom .vbvordcosts {
 	background:none;
@@ -574,7 +678,7 @@ a:focus {
 	color: #fff;
 }
 .vbo-booking-details-head-cancelled {
-	background: var(--vbo-orange-color);
+	background: var(--vbo-red-color);
 	color: #fff;
 }
 .vbo-booking-canc-cmd i, .vbo-booking-mod-cmd i {
@@ -599,13 +703,19 @@ a:focus {
 	color: #fff;
 }
 .vbo-booking-canc-cmd span:hover {
-	background: var(--vbo-red-color);
+	background: var(--vbo-red-color-hover);
 }
 .vbo-booking-precheckin-cmd a {
 	background: var(--vbo-green-color);
 }
 .vbo-booking-precheckin-cmd a:hover, .vbo-booking-precheckin-cmd a:active, .vbo-booking-precheckin-cmd a:focus {
-	background: var(--vbo-green-color);
+	background: var(--vbo-green-color-hover);
+}
+.vbo-booking-roomupgrade-cmd a {
+	background: var(--vbo-orange-color);
+}
+.vbo-booking-roomupgrade-cmd a:hover {
+	background: var(--vbo-orange-color-hover);
 }
 .vbo-booking-cancform-inner {
 	border: 1px solid var(--vbo-border-color);
@@ -985,10 +1095,10 @@ a:focus {
 	background: var(--vbo-light-grey-bg-color);
 	padding: 10px 4px 10px 15px;
 }
-.vbageintervals ul {
-	margin-left: 0;
-	margin-bottom: 0;
-	padding-bottom: 0;
+.vbo-showprc-child-fees-wrapper {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 15px;
 }
 .vbageintervals select {
 	padding: 10.5px 30px 10.5px 10px;
@@ -1293,6 +1403,15 @@ a:focus {
 	font-size: .8em;
 	margin: 3px 0 0;
 }
+.vbo-oconfirm-splitstay-dates {
+	margin-top: 5px;
+}
+.vbo-oconfirm-splitstay-dates > span {
+	margin-right: 10px;
+}
+.vbo-oconfirm-splitstay-dates > span i {
+	margin-right: 3px;
+}
 .vbtableorder td {
 	padding: 11px 15px !important;
 }
@@ -1370,14 +1489,14 @@ a:focus {
 	display: inline-block;
 	width: 100%;
 }
-.vbo-oconfirm-paymethods-list {
-	margin:0;
-	padding:0;
+.vbo-oconfirm-paymentopts .vbo-oconfirm-paymethods-list {
+	margin: 0;
+	padding: 0;
 	list-style-type: none;
 	display: flex;
     flex-wrap: wrap;
 }
-.vbo-oconfirm-paymethods-list li {
+.vbo-oconfirm-paymentopts .vbo-oconfirm-paymethods-list li {
 	display: flex;
 	vertical-align: top;
 	margin: 5px;
@@ -1389,14 +1508,14 @@ a:focus {
 	position: relative;
 	cursor: pointer;
 }
-.vbo-oconfirm-paymethods-list li label:hover {
+.vbo-oconfirm-paymentopts  .vbo-oconfirm-paymethods-list li label:hover {
 	color: var(--vbo-lightblue-color);
 }
-.vbo-oconfirm-paymethods-list .vbo-oconfirm-paymethod-item-active {
+.vbo-oconfirm-paymentopts .vbo-oconfirm-paymethods-list .vbo-oconfirm-paymethod-item-active {
 	border-color: var(--vbo-lightblue-color);
 	background: var(--vbo-light-grey-bg-color);
 }
-.vbo-oconfirm-paymethods-list .vbo-oconfirm-paymethod-item-active:after {
+.vbo-oconfirm-paymentopts .vbo-oconfirm-paymethods-list .vbo-oconfirm-paymethod-item-active:after {
 	content: "\f00c";
 	width: 21px;
 	height: 21px;
@@ -1413,15 +1532,15 @@ a:focus {
 	right: -10px;
 	border: 2px solid var(--vbo-white-bg-color);
 }
-.vbo-oconfirm-paymethods-list li > * {
+.vbo-oconfirm-paymentopts .vbo-oconfirm-paymethods-list li > * {
 	align-self: center;
 }
-.vbo-oconfirm-paymethods-list li input {
+.vbo-oconfirm-paymentopts .vbo-oconfirm-paymethods-list li input {
 	display: inline-block !important;
 	width: auto;
 	height: auto;
 }
-.vbo-oconfirm-paymethods-list li label {
+.vbo-oconfirm-paymentopts .vbo-oconfirm-paymethods-list li label {
 	margin-left: 5px;
 	margin-bottom: 0;
 	display: inline-block !important;
@@ -1547,19 +1666,28 @@ a:focus {
 	border-radius: 4px;
 	border: 1px solid var(--vbo-light-border-color);
 }
-.vbo-promotion-price .vbo-room-result-body-bookingsolution .vbo-room-result-body-price-amount .room_cost, 
-.vbo-searchresults-classic-wrap .room_item.vbo-promotion-price .room_cost {
+.vbsrowprice .vbsrowpricediv .vbstartfrom {
+	font-size:11px;
+	display:block;
+}
+.vbsrowprice .vbsrowpricediv .room_cost {
+	font-size: 1.2em;
+	font-weight: bold;
+	display:block;
+}
+.vbo-promotion-price .room_cost {
 	color: var(--vbo-red-color);
 }
-.vbo-promotion-price .vbo-room-result-body-price-amount .vbo-room-result-price-before-discount .room_cost,
-.vbo-searchresults-classic-wrap .room_item.vbo-promotion-price .vbo-room-result-price-before-discount .room_cost {
+.room_cost + .vbo-room-result-price-before-discount > .room_cost {
 	color: var(--vbo-text-color);
-	font-size: 1em;
+	font-size: 16px;
+	font-weight: bold;
 	text-decoration: none;
 	position: relative;
+	display: inline-block;
 }
-.vbo-promotion-price .vbo-room-result-body-price-amount .vbo-room-result-price-before-discount .room_cost:before,
-.vbo-searchresults-classic-wrap .room_item.vbo-promotion-price .vbo-room-result-price-before-discount .room_cost:before {
+.room_cost + .vbo-room-result-price-before-discount > .room_cost:before,
+.room_cost + .vbo-room-result-price-before-discount > .room_cost:before {
 	content: "";
 	position: absolute;
 	right: 0;
@@ -1568,14 +1696,6 @@ a:focus {
 	border-top: 1px solid;
 	-webkit-transform: rotate(-10deg);
 	transform: rotate(-10deg);
-}
-.vbo-searchresults-classic-wrap .room_item.vbo-promotion-price .vbo-room-result-price-before-discount .room_cost {
-	display: inline-block;
-}
-.vbo-promotion-price .vbo-room-result-body-price-amount .vbo-room-result-price-before-discount-percent .room_cost {
-	color: inherit;
-	font-size: 16px;
-	font-weight: bold;
 }
 .vbo-room-result-inner .vbo-room-result-head {
 	display: flex;
@@ -1741,15 +1861,6 @@ a:focus {
 	text-align:center;
 	margin: 0 0 3px 0;
 }
-.vbsrowprice .vbsrowpricediv .vbstartfrom {
-	font-size:11px;
-	display:block;
-}
-.vbsrowprice .vbsrowpricediv .room_cost {
-	font-size: 1.2em;
-	font-weight: bold;
-	display:block;
-}
 .vblist .room_cost {
 	display:inline-block !important;
 }
@@ -1776,8 +1887,7 @@ a:focus {
 	width: 100%;
 	background: none repeat scroll 0 0 var(--vbo-white-bg-color);
 	border: 1px solid var(--vbo-border-color);
-	padding: 5px 8px;
-	font-size: 14px;
+	padding: 8px;
 }
 .vbo-oconfirm-cfield-input input[type="tel"] {
 	padding-left: 52px !important;
@@ -2244,30 +2354,37 @@ form .vbselectm {
 	border-bottom:1px solid var(--vbo-border-color);
 }
 .loginregistercont {
-	width: 100%;
+    display: flex;
+	flex-wrap: wrap;
+    border-radius: 20px;
+    box-shadow: 0 2px 20px rgb(0, 0, 0, .1);
+    border: 1px solid var(--vbo-light-border-color);
 }
-
+.loginregistercont > div {
+	flex: 1;
+	padding: 40px;
+}
+.loginregistercont > div h3 {
+	margin-bottom: 20px;
+}
+.loginregistercont .loginregister-inner-block .loginregister-lbl {
+	font-size: .9em;
+    margin-bottom: 2px;
+}
+.loginregistercont .loginregister-inner-block .loginregister-row {
+	margin-bottom: 10px;
+}
+.loginregistercont .loginregister-inner-block .loginregister-row:last-child {
+	margin-bottom: 0;
+}
 .registerblock {
-	width: 40%;
-	float: left;
-	background:var(--vbo-light-grey-bg-color);
-	border:1px solid var(--vbo-border-color);
-	padding:15px;
+	padding: 15px;
 	margin:0 15px 0 0;
-	border-radius:4px;
-	-moz-border-radius:4px;
-	-webkit-border-radius:4px;
 }
-.registerblock table {
-	width:80%;
-}
-
 .loginblock {
-	border: 1px solid var(--vbo-light-border-color);
+	border-left: 1px solid var(--vbo-light-border-color);
 	padding: 20px;
 	margin: 0 20px;
-	box-shadow: 0 0 10px rgba(0,0,0,.1);
-	border-radius: 10px;
 }
 
 .vblocationsbox {
@@ -2307,7 +2424,6 @@ form .vbselectm {
 	padding:0 0 5px 0;
 }
 
-/*** custom ***/
 .vbo-room-details-booking-wrapper .vbdivsearch {
 	float: left;
 	display: inline-block;
@@ -2426,6 +2542,13 @@ form .vbselectm {
 #ui-datepicker-div .ui-datepicker-next-hover {
 	right: 2px;
 }
+.ui-datepicker .ui-datepicker-current-day {
+	background: var(--vbo-darkblue-color);
+	color: var(--vbo-contrast-text-color);
+}
+.vbo-guests-allowed-policy {
+	margin: 9px 0;
+}
 .dailyprices {
 	font-size:14px;
 	line-height:34px;
@@ -2483,7 +2606,7 @@ form .vbselectm {
 	border: 1px solid var(--vbo-light-border-color);
 }
 .vbo-showprc-room-head {
-	font-size: .9em;
+	font-size: 14px;
 	text-align: left;
 	margin-bottom: 5px;
 	border: 1px solid var(--vbo-light-border-color);
@@ -2491,9 +2614,13 @@ form .vbselectm {
 .vbsearchproominfo .vbsearchnroom, .vbo-showprc-room-head .vbshowprcroomnum {
 	font-size: 14px;
 	background: var(--vbo-grey-bg-color);
-	padding: 9px 10px;
+	padding: 8px 10px;
 	display: inline-block;
 	position: relative;
+}
+.vbo-showprc-room-head .vbo-showprc-roomnum-icn, .vbsearchproominfo .vbo-showprc-roomnum-icn {
+	margin-right: 5px;
+	display: inline-block;
 }
 .vbsearchproominfo .vbsearchnroom:after, .vbo-showprc-room-head .vbshowprcroomnum:after {
     content: "";
@@ -2518,6 +2645,10 @@ form .vbselectm {
 }
 .vbo-showprc-room-head .vbo-showprc-staydetails > div {
 	display: inline-block;
+	margin-right: 15px;
+}
+.vbo-showprc-room-head .vbo-showprc-staydetails > div:last-child {
+	margin-right: 0;
 }
 .vbsearchproominfo .vbsearchroomparty, .vbo-showprc-room-head .vbo-showprc-staydetails {
 	display: inline-block;
@@ -2639,7 +2770,7 @@ form .vbselectm {
 }
 .vbo-results-head > div {
 	display: inline-block;
-	padding: 30px 24px;
+	padding: 15px 24px;
 	font-size: .9em;
 	border-right: 1px solid var(--vbo-light-border-color);
 	font-weight: bold;
@@ -2800,6 +2931,21 @@ ol.vbo-stepbar li.vbo-step-next:before {
 }
 .vbo-bookings-list-search {
 	margin-bottom: 20px;
+	background: var(--vbo-light-grey-bg-color);
+	padding: 15px 20px;
+	border-radius: 10px;
+}
+.vbo-bookings-list-search span {
+	display: block;
+	margin-bottom: 2px;
+	font-size: .9em;
+}
+.vbo-bookings-list-search input[name="confirmnumber"] {
+	padding: 10px !important;
+	margin: 0 5px 0 0;
+	font-size: 12px;
+	border-radius: 4px;
+	min-width: 300px;
 }
 .vbsearchordertitle {
 	font-size: 1.6em;
@@ -2807,25 +2953,14 @@ ol.vbo-stepbar li.vbo-step-next:before {
 	display: inline-block;
 	position: relative;
 }
-.vborderslisttable {
-	width: 100%;
-}
-.vborderslisttdhead {
-	font-weight: bold;
-	font-size: .9em;
-	text-transform: uppercase;
-}
-.vborderslisttable thead tr {
-	background: var(--vbo-grey-bg-color) !important;
-}
 .vbsearchordersubmit {
 	background: none repeat scroll 0 0 var(--vbo-grey-bg-color);
 	border: 1px solid var(--vbo-border-color);
-	border-radius: 4px 4px 4px 4px;
+	border-radius: 4px;
 	cursor: pointer;
 	font-size: 14px !important;
 	margin: 0;
-	width: 115px;
+	padding: 6px 10px !important;
 }
 .vbordcancbox {
 	float: right;
@@ -3732,7 +3867,7 @@ a.vbdialog-overlay-close {
 .vbdialog-reqinfo {
 	width: 50%;
 	height: auto;
-	max-height: 70%;
+	max-width: 560px;
 	min-height: 50%;
 	position: fixed;
 	left: 50%;
@@ -3742,12 +3877,16 @@ a.vbdialog-overlay-close {
 	padding: 25px;
 	background: var(--vbo-white-bg-color);
 	z-index: 1000;
-	border-radius: 2px;
+	border-radius: 10px;
 	box-shadow: 0 0 5px 0 #333;
+}
+.vbdialog-reqinfo h3 {
+	font-size: 20px;
+	margin-bottom: 20px;
 }
 .vbdialog-reqinfo label {
 	display: block;
-	margin: 0 0 5px;
+	margin: 0 0 3px;
 }
 .vbdialog-reqinfo input {
 	font-size: 14px;
@@ -3757,7 +3896,7 @@ a.vbdialog-overlay-close {
 	border: 1px solid var(--vbo-border-color);
 	background: var(--vbo-input-style);
 	margin: 0;
-	width: 200px;
+	width: 100%;
 	transition: all 400ms ease-in-out 0s;
 	-moz-transition: all 400ms ease-in-out 0s;
 }
@@ -3772,7 +3911,7 @@ a.vbdialog-overlay-close {
 	border: 1px solid var(--vbo-border-color);
 	background: var(--vbo-input-style);
 	margin: 0;
-	width: 40%;
+	width: 100%;
 	border-radius: 0;
 }
 .vbdialog-reqinfo button.btn {
@@ -3781,9 +3920,10 @@ a.vbdialog-overlay-close {
 	border:0;
 	padding: 10px 15px;
 	margin: 5px 0 0;
+	width: 100%;
 }
 .vbdialog-reqinfo-formentry {
-	margin: 0 0 5px;
+	margin: 0 0 10px;
 }
 .vbdialog-reqinfo-formentry-ckbox {
 	margin-bottom: 15px;
@@ -3812,69 +3952,6 @@ a.vbdialog-overlay-close {
 }
 .vbdialog-bottom button {
 	margin-right: 5px;
-}
-.vborder-status-cell-confirmed, .vborder-status-cell-standby, .vborder-status-cell-cancelled {
-	position: relative;
-}
-.vborder-status-cell-confirmed:after {
-	background: none repeat scroll 0 0 var(--vbo-green-color);
-	border-radius: 50%;
-	color: #fff;
-	content: "\2713";
-	font-size: 12px;
-	font-weight: bold;
-	height: 22px;
-	width: 22px;
-	padding: 0 !important;
-	line-height: 23px !important;
-	text-align: center;
-	left: 2px;
-	top: 5px;
-	position: absolute;
-}
-.vborder-status-cell-standby:after {
-	background: none repeat scroll 0 0 var(--vbo-orange-color);
-	border-radius: 50%;
-	color: #fff;
-	content: "!";
-	font-size: 14px;
-	font-weight: bold;
-	height: 22px;
-	width: 22px;
-	padding: 0 !important;
-	line-height: 22px !important;
-	text-align: center;
-	left: 2px;
-	top: 5px;
-	position: absolute;
-}
-.vborder-status-cell-cancelled:after {
-	background: none repeat scroll 0 0 var(--vbo-red-color);
-	border-radius: 50%;
-	color: #fff;
-	content: "x";
-	font-size: 12px;
-	font-weight: bold;
-	height: 22px;
-	width: 22px;
-	padding: 0 !important;
-	line-height: 19px !important;
-	text-align: center;
-	left: 2px;
-	top: 5px;
-	position: absolute;
-}
-.vborderslisttable tr:nth-child(2n+1) {
-	background: var(--vbo-white-bg-color);
-}
-.vborderslisttable tr:nth-child(2n) {
-	background: var(--vbo-light-grey-bg-color);
-}
-.vborderslisttable tr td {
-	text-align: center;
-}
-.vborderslisttable tr td:nth-child(2) {
-	text-align: left;
 }
 .vbo-availability-controls {
 	margin: 10px 0 30px;
@@ -4099,9 +4176,7 @@ a.vbdialog-overlay-close {
 	display: -webkit-box; 
 	display: -ms-flexbox;
 	display: -webkit-flex;
-	display: flex;
-	-ms-flex-wrap: wrap;
-	-webkit--ms-flex-wrap: wrap;       
+	display: flex;     
 	flex-wrap: wrap;
 }
 .vbo-search-suggestions-dayroom {
@@ -4174,7 +4249,6 @@ a.vbdialog-overlay-close {
 .vbo-search-solution-dates > span, .vbo-booking-solution-dates > span {
 	display: inline-block;
 	flex: 0 0 49%;
-	-ms-flex: 0 0 49%;
 	padding: 10px 10px 5px;
 }
 .vbo-search-solution-dates > .vbo-search-solution-checkin, 
@@ -4205,20 +4279,14 @@ a.vbdialog-overlay-close {
 	display: -webkit-box; 
 	display: -ms-flexbox;
 	display: -webkit-flex;
-	display: flex;  
-	-ms-flex-wrap: wrap;
-	-webkit--ms-flex-wrap: wrap;       
+	display: flex;       
 	flex-wrap: wrap;	
-	-webkit-justify-content: space-around;
-	-ms-justify-content: space-around;
 	justify-content: space-around;
 }
 .vbo-booking-solution-totrooms {
 	text-align: center;
 	font-weight: bold;
 	font-size: .9em;
-	-ms-flex: 0 0 100%;
-	-webkit-flex: 0 0 100%;
 	flex: 0 0 100%;	
 }
 .vbo-booking-solution-room {
@@ -4226,10 +4294,9 @@ a.vbdialog-overlay-close {
     display: inline-block;
     border: 1px solid var(--vbo-border-color);
     background: var(--vbo-white-bg-color);
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
     padding: 10px;
-    border-radius: 2px;
-    -webkit-flex: 0 0 45%;
-    -ms-flex: 0 0 45%;
+    border-radius: 10px;
     flex: 0 0 45%;
 }
 .vbo-booking-solution-rname {
@@ -4250,6 +4317,40 @@ a.vbdialog-overlay-close {
 	background: var(--vbo-white-bg-color);
 }
 /* Search Suggestions - End */
+
+/* Split Stay Suggestions - Start */
+.vbo-splitstay-solution-room {
+	border-radius: 10px;
+	border: 1px solid var(--vbo-border-color);
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
+	padding: 0;
+}
+.vbo-splitstay-solution-room .vbo-booking-solution-rname {
+	display: block;
+	text-align: left;
+	padding: 5px 10px;
+	margin-right: 0;
+	border-bottom: 1px solid var(--vbo-border-color);
+}
+.vbo-splitstay-solution-details {
+	padding: 10px;
+}
+.vbo-splitstay-solution-details > span {
+	display: block;
+	text-align: left;
+	margin-bottom: 3px;
+}
+.vbo-splitstay-solution-details > span:last-child {
+	margin-bottom: 0;
+}
+.vbo-splitstay-solution-details > span i {
+	margin-right: 3px;
+	opacity: .6;
+	min-width: 22px;
+	color: #666;
+	font-size: .9em;
+}
+/* Split Stay Suggestions - End */
 
 /* Signature Pad - Start */
 .vbo-center {
@@ -4354,8 +4455,6 @@ a.vbdialog-overlay-close {
 }
 .vbo-signature-pad-body {
 	position: relative;
-	-webkit-box-flex: 1;
-	-ms-flex: 1;
 	flex: 1;
 	border: 1px solid var(--vbo-light-border-color);
 }
@@ -4515,8 +4614,6 @@ a.vbdialog-overlay-close {
 	display: flex;
 	width: 60%;
 	padding: 20px 30px;
-	-ms-flex-direction: column;
-	-webkit-flex-direction: column;
 	flex-direction: column;
 	border-right: 2px solid var(--vbo-border-color);
 }
@@ -4810,7 +4907,7 @@ a.vbo-booking-print-link img {
 	padding: 20px;
 	border-radius: 10px;
 	border: 1px solid var(--vbo-light-border-color);
-	box-shadow: 0 0 10px rgba(0,0,0,.1);
+	box-shadow: 0px 2px 7px rgba(0,0,0,.1);
 }
 .vbo-operators-authcode label {
 	display: block;
@@ -4832,10 +4929,13 @@ a.vbo-booking-print-link img {
 .vbo-operator-dashboard-links ul {
 	background: var(--vbo-light-grey-bg-color);
 	border: 1px solid var(--vbo-border-color);
+	margin: 0 !important;
+	padding: 0;
 }
 .vbo-operator-dashboard-links li {
 	border-bottom: 1px solid var(--vbo-border-color);
 	padding: 10px;
+	margin: 0 !important;
 	display: inline-block;
 	width: 100%;
 	list-style-type: none;
@@ -5165,8 +5265,6 @@ a.vbo-booking-print-link img {
     margin-top: 15px;
 }
 .vbo-tableaux-tbl-container .vbo-table-responsive {
-    -ms-flex: 1%;
-    -webkit-flex: 1%;
     flex: 1%;
     overflow-x: scroll;
     border-radius: 4px;
@@ -5218,7 +5316,7 @@ a.vbo-booking-print-link img {
 	background: var(--vbo-grey-bg-color);
 }
 .vbo-tableaux-table .vbo-tableaux-festcell {
-	background: #d9b9d3;
+	background: #d9b9d3 !important;
 	color: #fff;
 	cursor: pointer;
 }
@@ -5312,9 +5410,9 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(6, 52, 77, 0.58);
+    background-color: rgba(0, 0, 0, 0.58);
     display: none;
-    z-index: 99999999 !important;
+    z-index: 2147483647 !important;
 }
 .vbo-modal-overlay-block .vbo-modal-overlay-close {
     display: block;
@@ -5328,8 +5426,8 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
     transform: translate(-50%, -50%);
     width: 40%;
     height: 60%;
-    z-index: 101;
-    border-radius: 5px;
+    z-index: 2147483647;
+    border-radius: 10px;
     background-color: var(--vbo-white-bg-color);
     box-shadow: 0px 0px 10px rgba(0,0,0, .5);
     overflow: auto;
@@ -5337,6 +5435,23 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 .vbo-modal-overlay-content-head {
     padding: 20px;
     background: var(--vbo-light-grey-bg-color);
+}
+.vbo-modal-overlay-block .vbo-modal-overlay-content.vbo-modal-overlay-content-roomupgrade {
+	width: 80%;
+	height: 80%;
+}
+.vbo-modal-overlay-block .vbo-modal-overlay-content.vbo-modal-overlay-content-roomdaynotes {
+	max-width: 580px;
+}
+.vbo-modal-overlay-block .vbo-modal-overlay-content.vbo-modal-overlay-content-roomdaynotes .vbo-modal-overlay-content-head {
+	background: transparent;	
+}
+.vbo-modal-overlay-block .vbo-modal-overlay-content.vbo-modal-overlay-content-roomdaynotes .vbo-modal-overlay-content-body {
+	padding: 0px 0px 20px;
+}
+.vbo-modal-overlay-content-head h3 {
+	font-size: 18px;
+	margin-bottom: 0;
 }
 .vbo-modal-overlay-content-head h3 > i {
     margin-right: 5px;
@@ -5395,21 +5510,31 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 .vbo-modal-overlay-content-body {
     padding: 20px 20px;
 }
+.vbo-modal-overlay-content-body-scroll {
+	height: calc(100% - 74px);
+	overflow: hidden;
+	overflow-y: scroll;
+}
 .vbo-modal-roomdaynotes-addnew-elem .vbo-newrdnote-dayto {
 	display: inline-block;
 	margin-left: 5px;
 }
 .vbo-modal-roomdaynotes-addnew-elem .vbo-newrdnote-dayto .vbo-newrdnote-dayto-val {
 	font-weight: bold;
+	display: block;
+}
+.vbo-modal-roomdaynotes-addnew-elem .vbo-newrdnote-dayto .vbo-newrdnote-dayto-lbl {
+	font-size: .9em;
 }
 .vbo-modal-roomdaynotes-addnew {
-	border: 1px solid var(--vbo-border-color);
-	padding: 10px 20px 20px;
-	border-radius: 4px;
-	background: var(--vbo-light-grey-bg-color);
+	padding: 20px 30px 20px;
 }
 .vbo-modal-roomdaynotes-addnew h4 {
 	font-weight: bold;
+	font-size: 16px;
+}
+.vbo-modal-roomdaynotes-list {
+	border-bottom: 1px solid var(--vbo-border-color);
 }
 .vbo-modal-roomdaynotes-addnew .vbo-modal-roomdaynotes-addnew-elem {
 	margin: 10px 0;
@@ -5417,6 +5542,14 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 .vbo-modal-roomdaynotes-addnew .vbo-modal-roomdaynotes-addnew-elem label {
 	display: block;
 	margin-bottom: 5px;
+	margin-left: 0;
+}
+.vbo-modal-roomdaynotes-addnew .vbo-modal-roomdaynotes-addnew-elem input {
+	width: 100%;
+	vertical-align: top;
+}
+.vbo-modal-roomdaynotes-addnew .vbo-modal-roomdaynotes-addnew-elem input#vbo-newrdnote-cdays {
+	width: auto;
 }
 .vbo-modal-roomdaynotes-addnew .vbo-modal-roomdaynotes-addnew-elem textarea {
 	width: 100%;
@@ -5425,6 +5558,9 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	border-radius: 2px;
 	padding: 8px 10px;
 	box-sizing: border-box;
+}
+.vbo-modal-roomdaynotes-addnew-save .btn {
+	width: 100%;
 }
 .vbo-modal-overlay-content-body .vbo-modal-form-addnew-elem {
 	margin: 10px 0;
@@ -5458,10 +5594,11 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	height: inherit;
 }
 .vbo-overlay-fest-details {
-    margin: 4px 0 15px;
-    padding: 10px;
+    margin: 4px 30px 15px;
+    padding: 12px 14px;
     border: 1px solid var(--vbo-border-color);
-    border-radius: 4px;
+    border-radius: 10px;
+	box-shadow: 0 1.5px 2px rgba(0,0,0,.05);
 }
 .vbo-overlay-fest-details .vbo-fest-info .vbo-fest-name {
     font-size: 1.1em;
@@ -5615,7 +5752,7 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	line-height: 1em;
 }
 .vbo-oconfirm-summary-room-cell-descr {
-	width: 25%;
+	width: 30%;
 }
 .vbo-oconfirm-summary-room-cell-guests {
 	width: 20%;
@@ -5678,6 +5815,14 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 .vbo-oconfirm-summary-total-wrapper .vbo-oconfirm-summary-total-row > .vbo-oconfirm-summary-room-cell-tax {
 	font-size: 1em;
 	font-weight: normal;
+}
+.vbo-oconfirm-summary-total-wrapper .vbo-oconfirm-summary-coupon-row .vbo-remove-coupon {
+	margin-left: 8px;
+	color: var(--vbo-text-color);
+	font-size: 14px;
+}
+.vbo-oconfirm-summary-total-wrapper .vbo-oconfirm-summary-coupon-row .vbo-remove-coupon:hover {
+	color: var(--vbo-red-color-hover);
 }
 .vbo-oconfirm-summary-coupon-row {
 	font-size: .9em;
@@ -5742,6 +5887,7 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	text-align: center;
 	cursor: pointer;
 	z-index: 100;
+	box-sizing: border-box;
 }
 .vbo-booking-chat-control:after {
 	position: absolute;
@@ -6099,6 +6245,7 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 .vbo-booking-upsell-room-wrap .vbo-room-upsell-cart-option .vbo-room-upsell-cart-option-name {
 	flex-basis: 50%;
 	margin-right: 5px;
+	align-self: center;
 }
 .vbo-booking-upsell-room-wrap .vbo-room-upsell-cart-option .vbo-room-upsell-cart-option-cost {
 	margin-right: 5px;
@@ -6122,6 +6269,9 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 }
 .vbo-booking-upsell-room-wrap .vbo-booking-upsell-room-adults {
 	font-weight: normal;
+	display: inline-block;
+	font-size: .9em;
+	margin-left: 10px;
 }
 .vbo-booking-upsell-confirm i {
 	margin-right: 3px;
@@ -6381,6 +6531,7 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	display: block;
 	padding: 10px 20px 0;
 	border-top: 0;
+	box-sizing: border-box;
 }
 .vblistcontainer-grid li .vbliststartfrom {
 	display: inline-block;
@@ -6480,6 +6631,148 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	font-size: 18px;
 }
 
+/* Room Upgrade - modal content */
+.vbo-modal-overlay-content-backdrop {
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	background: rgba(0, 0, 0, .4);
+}
+.vbo-modal-overlay-content-backdrop .vbo-modal-overlay-content-backdrop-body {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+.vbo-modal-overlay-content-backdrop .vbo-modal-overlay-content-backdrop-body i {
+	font-size: 40px;
+	color: #fff;
+	text-shadow: 1px 0px 8px rgba(0, 0, 0, .1);
+}
+.vbo-roomupgrade-booked-room-inner {
+	display: flex;
+	flex-wrap: wrap;
+}
+.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-current-wrap {
+	flex-basis: 20%;
+	background: var(--vbo-light-grey-bg-color);
+	padding: 15px 15px;
+	border-radius: 16px;
+}
+.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-current-wrap img, .vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-solution-cont img {
+	border-radius: 4px;
+}
+.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-solutions-wrap {
+	flex: 1;
+	margin-left: 30px;
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 20px;
+}
+.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-solution-cont {
+	border: 2px solid var(--vbo-light-border-color);
+	padding: 15px;
+	border-radius: 16px;
+	display: flex;
+	flex-wrap: wrap;
+}
+.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-solution-cont > div {
+	flex-basis: 100%;
+}
+.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-solution-cont .vbo-roomupgrade-solution-confirm {
+	margin-top: auto;
+}
+.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-current-name, .vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-solution-name {
+	margin: 10px 0 5px;
+	font-size: 1em;
+	font-weight: bold;
+}
+.vbo-roomupgrade-current-wrap .vbo-roomupgrade-current-pricing-stay {
+	margin: 0 0 6px;
+}
+.vbo-roomupgrade-current-wrap .vbo-roomupgrade-current-pricing-stay > div {
+	display: inline-block;
+	margin-right: 6px;
+}
+.vbo-roomupgrade-current-wrap .vbo-roomupgrade-current-keep {
+	margin-top: 10px;
+}
+.vbo-roomupgrade-current-wrap .vbo-roomupgrade-current-pricing-cost {
+	font-weight: bold;
+}
+.vbo-roomupgrade-current-wrap .vbo-roomupgrade-current-keep .btn {
+	padding: 6px 10px;
+	border-radius: 20px;
+	font-size: .9em;
+}
+.vbo-roomupgrade-solutions-wrap .vbo-roomupgrade-solution-info-main {
+	margin-bottom: 5px;
+}
+.vbo-roomupgrade-solutions-wrap .vbo-roomupgrade-solution-info {
+	margin-bottom: 10px;
+}
+.vbo-roomupgrade-solutions-wrap .vbo-roomupgrade-solution-pricing .vbo-roomupgrade-solution-upgrade-cost {
+	font-weight: bold;
+}
+.vbo-roomupgrade-solutions-wrap .vbo-roomupgrade-solution-upgrade-cost {
+	display: inline-block;
+}
+.vbo-roomupgrade-solutions-wrap .vbo-roomupgrade-solution-upgrade-saveamount {
+	display: inline-block;
+	margin-left: 4px;
+	color: #777;
+	font-size: 14px;
+	top: -3px;
+	position: relative;
+}
+.vbo-roomupgrade-solutions-wrap .vbo-roomupgrade-solution-upgrade-savepcent {
+	font-size: .8em;
+	margin-bottom: 10px;
+	color: var(--vbo-green-color);
+}
+.vbo-roomupgrade-solutions-wrap .vbo-roomupgrade-solution-confirm .btn {
+	width: 100%;
+	border-radius: 20px;
+	font-size: .9em;
+	padding: 6px 10px;
+}
+
+/* Bookings List */
+.vbo-bookings-list-table-head-row, .vbo-bookings-list-table-body .vbo-bookings-list-table-row {
+	display: grid;
+	grid-template-columns: 50px 2fr 2fr 1fr 1fr 50px;
+}
+.vbo-bookings-list-table-head-row {
+	padding: 10px 20px 8px;
+	font-weight: 500;
+	opacity: .8;
+}
+.vbo-bookings-list-table-body .vbo-bookings-list-table-row {
+	border: 1px solid var(--vbo-light-border-color);
+	box-shadow: 0 1.5px 4px rgba(0,0,0,.08);
+	padding: 10px 20px;
+	border-radius: 6px;
+	margin-bottom: 10px;
+	font-size: .9em;
+}
+.vbo-bookings-list-table-body .vbo-bookings-list-table-row .vbo-bookings-list-table-cell-lbl {
+	display: none;
+}
+.vbo-bookings-list-table-body-row-confirmed .vbo-bookings-list-table-cell-bstatus {
+	color: var(--vbo-green-color);
+}
+.vbo-bookings-list-table-body-row-cancelled .vbo-bookings-list-table-cell-bstatus {
+	color: var(--vbo-red-color);
+}
+.vbo-bookings-list-table-body-row-standby .vbo-bookings-list-table-cell-bstatus {
+	color: var(--vbo-orange-color);
+}
+.vbo-bookings-list-table-body .vbo-bookings-list-table-row .vbo-bookings-list-table-cell:last-child {
+	text-align: right;
+}
+
+
+
 /* Start: Toast Message bottom-center positioned */
 .vbo-toast-message {
 	visibility: hidden;
@@ -6551,12 +6844,23 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	.vbdialog-inner {
 		max-height: 80%;
 		width: 60%;
-		top: 0%;
+		top: 50%;
 		left: 50%;
-		transform: translate(-50%, 50%);
+		transform: translate(-50%, -50%);
 	}
 	.vbo-showprc-optionstable .vbo-showprc-option-entry {
 		width: calc(24% - 8px);
+	}
+	.vbo-modal-overlay-block .vbo-modal-overlay-content.vbo-modal-overlay-content-roomupgrade {
+		width: 90%;
+	}
+}
+@media only screen and (max-width : 1520px) {
+	.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-current-wrap {
+		flex-basis: 25%;
+	}
+	.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-solutions-wrap {
+		grid-template-columns: repeat(3, 1fr);
 	}
 }
 @media only screen and (max-width : 1280px) {
@@ -6610,6 +6914,12 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	}
 	.vblistcontainer-grid .vblist .room_result {
 		width: calc(50% - 20px);
+	}
+	.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-current-wrap {
+		flex-basis: 30%;
+	}
+	.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-solutions-wrap {
+		grid-template-columns: repeat(2, 1fr);
 	}
 }
 @media only screen and (max-width : 980px) {
@@ -6915,6 +7225,12 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	.vbo-pkgdet-room-form .vbo-search-num-aduchild-entry > div select {
 		width: 100% !important;
 	}
+	.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-current-wrap {
+		flex-basis: 40%;
+	}
+	.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-solutions-wrap {
+		grid-template-columns: repeat(1, 1fr);
+	}
 }
 @media only screen and (max-width : 780px) {
 	.vbvordroominfo-multi > div {
@@ -7037,6 +7353,14 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	} 
 	.vbo-availability-room-details-last-checkin {
 		margin: 20px 0;
+	}
+	.offline-cc-overlay-inner {
+		max-width: initial;
+		width: 70%;
+		height: 80%;
+	}
+	.vbo-offline-cc-row-group-cardpan .vbo-offline-cc-row-cardtype {
+		flex-basis: 160px;
 	}
 }
 @media only screen and (max-width : 700px) {
@@ -7162,6 +7486,41 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	.vbo-modal-overlay-content-head.vbo-modal-overlay-content-head-roomdaynotes h3 {
 		font-size: 20px;
 	}
+
+	.vbo-bookings-list-search input[name="confirmnumber"] {
+		min-width: initial;
+		width: 100%;
+		margin-bottom: 10px;
+	}
+	.vbo-bookings-list-search .vbsearchordersubmit {
+		width: 100%;
+	}
+	.vbo-bookings-list-table .vbo-bookings-list-table-head-row, .vbo-bookings-list-table-body .vbo-bookings-list-table-row {
+		display: flex;
+		flex-wrap: wrap;
+	}
+	.vbo-bookings-list-table .vbo-bookings-list-table-head-row {
+		display: none;
+	}
+	.vbo-bookings-list-table-body .vbo-bookings-list-table-row .vbo-bookings-list-table-cell-lbl {
+		display: block;
+		font-weight: bold;
+	}
+	.vbo-bookings-list-table-body .vbo-bookings-list-table-cell {
+		margin-bottom: 6px;
+		flex-basis: 100%;
+	}
+	.vbo-bookings-list-table-body .vbo-bookings-list-table-row .vbo-bookings-list-table-cell:last-child {
+		text-align: left;
+	}
+	.vbo-bookings-list-table .vbo-bookings-list-table-cell-bstatus {
+		flex-basis: 26px;
+		font-size: 20px;
+	}
+	.vbo-bookings-list-table .vbo-bookings-list-table-cell-bstatus + .vbo-bookings-list-table-cell {
+		flex: 1;
+		text-align: right;
+	}
 }
 @media only screen and (max-width : 620px) {
 	.ui-datepicker-multi .ui-datepicker-group {
@@ -7265,6 +7624,13 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	}
 	.vbo-bookingdet-userdetail-val {
 		word-break: break-word;
+	}
+	.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-current-wrap {
+		flex-basis: 100%;
+	}
+	.vbo-roomupgrade-booked-room-inner .vbo-roomupgrade-solutions-wrap {
+		grid-template-columns: repeat(1, 1fr);
+		margin: 20px 0;
 	}
 }
 @media only screen and (max-width : 580px) {
@@ -7370,6 +7736,16 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	}
 	.vbo-booking-upsell-room-wrap .vbo-upsell-option-entry > .vbo-option-upsell-add {
 		margin-left: 0;
+	}
+	.offline-cc-overlay-inner {
+		width: 95%;
+	}
+	.vbo-offline-cc-container .vbo-offline-cc-row-group-cardholder > div {
+		flex-basis: 100%;
+	}
+	.vbo-offline-cc-container .vbo-offline-cc-row-group-cardholder .vbo-offline-cc-row-fname input, .vbo-offline-cc-container .vbo-offline-cc-row-group-cardholder .vbo-offline-cc-row-lname input {
+		border: 1px solid var(--vbo-border-color);
+    	border-radius: 6px !important;
 	}
 }
 @media only screen and (max-width : 550px) {
@@ -7709,6 +8085,9 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 		width: 100%;
 		border-bottom: 1px solid var(--vbo-light-border-color);
 	}
+	.vbo-oconfirm-summary-room-wrapper-notaxes .vbo-oconfirm-summary-room-cell-tot, .vbo-oconfirm-summary-total-wrapper-notaxes .vbo-oconfirm-summary-room-cell-tot {
+		width: 100%;
+	}
 	.vbo-oconfirm-summary-room-wrapper > div > div:last-child, .vbo-oconfirm-summary-total-wrapper > div > div:last-child {
 		border: 0;
 	}
@@ -7809,6 +8188,15 @@ td.vbo-roomdaynote-full span.vbo-roomdaynote-trigger, td.vbo-roomdaynote-empty s
 	}
 	.vbo-search-solution-dates > .vbo-search-solution-checkin, .vbo-booking-solution-dates > .vbo-booking-solution-checkin {
 		border-right: 0;
+	}
+}
+@media only screen and (max-width : 460px) {
+	.vbo-offline-cc-row-group-cardpan > div, .vbo-offline-cc-row-group-cardpan > .vbo-offline-cc-row-cardtype {
+		flex-basis: 100%;
+	}
+	.vbo-offline-cc-container .vbo-offline-cc-row .vbo-offline-cc-val > *, .vbo-offline-cc-container .vbo-offline-cc-row .vbo-offline-cc-val #credit_card_number, .vbo-offline-cc-container .vbo-offline-cc-row .vbo-offline-cc-val select[name="credit_card_type"] {
+		border: 1px solid var(--vbo-border-color);
+    	border-radius: 6px !important;
 	}
 }
 @media only screen and (max-width : 400px) {
@@ -7993,12 +8381,23 @@ p.info {
 }
 tr.vbcalnumdays td.vbtdbusy {
 	position: relative;
+	cursor: default;
 }
-tr.vbcalnumdays td.vbtdbusyforcheckin, tr.vbcalnumdays td.vbtdbusyforcheckout {
+tr.vbcalnumdays td.vbtdpast {
+	opacity: .5;
+}
+tr.vbcalnumdays td.vbtdfree:not(.vbtdpast) {
+	cursor: pointer;
+}
+tr.vbcalnumdays td.vbtdfree:not(.vbtdpast):hover {
+	border-color: var(--vbo-green-color);
+}
+tr.vbcalnumdays td.vbtdbusyforcheckin, tr.vbcalnumdays td.vbtdbusyforcheckout, tr.vbcalnumdaysprice td.vbtdbusyforcheckin, tr.vbcalnumdaysprice td.vbtdbusyforcheckout {
 	color: inherit;
 	background: transparent;
+	position: relative;
 }
-tr.vbcalnumdays td.vbtdbusyforcheckin:after {
+tr.vbcalnumdays td.vbtdbusyforcheckin:after, tr.vbcalnumdaysprice td.vbtdbusyforcheckin:after {
 	position: absolute;
     content: "";
     width: 0;
@@ -8013,7 +8412,7 @@ tr.vbcalnumdays td.vbtdbusyforcheckin:after {
     right: 0;
     text-decoration: none;
 }
-tr.vbcalnumdays td.vbtdbusyforcheckout:after {
+tr.vbcalnumdays td.vbtdbusyforcheckout:after, tr.vbcalnumdaysprice td.vbtdbusyforcheckout:after {
 	position: absolute;
     content: "";
     width: 0;

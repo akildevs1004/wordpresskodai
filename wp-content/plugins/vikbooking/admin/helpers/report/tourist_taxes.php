@@ -19,14 +19,17 @@ class VikBookingReportTouristTaxes extends VikBookingReport
 	 * Property 'defaultKeySort' is used by the View that renders the report.
 	 */
 	public $defaultKeySort = 'customer';
+
 	/**
 	 * Property 'defaultKeyOrder' is used by the View that renders the report.
 	 */
 	public $defaultKeyOrder = 'ASC';
+
 	/**
 	 * Property 'exportAllowed' is used by the View to display the export button.
 	 */
 	public $exportAllowed = 1;
+
 	/**
 	 * Debug mode is activated by passing the value 'e4j_debug' > 0
 	 */
@@ -36,7 +39,7 @@ class VikBookingReportTouristTaxes extends VikBookingReport
 	 * Class constructor should define the name of the report and
 	 * other vars. Call the parent constructor to define the DB object.
 	 */
-	function __construct()
+	public function __construct()
 	{
 		$this->reportFile = basename(__FILE__, '.php');
 		$this->reportName = JText::translate('VBOREPORT'.strtoupper(str_replace('_', '', $this->reportFile)));
@@ -47,6 +50,8 @@ class VikBookingReportTouristTaxes extends VikBookingReport
 		$this->footerRow = array();
 
 		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
+
+		$this->registerExportCSVFileName();
 
 		parent::__construct();
 	}
@@ -84,7 +89,7 @@ class VikBookingReportTouristTaxes extends VikBookingReport
 		}
 
 		//get VBO Application Object
-		$vbo_app = new VboApplication();
+		$vbo_app = VikBooking::getVboApplication();
 
 		//load the jQuery UI Datepicker
 		$this->loadDatePicker();
@@ -478,48 +483,18 @@ class VikBookingReportTouristTaxes extends VikBookingReport
 	}
 
 	/**
-	 * Generates the report columns and rows, then it outputs a CSV file
-	 * for download. In case of errors, the process is not terminated (exit)
-	 * to let the View display the error message.
-	 *
-	 * @return 	mixed 	void on success with script termination, false otherwise.
+	 * Registers the name to give to the CSV file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
 	 */
-	public function exportCSV()
+	private function registerExportCSVFileName()
 	{
-		if (!$this->getReportData()) {
-			return false;
-		}
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$ptodate = VikRequest::getString('todate', '', 'request');
 
-		$csvlines = array();
-
-		//Push the head of the CSV file
-		$csvcols = array();
-		foreach ($this->cols as $col) {
-			array_push($csvcols, $col['label']);
-		}
-		array_push($csvlines, $csvcols);
-
-		//Push the rows of the CSV file
-		foreach ($this->rows as $row) {
-			$csvrow = array();
-			foreach ($row as $field) {
-				array_push($csvrow, (isset($field['callback']) && is_callable($field['callback']) && !isset($field['no_csv_callback']) ? $field['callback']($field['value']) : $field['value']));
-			}
-			array_push($csvlines, $csvrow);
-		}
-
-		//Force CSV download
-		header("Content-type: text/csv");
-		header("Cache-Control: no-store, no-cache");
-		header('Content-Disposition: attachment; filename="'.$this->reportName.'-'.str_replace('/', '_', $pfromdate).'-'.str_replace('/', '_', $ptodate).'.csv"');
-		$outstream = fopen("php://output", 'w');
-		foreach ($csvlines as $csvline) {
-			fputcsv($outstream, $csvline);
-		}
-		fclose($outstream);
-		exit;
+		$this->setExportCSVFileName($this->reportName . '-' . str_replace('/', '_', $pfromdate) . '-' . str_replace('/', '_', $ptodate) . '.csv');
 	}
 
 	/**

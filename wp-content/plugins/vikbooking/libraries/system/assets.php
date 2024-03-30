@@ -73,6 +73,13 @@ class VikBookingAssets
 			$document->addScript(VIKBOOKING_ADMIN_ASSETS_URI . 'vbocore.js', $internalFilesOptions, array('id' => 'vbo-core-script'));
 
 			/**
+			 * Always prepare AJAX requests to pass a CSRF token.
+			 * 
+			 * @since 	1.6.0
+			 */
+			JHtml::fetch('vbohtml.scripts.ajaxcsrf');
+
+			/**
 			 * Include the Toast JS class.
 			 * 
 			 * @since 	1.5.0
@@ -109,6 +116,13 @@ JS
 			 * @since 	1.5.0
 			 */
 			VikBooking::loadAppearancePreferenceAssets();
+
+			/**
+			 * Load the Web App Manifest JSON file.
+			 * 
+			 * @since 	1.6.5
+			 */
+			VBOWebappManifest::load();
 		}
 		else
 		{
@@ -161,15 +175,30 @@ JS
 		$document->addScript(VIKBOOKING_ADMIN_ASSETS_URI . 'toast.js', $internalFilesOptions, array('id' => 'vbo-toast-script'));
 		$document->addStyleSheet(VIKBOOKING_ADMIN_ASSETS_URI . 'toast.css', $internalFilesOptions, array('id' => 'vbo-toast-style'));
 
-		// build AJAX uri endpoints
+		/**
+		 * Always prepare AJAX requests to pass a CSRF token.
+		 * 
+		 * @since 	1.6.0
+		 */
+		JHtml::fetch('vbohtml.scripts.ajaxcsrf');
+
+		// build AJAX uri endpoints and CMS
 		$widget_ajax_uri 	= VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=exec_admin_widget');
+		$assets_ajax_uri 	= VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=widgets_get_assets');
 		$multitask_ajax_uri = VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=exec_multitask_widgets');
 		$watchdata_ajax_uri = VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=widgets_watch_data');
 		$current_page_uri 	= htmlspecialchars((string) JUri::getInstance(), ENT_QUOTES);
+		$root_uri 			= htmlspecialchars(JUri::root(), ENT_QUOTES);
+		$current_cms 		= VBOPlatformDetection::isWordPress() ? 'wordpress' : 'joomla';
 
 		// check if the notification audio file exists within VCM
 		$notif_audio_path = implode(DIRECTORY_SEPARATOR, [VCM_ADMIN_PATH, 'assets', 'css', 'audio', 'new_notification.mp3']);
 		$notif_audio_url  = is_file($notif_audio_path) ? (VCM_ADMIN_URI . implode('/', ['assets', 'css', 'audio', 'new_notification.mp3'])) : null;
+
+		// service worker and push data
+		$service_worker_path  = VBOWebappServiceworker::getUri();
+		$service_worker_scope = VBOWebappServiceworker::getScope();
+		$push_config 		  = json_encode(VBOWebappPush::getConfig());
 
 		// add the necessary script declaration
 		$document->addScriptDeclaration(
@@ -182,13 +211,21 @@ JS
 		VBOToast.create(VBOToast.POSITION_TOP_RIGHT);
 
 		VBOCore.setOptions({
-			widget_ajax_uri:    "$widget_ajax_uri",
-			multitask_ajax_uri: "$multitask_ajax_uri",
-			watchdata_ajax_uri: "$watchdata_ajax_uri",
-			current_page: 	    "wp-admin",
-			current_page_uri:   "$current_page_uri",
-			notif_audio_url: 	"$notif_audio_url",
+			cms: 				  "$current_cms",
+			widget_ajax_uri:      "$widget_ajax_uri",
+			assets_ajax_uri: 	  "$assets_ajax_uri",
+			multitask_ajax_uri:   "$multitask_ajax_uri",
+			watchdata_ajax_uri:   "$watchdata_ajax_uri",
+			current_page: 	      "wp-admin",
+			current_page_uri:     "$current_page_uri",
+			root_uri:     		  "$root_uri",
+			notif_audio_url: 	  "$notif_audio_url",
+			service_worker_path:  "{$service_worker_path}",
+			service_worker_scope: "{$service_worker_scope}",
+			push: 				  $push_config,
 		});
+
+		VBOCore.listenServiceWorkerMessages();
 
 	});
 })(jQuery);

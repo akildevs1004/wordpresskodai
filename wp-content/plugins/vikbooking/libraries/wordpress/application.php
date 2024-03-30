@@ -743,14 +743,16 @@ JS
 		 * Returns the HTML code for displaying an input field for a phone number.
 		 * Adds to the documents the necessary style, script and JS code.
 		 * 
-		 * @param 	array 	$attrs 	array of attributes for the input field.
-		 * @param 	array 	$opts 	array of options for the input field.
+		 * @param 	array 	$attrs 			array of attributes for the input field.
+		 * @param 	array 	$opts 			array of options for the input field.
+		 * @param 	bool 	$load_assets 	whether to load the CSS/JS assets.
 		 * 
-		 * @return 	string 			the plain HTML code to be printed for the input field.
+		 * @return 	string 					the plain HTML code to be printed for the input field.
 		 * 
 		 * @since 	1.3.0
+		 * @since 	1.6.0 	added argument $load_assets
 		 */
-		public function printPhoneInputField($attrs = array(), $opts = array())
+		public function printPhoneInputField($attrs = array(), $opts = array(), $load_assets = true)
 		{
 			if (!empty($attrs['id'])) {
 				$selector = $attrs['id'];
@@ -786,14 +788,11 @@ JS
 			 * @since 	1.3.11
 			 */
 			$preferred_countries = array();
-			if (class_exists('VikBooking')) {
+			$plugin_name = str_replace('com_', '', JFactory::getApplication()->input->getString('option', ''));
+			if (!empty($plugin_name) && class_exists($plugin_name) && method_exists($plugin_name, 'preferredCountriesOrdering')) {
+				$preferred_countries = $plugin_name::preferredCountriesOrdering();
+			} elseif (class_exists('VikBooking')) {
 				$preferred_countries = VikBooking::preferredCountriesOrdering();
-			} else {
-				$plugin_name = JFactory::getApplication()->input->getString('option', '');
-				$plugin_name = !empty($plugin_name) ? strtoupper($plugin_name) : $plugin_name;
-				if (!empty($plugin_name) && class_exists($plugin_name)) {
-					$preferred_countries = $plugin_name::preferredCountriesOrdering();
-				}
 			}
 			//
 
@@ -822,11 +821,14 @@ JS
 			$full_number_on_blur = (int)$final_opts['fullNumberOnBlur'];
 
 			$document = JFactory::getDocument();
-			$document->addStyleSheet(VBO_SITE_URI . 'resources/intlTelInput.css');
-			$document->addScript(VBO_SITE_URI . 'resources/intlTelInput.js');
-			$document->addScriptDeclaration(
-<<<JS
-jQuery(document).ready(function() {
+
+			if ($load_assets) {
+				$document->addStyleSheet(VBO_SITE_URI . 'resources/intlTelInput.css');
+				$document->addScript(VBO_SITE_URI . 'resources/intlTelInput.js');
+			}
+
+			$render_script = <<<JS
+jQuery(function() {
 	jQuery('#$selector').intlTelInput($data);
 	jQuery('#$selector').on('blur', function() {
 		// set or format phone number on blur
@@ -852,10 +854,17 @@ jQuery(document).ready(function() {
 		jQuery('#$selector').val(jQuery('#$selector').intlTelInput('getNumber'));
 	});
 });
-JS
-			);
+JS;
 
-			return '<input ' . implode(' ', $attrs_cont) . ' />';
+			$node_elem = '<input ' . implode(' ', $attrs_cont) . ' />';
+
+			if ($load_assets) {
+				$document->addScriptDeclaration($render_script);
+			} else {
+				$node_elem .= "<script>{$render_script}</script>";
+			}
+
+			return $node_elem;
 		}
 	}
 }

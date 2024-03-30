@@ -72,6 +72,8 @@ var vboMapMons'.$module_id.' = ["'.self::applySubstr(JText::translate('VBMONTHON
 	 */
 	public static function grabInquiryFields()
 	{
+		$vbo_tn = VikBooking::getTranslator();
+
 		$dbo = JFactory::getDbo();
 
 		// build the list of inquiry fields
@@ -82,11 +84,14 @@ var vboMapMons'.$module_id.' = ["'.self::applySubstr(JText::translate('VBMONTHON
 		$dbo->setQuery($q, 0, 2);
 		$dbo->execute();
 		if ($dbo->getNumRows()) {
+			// translate records
+			$records = $dbo->loadAssocList();
+			$vbo_tn->translateContents($records, '#__vikbooking_custfields');
 			// prepare the fieldset object of type nominative to push
 			$fieldset = new stdClass;
 			$fieldset->type = 'nominative';
 			$fieldset->required = 1;
-			$fieldset->fields = $dbo->loadObjectList();
+			$fieldset->fields = json_decode(json_encode($records));
 			// push fieldset
 			array_push($inquiry_fields, $fieldset);
 		}
@@ -96,11 +101,14 @@ var vboMapMons'.$module_id.' = ["'.self::applySubstr(JText::translate('VBMONTHON
 		$dbo->setQuery($q, 0, 1);
 		$dbo->execute();
 		if ($dbo->getNumRows()) {
+			// translate records
+			$records = $dbo->loadAssocList();
+			$vbo_tn->translateContents($records, '#__vikbooking_custfields');
 			// prepare the fieldset object of type email to push
 			$fieldset = new stdClass;
 			$fieldset->type = 'email';
 			$fieldset->required = 1;
-			$fieldset->fields = $dbo->loadObjectList();
+			$fieldset->fields = json_decode(json_encode($records));
 			// push fieldset
 			array_push($inquiry_fields, $fieldset);
 		}
@@ -110,10 +118,13 @@ var vboMapMons'.$module_id.' = ["'.self::applySubstr(JText::translate('VBMONTHON
 		$dbo->setQuery($q, 0, 1);
 		$dbo->execute();
 		if ($dbo->getNumRows()) {
+			// translate records
+			$records = $dbo->loadAssocList();
+			$vbo_tn->translateContents($records, '#__vikbooking_custfields');
 			// prepare the fieldset object of type phone to push
 			$fieldset = new stdClass;
 			$fieldset->type = 'phone';
-			$fieldset->fields = $dbo->loadObjectList();
+			$fieldset->fields = json_decode(json_encode($records));
 			// push fieldset
 			array_push($inquiry_fields, $fieldset);
 		}
@@ -123,10 +134,13 @@ var vboMapMons'.$module_id.' = ["'.self::applySubstr(JText::translate('VBMONTHON
 		$dbo->setQuery($q, 0, 1);
 		$dbo->execute();
 		if ($dbo->getNumRows()) {
+			// translate records
+			$records = $dbo->loadAssocList();
+			$vbo_tn->translateContents($records, '#__vikbooking_custfields');
 			// prepare the fieldset object of type country to push
 			$fieldset = new stdClass;
 			$fieldset->type = 'country';
-			$fieldset->fields = $dbo->loadObjectList();
+			$fieldset->fields = json_decode(json_encode($records));
 			// push fieldset
 			array_push($inquiry_fields, $fieldset);
 		}
@@ -136,10 +150,13 @@ var vboMapMons'.$module_id.' = ["'.self::applySubstr(JText::translate('VBMONTHON
 		$dbo->setQuery($q, 0, 1);
 		$dbo->execute();
 		if ($dbo->getNumRows()) {
+			// translate records
+			$records = $dbo->loadAssocList();
+			$vbo_tn->translateContents($records, '#__vikbooking_custfields');
 			// prepare the fieldset object of type city to push
 			$fieldset = new stdClass;
 			$fieldset->type = 'city';
-			$fieldset->fields = $dbo->loadObjectList();
+			$fieldset->fields = json_decode(json_encode($records));
 			// push fieldset
 			array_push($inquiry_fields, $fieldset);
 		}
@@ -157,11 +174,14 @@ var vboMapMons'.$module_id.' = ["'.self::applySubstr(JText::translate('VBMONTHON
 		$dbo->setQuery($q, 0, 2);
 		$dbo->execute();
 		if ($dbo->getNumRows()) {
+			// translate records
+			$records = $dbo->loadAssocList();
+			$vbo_tn->translateContents($records, '#__vikbooking_custfields');
 			// prepare the fieldset object of type checkbox to push
 			$fieldset = new stdClass;
 			$fieldset->type = 'checkbox';
 			$fieldset->required = 1;
-			$fieldset->fields = $dbo->loadObjectList();
+			$fieldset->fields = json_decode(json_encode($records));
 			// push fieldset
 			array_push($inquiry_fields, $fieldset);
 		}

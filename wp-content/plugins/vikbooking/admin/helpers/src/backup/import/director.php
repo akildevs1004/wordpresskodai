@@ -71,7 +71,8 @@ class VBOBackupImportDirector
 		// make sure the backup version is compatible with the current one
 		$this->validateVersion($manifest);
 
-		$app = JFactory::getApplication();
+		/** @var VBOPlatformDispatcherInterface */
+		$dispatcher = VBOFactory::getPlatform()->getDispatcher();
 
 		/**
 		 * Trigger event to allow third party plugins to extend the backup import.
@@ -88,7 +89,7 @@ class VBOBackupImportDirector
 		 * 
 		 * @throws 	Exception
 		 */
-		$app->triggerEvent('onBeforeImportBackupVikBooking', [$manifest, $this->path]);
+		$dispatcher->trigger('onBeforeImportBackupVikBooking', [$manifest, $this->path]);
 
 		// execute the uninstallation rules
 		$this->uninstall($manifest);
@@ -111,7 +112,7 @@ class VBOBackupImportDirector
 		 * 
 		 * @throws 	Exception
 		 */
-		$app->triggerEvent('onAfterImportBackupVikBooking', [$manifest, $this->path]);
+		$dispatcher->trigger('onAfterImportBackupVikBooking', [$manifest, $this->path]);
 	}
 
 	/**
@@ -126,6 +127,17 @@ class VBOBackupImportDirector
 	{
 		// create file 
 		$file = $this->path . DIRECTORY_SEPARATOR . 'manifest.json';
+
+		if (!JFile::exists($file))
+		{
+			$path_folders = JFolder::folders($this->path);
+			if ($path_folders)
+			{
+				// update path to manifest file
+				$this->path .= DIRECTORY_SEPARATOR . $path_folders[0];
+				$file = $this->path . DIRECTORY_SEPARATOR . 'manifest.json';
+			}
+		}
 
 		// make sure the manifest exists
 		if (!JFile::exists($file))
@@ -271,7 +283,7 @@ class VBOBackupImportDirector
 			return;
 		}
 
-		$app = JFactory::getApplication();
+		$dispatcher = VBOFactory::getPlatform()->getDispatcher();
 
 		// iterate installers
 		foreach ((array) $manifest->installers as $install)
@@ -300,7 +312,7 @@ class VBOBackupImportDirector
 			 * 
 			 * @throws 	Exception
 			 */
-			$executed = $app->triggerEvent('onExecuteImportBackupRuleVikBooking', [$install->role, $data]);
+			$executed = $dispatcher->filter('onExecuteImportBackupRuleVikBooking', [$install->role, $data]);
 
 			// check whether the rule has been already dispatched by a plugin
 			if (!in_array(true, $executed))

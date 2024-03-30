@@ -27,8 +27,11 @@
 		--vbo-link-text-color: #92c4ee;
 		--vbo-basic-btn: #181b22;
 		--vbo-basic-btn-hover: #303942;
+		--vbo-basic-btn-focus: #444;
 		--vbo-light-color-btn: #303942;
 		--vbo-middle-color-btn: #262f39;
+		--vbo-grey-blue-bg: #424954;
+		--vbo-light-blue: #313f4d;
 	
 		/* Config bg and text color */
 		--vbo-config-bg-color: #282b33;
@@ -54,9 +57,18 @@
 		--vbo-orange-color: #d09754;
 		--vbo-orange-color-hover: #be8340;
 		--vbo-green-color: #489e48;
-		--vbo-green-color-hover: #509e50;
+		--vbo-green-color-hover: #428242;
+		--vbo-green-color-focus: #65c265;
 		--vbo-blue-color: #2f6f8e;
 		--vbo-blue-color-hover: #498fb3;
+		
+		/* Notification Status */
+		--vbo-info-bg: #315775;
+		--vbo-info-border: #4e7891;
+		--vbo-warning-bg: #55503a;
+		--vbo-warning-border: #d99323;
+		--vbo-error-bg: #7e5959;
+		--vbo-error-border: #ea6060;
 	}
 	body {
 		background: var(--vbo-body-bg-color) !important;
@@ -88,6 +100,12 @@
 	.vbo-list-table tbody > tr > td, .vbo-list-table tbody > tr > th {
 		border-top: 1px solid var(--vbo-config-border-color) !important;
 	}
+
+	/* Config tabs */
+	.vbo-config-tabs-wrap dl.tabs {
+		border-bottom: 1px solid var(--vbo-light-color-btn);
+	}
+
 	/* Color action buttons */
 	.jtoolbar .page-title-action {
 		background: transparent;
@@ -127,8 +145,8 @@
 		border-color: var(--vbo-contrast-text-color);
 	}
 	.wp-core-ui .button-secondary:hover, .wp-core-ui .button.hover, .wp-core-ui .button:hover, .vbo-guestactivitywidget-commands .vbo-guestactivitywidget-command-chevron > span:hover, .vbo-reportwidget-command-chevron > span:hover, .vbo-dash-chart-title .vbo-dash-chart-nav:hover {
-		border-color: var(--wp-btn-color);
-		color: var(--wp-btn-color);
+		border-color: var(--wp-btn-color) !important;
+		color: var(--wp-btn-color) !important;
 	}
 	.wp-core-ui select.disabled, .wp-core-ui select:disabled {
 		background-color: var(--vbo-input-style-deactive);
@@ -400,12 +418,13 @@
 		border: 1px solid var(--vbo-config-border-color);
 	}
 	.vbo-roverviewrowone .vbo-roverv-festcell, .notbusy.vbo-overv-festcell, .subnotbusy.vbo-overv-festcell, .bluedays.vbo-overv-festcell, .vbo-tableaux-festcell {
-		background-color: #5d4a5a !important;
+		background-color: #6f5a6b !important;
 	}
-	.vbo-roverviewrowone .vbo-roverv-festcell:hover {
+	.vbo-roverviewrowone .vbo-roverv-festcell:hover, .notbusy.vbo-overv-festcell:hover, .subnotbusy.vbo-overv-festcell:hover, .bluedays.vbo-overv-festcell:hover, .vbo-tableaux-festcell:hover {
 		background-color: #80667c !important;
 	}
-	.vbo-roverviewrowone .vbo-roverv-festcell:active {
+	.vbo-roverviewrowone .vbo-roverv-festcell:active, .notbusy.vbo-overv-festcell:active, .subnotbusy.vbo-overv-festcell:active, .bluedays.vbo-overv-festcell:active, .vbo-tableaux-festcell:active,
+	.vbo-roverviewrowone .vbo-roverv-festcell:focus, .notbusy.vbo-overv-festcell:focus, .subnotbusy.vbo-overv-festcell:focus, .bluedays.vbo-overv-festcell:focus, .vbo-tableaux-festcell:focus {
 		background-color: #513d4e !important;
 	}
 	.notbusy.vbo-overv-todaycell, .subnotbusy.vbo-overv-todaycell, .bluedays.vbo-overv-todaycell, .vbo-tableaux-table .vbo-tableaux-todaycell {
@@ -488,22 +507,6 @@
 	.vbo-custsearchres-entry-highligthed {
 		background: var(--vbo-config-child-bg-color);
 	}
-	.vbo-submenu-ul {
-		background: rgb(24, 41, 53);
-	}
-	.vbo-submenu-ul li span {
-		border-left: 3px solid rgb(45, 76, 97);
-	}
-	.vmenulink a:not(.vcmlink) {
-		color: var(--vbo-body-text-color) !important;
-	}
-	.vbo-submenu-ul li span:hover, .vbo-submenu-ul li span.vmenulinkactive {
-		background: rgb(55, 93, 121);
-		border-left: 3px solid #223947;
-	}
-	.vbo-submenu-ul li span:hover a, .vbo-submenu-ul li span.vmenulinkactive a {
-		color: var(--vbo-body-text-color) !important;
-	}
 	.vbo-translations-lim-wrap table select {
 		background: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23474c5b' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg%3E") no-repeat right .55rem center;
 		background-color: var(--vbo-input-style) !important;
@@ -571,8 +574,9 @@
 		border: 1px solid var(--vbo-config-border-color);
 		color: var(--vbo-body-text-color);
 	}
-	body .btn:hover {
+	body .btn:hover, body .btn:focus {
 		background-color: var(--vbo-basic-btn-hover);
+		border-color: var(--vbo-config-border-color);
 		color: var(--vbo-body-text-color);
 	}
 	body .btn-success {
@@ -582,6 +586,10 @@
 	body .btn-success:hover {
 		background: var(--vbo-green-color-hover);
 		border: 1px solid var(--vbo-green-color-hover);
+	}
+	body .btn-success:focus, body .btn-success:active {
+		background: var(--vbo-green-color-focus);
+		border: 1px solid var(--vbo-green-color-focus);
 	}
 	body.admin #content .btn:hover, body.admin #content .btn:focus {
 		background: var(--vbo-basic-btn-hover);
@@ -632,6 +640,12 @@
 	}
 	body.admin #toolbar .btn-success {
 		background: var(--vbo-green-color);
+	}
+	body.admin #toolbar .btn-success:hover {
+		background: var(--vbo-green-color-hover);
+	}
+	body.admin #toolbar .btn-success:focus, body.admin #toolbar .btn-success:active {
+		background: var(--vbo-green-color-focus);
 	}
 	body.admin #toolbar .dropdown-toggle-split {
 		border-color: var(--vbo-config-border-color);
@@ -811,6 +825,16 @@
 	}
 	#status.navbar-fixed-bottom .btn-toolbar a:hover {
 		color: var(--vbo-base-color);
+	}
+
+	/* Main Menu */
+	.vbo-submenu-wrap li > div .vbo-submenu-item-helper-link .vbo-submenu-item-helper-avatar img {
+		border: 1px solid var(--vbo-body-bg-color);
+	}
+	
+	/* Dropdown Context Menu */
+	.vik-context-menu.vbo-dropdown-cxmenu {
+		background: var(--vbo-main-bg-color);
 	}
 	
 	/* Joomla4 */
@@ -1028,5 +1052,20 @@
 		background-color: var(--vbo-config-bg-color);
 		border-top: 1px solid var(--vbo-config-border-color);
 		box-shadow: none;
+	}
+	.vbo-loading-dnd-response {
+		background: rgba(58, 58, 58, 0.87);
+	}
+
+	#contextual-help-back {
+		background-color: var(--vbo-light-blue);
+		border-color: var(--vbo-config-border-color);
+	}
+	.contextual-help-tabs .active a {
+		background-color: var(--vbo-light-blue);
+		border-color: var(--vbo-config-border-color);
+	}
+	#screen-meta-links .show-settings {
+		border-color: var(--vbo-basic-btn-focus);
 	}
 }

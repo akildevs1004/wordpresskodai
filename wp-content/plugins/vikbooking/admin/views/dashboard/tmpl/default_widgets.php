@@ -28,6 +28,18 @@ $vbo_auth_global = JFactory::getUser()->authorise('core.vbo.global', 'com_vikboo
 $notif_audio_path = implode(DIRECTORY_SEPARATOR, [VCM_ADMIN_PATH, 'assets', 'css', 'audio', 'new_notification.mp3']);
 $notif_audio_url  = is_file($notif_audio_path) ? (VCM_ADMIN_URI . implode('/', ['assets', 'css', 'audio', 'new_notification.mp3'])) : null;
 
+// theme color preferences
+$color_scheme = VikBooking::getAppearancePref();
+$scheme_name  = JText::translate('VBO_APPEARANCE_PREF_AUTO');
+$current_mode = 'magic';
+if ($color_scheme == 'light') {
+	$scheme_name = JText::translate('VBO_APPEARANCE_PREF_LIGHT');
+	$current_mode = 'sun';
+} elseif ($color_scheme == 'dark') {
+	$scheme_name = JText::translate('VBO_APPEARANCE_PREF_DARK');
+	$current_mode = 'moon';
+}
+
 // load sortable library
 JHtml::fetch('jquery.framework', true, true);
 JHtml::fetch('script', VBO_SITE_URI.'resources/jquery-ui.sortable.min.js');
@@ -54,6 +66,53 @@ JText::script('VBO_STICKYN_CUSTOMURI');
 JText::script('VBO_BROWSER_NOTIFS_ON');
 JText::script('VBO_BROWSER_NOTIFS_OFF');
 JText::script('VBO_BROWSER_NOTIFS_OFF_HELP');
+JText::script('VBO_ADMIN_WIDGET');
+JText::script('VBO_CONGRATS');
+JText::script('VBO_APPEARANCE_PREF_AUTO');
+JText::script('VBO_APPEARANCE_PREF_LIGHT');
+JText::script('VBO_APPEARANCE_PREF_DARK');
+
+/**
+ * Monitor request vars to see if a widget should be loaded within a modal.
+ * Only the dashboard at the moment allows to render an admin widget within
+ * a modal through query string values, because all other pages will render
+ * the multitask panel that can quickly render any admin widget.
+ * 
+ * @since 	1.16.0 (J) - 1.6.0 (WP)
+ * @since 	1.16.5 (J) - 1.6.5 (WP) added payload support for clicked Push notifications.
+ */
+$app = JFactory::getApplication();
+
+$load_widget   	   = $app->input->get('load_widget', '');
+$multitask_data	   = $app->input->get('multitask_data', [], 'array');
+$multitask_options = [];
+$push_notification = $app->input->get('push_notification', '', 'base64');
+if (!$load_widget && $push_notification) {
+	// parse the payload to detect the proper type of widget to render
+	list($load_widget, $multitask_data, $multitask_options) = VBOMultitaskParser::queryPushData($multitask_data, base64_decode($push_notification));
+}
+
+// process widget data, if any
+if (!empty($load_widget) && $desired_widget = $widgets_helper->getWidget($load_widget)) {
+	$multitask_data['_modalTitle'] = $desired_widget->getName();
+	$data_payload 	 = json_encode($multitask_data);
+	$options_payload = json_encode($multitask_options);
+
+	// append script to DOM to render the widget within a modal
+	JFactory::getDocument()->addScriptDeclaration(
+<<<JS
+(function($) {
+	'use strict';
+
+	$(function() {
+		setTimeout(() => {
+			VBOCore.renderModalWidget('$load_widget', $data_payload, $options_payload, false);
+		}, 500);
+	});
+})(jQuery);
+JS
+	);
+}
 
 ?>
 <div class="vbo-admin-widgets-wrap">
@@ -66,6 +125,25 @@ if ($vbo_auth_global) {
 				<span class="vbo-admin-widgets-commands-info-txt"><?php echo JText::translate('VBO_WIDGETS_AUTOSAVE'); ?></span>
 				<div class="vbo-admin-widgets-commands-info-restore">
 					<a href="index.php?option=com_vikbooking&task=reset_admin_widgets" class="btn btn-secondary" onclick="return vboWidgetsRestoreMap();"><?php echo JText::translate('VBO_WIDGETS_RESTDEFAULTSHORT'); ?></a>
+				</div>
+				<div class="vbo-sidepanel-colorscheme vbo-dashboard-colorscheme">
+					<span class="vbo-tooltip vbo-tooltip-top vbo-sidepanel-colorscheme-current" data-tooltiptext="<?php echo JHtml::fetch('esc_attr', $scheme_name); ?>"><?php VikBookingIcons::e($current_mode); ?></span>
+					<div class="vbo-sidepanel-colorscheme-list">
+						<div class="vbo-sidepanel-colorscheme-option<?php echo $color_scheme == 'auto' ? ' vbo-sidepanel-colorscheme-option-active' : ''; ?>" data-scheme="auto">
+							<span><?php VikBookingIcons::e('magic'); ?> <?php echo JText::translate('VBO_APPEARANCE_PREF_AUTO'); ?></span>
+						</div>
+						<div class="vbo-sidepanel-colorscheme-option<?php echo $color_scheme == 'light' ? ' vbo-sidepanel-colorscheme-option-active' : ''; ?>" data-scheme="light">
+							<span><?php VikBookingIcons::e('sun'); ?> <?php echo JText::translate('VBO_APPEARANCE_PREF_LIGHT'); ?></span>
+						</div>
+						<div class="vbo-sidepanel-colorscheme-option<?php echo $color_scheme == 'dark' ? ' vbo-sidepanel-colorscheme-option-active' : ''; ?>" data-scheme="dark">
+							<span><?php VikBookingIcons::e('moon'); ?> <?php echo JText::translate('VBO_APPEARANCE_PREF_DARK'); ?></span>
+						</div>
+					</div>
+				</div>
+				<div class="vbo-admin-widgets-suggest-notifications-cont" style="display: none;">
+					<span class="vbo-suggest-notifications-wrap">
+						<button class="vbo-dash-suggest-notifications-btn vbo-suggest-notifications-btn" type="button"><?php VikBookingIcons::e('bell', 'can-shake') ?></button>
+					</span>
 				</div>
 			</div>
 		</div>
@@ -287,7 +365,8 @@ if ($vbo_auth_global) {
 		vbo_admin_widgets_initpos_container = 0,
 		vbo_admin_widgets_initpos_widget = 0,
 		vbo_admin_widgets_initinst_widget = -1,
-		vbo_admin_widgets_allow_drop = false;
+		vbo_admin_widgets_allow_drop = false,
+		vbo_admin_widgets_sugg_notifs = false;
 
 	var vbo_modal_widgets_on = false;
 
@@ -334,6 +413,12 @@ if ($vbo_auth_global) {
 			jQuery('.vbo-admin-widgets-list').addClass('vbo-admin-widgets-list-customize');
 			// show welcome (if necessary)
 			vboWidgetsShowWelcome();
+			// handle notification suggestions
+			if (!vbo_admin_widgets_sugg_notifs && VBOCore.notificationsEnabled() === false) {
+				vbo_admin_widgets_sugg_notifs = true;
+				jQuery('.vbo-admin-widgets-suggest-notifications-cont').show();
+				VBOCore.suggestNotifications('.vbo-dash-suggest-notifications-btn');
+			}
 		}
 	}
 
@@ -354,19 +439,19 @@ if ($vbo_auth_global) {
 		// display modal
 		vboOpenModalWidgets();
 		// declare timeouts to add the animate class to the welcome elements
-		setTimeout(function() {
+		setTimeout(() => {
 			// animate container
 			jQuery('.vbo-widgets-welcome-demo-section').addClass('vbo-widgets-welcome-animate');
 		}, 1000);
-		setTimeout(function() {
+		setTimeout(() => {
 			// animate first section
 			jQuery('.vbo-widgets-welcome-demo-container').first().addClass('vbo-widgets-welcome-animate');
 		}, 2000);
-		setTimeout(function() {
+		setTimeout(() => {
 			// animate last section
 			jQuery('.vbo-widgets-welcome-demo-container').last().addClass('vbo-widgets-welcome-animate');
 		}, 3000);
-		setTimeout(function() {
+		setTimeout(() => {
 			// animate widgets
 			jQuery('.vbo-widgets-welcome-demo-widget').addClass('vbo-widgets-welcome-animate');
 		}, 4000);
@@ -380,16 +465,14 @@ if ($vbo_auth_global) {
 		hideVboModalWidgets();
 		// AJAX request to update the welcome status
 		VBOCore.doAjax(
-			'index.php',
+			"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=admin_widgets_welcome'); ?>",
 			{
-				option: "com_vikbooking",
-				task: "admin_widgets_welcome",
 				hide_welcome: hidenext,
 				tmpl: "component"
 			},
-			function(response) {
+			(response) => {
 				try {
-					var obj_res = JSON.parse(response);
+					var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 					if (!obj_res.hasOwnProperty('status')) {
 						// request failed
 						console.error('Could not update welcome status', obj_res);
@@ -398,7 +481,7 @@ if ($vbo_auth_global) {
 					console.error('could not parse JSON response when updating the welcome status', err, response);
 				}
 			},
-			function(error) {
+			(error) => {
 				console.error(error);
 			}
 		);
@@ -414,19 +497,17 @@ if ($vbo_auth_global) {
 
 		// prepare AJAX request data
 		var saving_request = {
-			option: "com_vikbooking",
-			task: "save_admin_widgets",
 			tmpl: "component"
 		}
 		Object.assign(saving_request, vbo_admin_widgets_map);
 
 		// make the request
 		VBOCore.doAjax(
-			'index.php',
+			"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=save_admin_widgets'); ?>",
 			saving_request,
-			function(response) {
+			(response) => {
 				try {
-					var obj_res = JSON.parse(response);
+					var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 					if (!obj_res.status) {
 						// request failed
 						console.error('Could not update the map', obj_res);
@@ -451,8 +532,8 @@ if ($vbo_auth_global) {
 					jQuery('.vbo-admin-widgets-commands-info-txt').addClass('vbo-admin-widgets-error').text(Joomla.JText._('VBO_WIDGETS_ERRSAVINGMAP'));
 				}
 			},
-			function(error) {
-				console.error(error);
+			(error) => {
+				console.error(error.responseText);
 				// update info status to "error..."
 				jQuery('.vbo-admin-widgets-commands-info-txt').addClass('vbo-admin-widgets-error').text(Joomla.JText._('VBO_WIDGETS_ERRSAVINGMAP'));
 			}
@@ -567,19 +648,17 @@ if ($vbo_auth_global) {
 					var call_method = 'sortInstance';
 					// make a silent call for the widget in case it needs to perform actions when removing an instance
 					VBOCore.doAjax(
-						'index.php',
+						"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=exec_admin_widget'); ?>",
 						{
-							option: "com_vikbooking",
-							task: "exec_admin_widget",
 							widget_id: widget_type,
 							widget_index_old: vbo_admin_widgets_initinst_widget,
 							widget_index_new: new_instance_index,
 							call: call_method,
 							tmpl: "component"
 						},
-						function(response) {
+						(response) => {
 							try {
-								var obj_res = JSON.parse(response);
+								var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 								if (!obj_res.hasOwnProperty(call_method)) {
 									console.error('Unexpected JSON response', obj_res);
 								}
@@ -587,8 +666,8 @@ if ($vbo_auth_global) {
 								console.error('could not parse JSON response', err, response);
 							}
 						},
-						function(error) {
-							console.error(error);
+						(error) => {
+							console.error(error.responseText);
 						}
 					);
 				}
@@ -643,21 +722,127 @@ if ($vbo_auth_global) {
 		document.addEventListener('vbo-admin-widgets-savemap', VBOCore.debounceEvent(vboHandleMapSaving, 2000));
 
 		/**
-		 * Setup browser notifications.
+		 * Setup browser notifications and admin widgets core features.
 		 */
 		VBOCore.setOptions({
+			is_vbo: 			true,
+			cms: 				"<?php echo VBOPlatformDetection::isWordPress() ? 'wordpress' : 'joomla'; ?>",
 			widget_ajax_uri:    "<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=exec_admin_widget'); ?>",
+			assets_ajax_uri: 	"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=widgets_get_assets'); ?>",
 			multitask_ajax_uri: "<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=exec_multitask_widgets'); ?>",
 			watchdata_ajax_uri: "<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=widgets_watch_data'); ?>",
 			current_page: 	    "dashboard",
 			current_page_uri:   "<?php echo htmlspecialchars((string) JUri::getInstance(), ENT_QUOTES); ?>",
+			root_uri:     		"<?php echo htmlspecialchars(JUri::root(), ENT_QUOTES); ?>",
+			panel_opts: 		{
+				notif_on_class:  "vbo-sidepanel-notifications-on",
+				notif_off_class: "vbo-sidepanel-notifications-off",
+			},
 			notif_audio_url: 	"<?php echo $notif_audio_url; ?>",
 			tn_texts: 			{
 				notifs_enabled: 		Joomla.JText._('VBO_BROWSER_NOTIFS_ON'),
 				notifs_disabled: 		Joomla.JText._('VBO_BROWSER_NOTIFS_OFF'),
 				notifs_disabled_help: 	Joomla.JText._('VBO_BROWSER_NOTIFS_OFF_HELP'),
+				admin_widget: 			Joomla.JText._('VBO_ADMIN_WIDGET'),
+				congrats: 				Joomla.JText._('VBO_CONGRATS'),
 			},
+			default_loading_body: '<?php VikBookingIcons::e('circle-notch', 'fa-spin fa-fw'); ?>',
+			service_worker_path:  '<?php echo VBOWebappServiceworker::getUri(); ?>',
+			service_worker_scope: '<?php echo VBOWebappServiceworker::getScope(); ?>',
+			push: 				  <?php echo json_encode(VBOWebappPush::getConfig()); ?>,
 		}).setupNotifications();
+
+		/**
+		 * Install Service Worker
+		 */
+		VBOCore.installServiceWorker().then((registration) => {
+			VBOCore.handlePushSubscription(registration).then((subscription) => {
+				console.info('Push notifications are enabled');
+			}).catch((error) => {
+				console.warn(error);
+			});
+		}).catch((error) => {
+			console.warn(error);
+		});
+
+		// color scheme preferences
+		jQuery('.vbo-sidepanel-colorscheme-current').on('click', function() {
+			jQuery('.vbo-sidepanel-colorscheme-list').toggleClass('vbo-sidepanel-colorscheme-list-show');
+		});
+
+		// color scheme selection
+		jQuery('.vbo-sidepanel-colorscheme-option').on('click', function() {
+			let set_mode = jQuery(this).attr('data-scheme');
+
+			let vbo_css_base_uri = '<?php echo VBO_ADMIN_URI . (VBOPlatformDetection::isWordPress() ? 'resources/' : '') . 'vbo-appearance-%s.css'; ?>';
+			let vbo_css_base_id  = 'vbo-css-appearance-';
+			let vbo_css_modes 	 = {
+				auto: vbo_css_base_uri.replace('%s', 'auto'),
+				dark: vbo_css_base_uri.replace('%s', 'dark'),
+				light: null,
+			};
+			let vbo_mode_texts = {
+				auto: Joomla.JText._('VBO_APPEARANCE_PREF_AUTO'),
+				dark: Joomla.JText._('VBO_APPEARANCE_PREF_DARK'),
+				light: Joomla.JText._('VBO_APPEARANCE_PREF_LIGHT'),
+			};
+			let vbo_mode_icons = {
+				auto: '<?php VikBookingIcons::e('magic') ?>',
+				dark: '<?php VikBookingIcons::e('moon') ?>',
+				light: '<?php VikBookingIcons::e('sun') ?>',
+			};
+
+			if (!vbo_css_modes.hasOwnProperty(set_mode)) {
+				return false;
+			}
+
+			// toggle active class
+			jQuery('.vbo-sidepanel-colorscheme-option').removeClass('vbo-sidepanel-colorscheme-option-active');
+			jQuery(this).addClass('vbo-sidepanel-colorscheme-option-active');
+
+			// adjust current preference content
+			jQuery('.vbo-sidepanel-colorscheme-current')
+				.attr('data-tooltiptext', vbo_mode_texts[set_mode])
+				.html(vbo_mode_icons[set_mode]);
+
+			// set/unset CSS files from DOM
+			for (let app_mode in vbo_css_modes) {
+				if (!vbo_css_modes.hasOwnProperty(app_mode) || !vbo_css_modes[app_mode]) {
+					continue;
+				}
+				if (app_mode == set_mode) {
+					// set this CSS file
+					jQuery('head').append('<link rel="stylesheet" id="' + vbo_css_base_id + app_mode + '" href="' + vbo_css_modes[app_mode] + '" media="all">');
+				} else {
+					// unset this CSS file
+					if (jQuery('link#' + vbo_css_base_id + app_mode).length) {
+						jQuery('link#' + vbo_css_base_id + app_mode).remove();
+					} else if (jQuery('link#' + vbo_css_base_id + app_mode + '-css').length) {
+						// WP framework may add "-css" as suffix to the given ID
+						jQuery('link#' + vbo_css_base_id + app_mode + '-css').remove();
+					}
+				}
+			}
+
+			// close menu-list
+			jQuery('.vbo-sidepanel-colorscheme-list').removeClass('vbo-sidepanel-colorscheme-list-show');
+
+			// silently update configuration value
+			VBOCore.doAjax(
+				"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=configuration.update'); ?>",
+				{
+					settings: {
+						appearance_pref: set_mode,
+					}
+				},
+				(success) => {
+					// do nothing
+				},
+				(error) => {
+					console.error(error);
+				}
+			);
+		});
 
 	});
 
@@ -1050,18 +1235,16 @@ if ($vbo_auth_global) {
 			var call_method = 'removeInstance';
 			// make a silent call for the widget in case it needs to perform actions when removing an instance
 			VBOCore.doAjax(
-				'index.php',
+				"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=exec_admin_widget'); ?>",
 				{
-					option: "com_vikbooking",
-					task: "exec_admin_widget",
 					widget_id: cur_widg_id,
 					widget_instance: widget_instance_index,
 					call: call_method,
 					tmpl: "component"
 				},
-				function(response) {
+				(response) => {
 					try {
-						var obj_res = JSON.parse(response);
+						var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 						if (!obj_res.hasOwnProperty(call_method)) {
 							console.error('Unexpected JSON response', obj_res);
 						}
@@ -1069,8 +1252,8 @@ if ($vbo_auth_global) {
 						console.error('could not parse JSON response', err, response);
 					}
 				},
-				function(error) {
-					console.error(error);
+				(error) => {
+					console.error(error.responseText);
 				}
 			);
 
@@ -1096,17 +1279,15 @@ if ($vbo_auth_global) {
 		var call_method = 'render';
 
 		VBOCore.doAjax(
-			'index.php',
+			"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=exec_admin_widget'); ?>",
 			{
-				option: "com_vikbooking",
-				task: "exec_admin_widget",
 				widget_id: widget_id,
 				call: call_method,
 				tmpl: "component"
 			},
-			function(response) {
+			(response) => {
 				try {
-					var obj_res = JSON.parse(response);
+					var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 					if (obj_res.hasOwnProperty(call_method)) {
 						// populate new widget content
 						container.find('.vbo-admin-widgets-widget-output').html(obj_res[call_method]);
@@ -1117,8 +1298,8 @@ if ($vbo_auth_global) {
 					console.error('could not parse JSON response', err, response);
 				}
 			},
-			function(error) {
-				console.error(error);
+			(error) => {
+				console.error(error.responseText);
 				alert(Joomla.JText._('VBO_WIDGETS_ERRDISPWIDG'));
 			}
 		);

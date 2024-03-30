@@ -63,8 +63,12 @@ final class VBONotificationDataMessage extends VBONotificationAdapter
 		}
 
 		// build notification display data
-		$display_data = $displayer->getData();
-		if (!$display_data) {
+		try {
+			$display_data = $displayer->getData();
+			if (!$display_data) {
+				throw new Exception('Error building the notification display data', 500);
+			}
+		} catch (Exception $e) {
 			return false;
 		}
 

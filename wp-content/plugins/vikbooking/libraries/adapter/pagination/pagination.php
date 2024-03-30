@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.pagination
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -48,11 +48,19 @@ class JPagination
 	protected $limit;
 
 	/**
+	 * Prefix used for request variables.
+	 * 
+	 * @var string
+	 * @since 10.1.44
+	 */
+	protected $prefix;
+
+	/**
 	 * A list of additional URL params.
 	 *
 	 * @var array
 	 */
-	protected $params = array();
+	protected $params = [];
 
 	/**
 	 * Class constructor.
@@ -60,12 +68,14 @@ class JPagination
 	 * @param   integer  $total       The total number of items.
 	 * @param   integer  $limitstart  The offset of the item to start at.
 	 * @param   integer  $limit       The number of items to display per page.
+	 * @param   string   $prefix      The prefix used for request variables.
 	 */
-	public function __construct($total, $limitstart, $limit)
+	public function __construct($total, $limitstart, $limit, $prefix = '')
 	{
-		$this->total 		= $total;
-		$this->limitstart 	= $limitstart;
-		$this->limit 		= $limit;
+		$this->total      = $total;
+		$this->limitstart = $limitstart;
+		$this->limit      = $limit;
+		$this->prefix     = $prefix;
 	}
 
 	/**
@@ -175,7 +185,7 @@ class JPagination
 		$app = JFactory::getApplication();
 
 		// set pagination URLs
-		$data['links'] = array();
+		$data['links'] = [];
 
 		if ($app->isAdmin())
 		{
@@ -183,7 +193,8 @@ class JPagination
 			JFactory::getDocument()->addScriptDeclaration(
 <<<JS
 jQuery(document).ready(function() {
-	Joomla.pagination.setTotal({$data['total']})
+	Joomla.getPagination('{$data['prefix']}')
+		.setTotal({$data['total']})
 		.setLimit({$data['lim']})
 		.setStart({$data['lim0']})
 		.setListener(document.adminForm);
@@ -191,10 +202,10 @@ jQuery(document).ready(function() {
 JS
 			);
 
-			$data['links']['first'] = 'href="javascript: void(0);" onclick="Joomla.pagination.first();"';
-			$data['links']['prev']  = 'href="javascript: void(0);" onclick="Joomla.pagination.prev();"';
-			$data['links']['next']  = 'href="javascript: void(0);" onclick="Joomla.pagination.next();"';
-			$data['links']['last']  = 'href="javascript: void(0);" onclick="Joomla.pagination.last();"';
+			$data['links']['first'] = 'href="javascript: void(0);" onclick="Joomla.getPagination(\'' . $data['prefix'] . '\').first();"';
+			$data['links']['prev']  = 'href="javascript: void(0);" onclick="Joomla.getPagination(\'' . $data['prefix'] . '\').prev();"';
+			$data['links']['next']  = 'href="javascript: void(0);" onclick="Joomla.getPagination(\'' . $data['prefix'] . '\').next();"';
+			$data['links']['last']  = 'href="javascript: void(0);" onclick="Joomla.getPagination(\'' . $data['prefix'] . '\').last();"';
 		}
 		else
 		{
@@ -217,7 +228,7 @@ JS
 			foreach ($seek as $k => $v)
 			{
 				// replace limitstart
-				$current->setVar('limitstart', $v);
+				$current->setVar($this->prefix . 'limitstart', $v);
 				// route the URI
 				$data['links'][$k] = 'href="' . JRoute::rewrite($current) . '"';
 			}
@@ -237,14 +248,15 @@ JS
 	{
 		if (is_null($data))
 		{
-			$data = array();
+			$data = [];
 		}
 
-		$data = array();
+		$data = [];
+		$data['prefix'] = $this->prefix;
 		$data['total'] 	= $this->total;
 		$data['lim0']	= $this->limitstart;
 		$data['lim']	= $this->limit;
-		$data['pages']	= ceil($this->total / $this->limit);
+		$data['pages']	= $this->limit ? ceil($this->total / $this->limit) : 1;
 
 		// lim0 : page = total : pages
 		// page = lim0 * pages / total
@@ -252,4 +264,40 @@ JS
 
 		return $data;
 	}
+
+	/**
+     * Creates a dropdown box for selecting how many records to show per page.
+     *
+     * @return  string  The HTML for the limit # input box.
+     *
+     * @since   10.1.48
+     */
+    public function getLimitBox()
+    {
+        $limits = [];
+
+        // make the option list
+        for ($i = 5; $i <= 30; $i += 5)
+        {
+            $limits[] = JHtml::fetch('select.option', $i, $i);
+        }
+
+        $limits[] = JHtml::fetch('select.option', 50, 50);
+        $limits[] = JHtml::fetch('select.option', 100, 100);
+        $limits[] = JHtml::fetch('select.option', 0, JText::translate('JALL'));
+
+        if (is_admin())
+        {
+            $onchange = "document.adminForm.submit()";
+        }
+        else
+        {
+            $onchange = "this.form.submit()";
+        }
+
+        // build the limit dropdown
+        return '<select name="' . $this->prefix . 'limit" class="form-select" onchange="' . $onchange . '">'
+        	. JHtml::fetch('select.options', $limits, 'value', 'text', $this->limit)
+        	. '</select>';
+    }
 }

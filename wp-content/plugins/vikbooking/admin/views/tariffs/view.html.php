@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     VikBooking
  * @subpackage  com_vikbooking
@@ -13,9 +14,11 @@ defined('ABSPATH') or die('No script kiddies please!');
 // import Joomla view library
 jimport('joomla.application.component.view');
 
-class VikBookingViewTariffs extends JViewVikBooking {
-	
-	function display($tpl = null) {
+class VikBookingViewTariffs extends JViewVikBooking
+{
+
+	function display($tpl = null)
+	{
 		// Set the toolbar
 		$this->addToolBar();
 
@@ -37,7 +40,7 @@ class VikBookingViewTariffs extends JViewVikBooking {
 			$mainframe->redirect("index.php?option=com_vikbooking&task=rooms");
 			exit;
 		}
-		$q = "SELECT `id`,`name`,`img`,`idcat` FROM `#__vikbooking_rooms` WHERE `id`=".$dbo->quote($aid).";";
+		$q = "SELECT `id`,`name`,`img`,`idcat` FROM `#__vikbooking_rooms` WHERE `id`=" . $dbo->quote($aid) . ";";
 		$dbo->setQuery($q);
 		$dbo->execute();
 		if ($dbo->getNumRows() != 1) {
@@ -56,43 +59,47 @@ class VikBookingViewTariffs extends JViewVikBooking {
 		if (!empty($pnewtar) && !empty($pddaysfrom) && is_array($prices)) {
 			if (empty($pddaysto) || $pddaysfrom == $pddaysto) {
 				foreach ($prices as $pr) {
-					$tmpvarone = VikRequest::getFloat('dprice'.$pr['id'], '', 'request');
+					$tmpvarone = VikRequest::getFloat('dprice' . $pr['id'], '', 'request');
+
+
 					if (!empty($tmpvarone)) {
-						$tmpvartwo = VikRequest::getString('dattr'.$pr['id'], '', 'request');
+						$tmpvartwo = VikRequest::getString('dattr' . $pr['id'], '', 'request');
 						$multipattr = is_numeric($tmpvartwo) ? true : false;
-						$safeq = "SELECT `id` FROM `#__vikbooking_dispcost` WHERE `days`=".$dbo->quote($pddaysfrom)." AND `idroom`='".$roomrows['id']."' AND `idprice`='".$pr['id']."';";
+						$safeq = "SELECT `id` FROM `#__vikbooking_dispcost` WHERE `days`=" . $dbo->quote($pddaysfrom) . " AND `idroom`='" . $roomrows['id'] . "' AND `idprice`='" . $pr['id'] . "';";
 						$dbo->setQuery($safeq);
 						$dbo->execute();
 						if ($dbo->getNumRows() == 0) {
-							$q = "INSERT INTO `#__vikbooking_dispcost` (`idroom`,`days`,`idprice`,`cost`,`attrdata`) VALUES('".$roomrows['id']."',".$dbo->quote($pddaysfrom).",'".$pr['id']."','".($tmpvarone * $pddaysfrom)."',".($multipattr ? "'".($tmpvartwo  * $pddaysfrom)."'" : $dbo->quote($tmpvartwo)).");";
+							$q = "INSERT INTO `#__vikbooking_dispcost` (`idroom`,`days`,`idprice`,`cost`,`attrdata`) VALUES('" . $roomrows['id'] . "'," . $dbo->quote($pddaysfrom) . ",'" . $pr['id'] . "','" . ($tmpvarone * $pddaysfrom) . "'," . ($multipattr ? "'" . ($tmpvartwo  * $pddaysfrom) . "'" : $dbo->quote($tmpvartwo)) . ");";
 							$dbo->setQuery($q);
 							$dbo->execute();
 						} elseif ($dbo->getNumRows() == 1) {
 							$upd_id = $dbo->loadResult();
-							$q = "UPDATE `#__vikbooking_dispcost` SET `cost`='".($tmpvarone * $pddaysfrom)."', `attrdata`=".($multipattr ? "'".($tmpvartwo  * $pddaysfrom)."'" : $dbo->quote($tmpvartwo))." WHERE `id`=".(int)$upd_id." AND `days`=".$dbo->quote($pddaysfrom)." AND `idroom`='".$roomrows['id']."' AND `idprice`='".$pr['id']."' LIMIT 1;";
+							$q = "UPDATE `#__vikbooking_dispcost` SET `cost`='" . ($tmpvarone * $pddaysfrom) . "', `attrdata`=" . ($multipattr ? "'" . ($tmpvartwo  * $pddaysfrom) . "'" : $dbo->quote($tmpvartwo)) . " WHERE `id`=" . (int)$upd_id . " AND `days`=" . $dbo->quote($pddaysfrom) . " AND `idroom`='" . $roomrows['id'] . "' AND `idprice`='" . $pr['id'] . "' LIMIT 1;";
 							$dbo->setQuery($q);
 							$dbo->execute();
 						}
 					}
 				}
 			} else {
+
 				$pddaysto = intval($pddaysto) > 365 ? 365 : $pddaysto;
 				for ($i = intval($pddaysfrom); $i <= intval($pddaysto); $i++) {
 					foreach ($prices as $pr) {
-						$tmpvarone = VikRequest::getFloat('dprice'.$pr['id'], '', 'request');
+						$tmpvarone = VikRequest::getFloat('dprice' . $pr['id'], '', 'request');
+						//$tmpvarone = $tmpvarone + 5;
 						if (!empty($tmpvarone)) {
-							$tmpvartwo = VikRequest::getString('dattr'.$pr['id'], '', 'request');
+							$tmpvartwo = VikRequest::getString('dattr' . $pr['id'], '', 'request');
 							$multipattr = is_numeric($tmpvartwo) ? true : false;
-							$safeq = "SELECT `id` FROM `#__vikbooking_dispcost` WHERE `days`=".$dbo->quote($i)." AND `idroom`='".$roomrows['id']."' AND `idprice`='".$pr['id']."';";
+							$safeq = "SELECT `id` FROM `#__vikbooking_dispcost` WHERE `days`=" . $dbo->quote($i) . " AND `idroom`='" . $roomrows['id'] . "' AND `idprice`='" . $pr['id'] . "';";
 							$dbo->setQuery($safeq);
 							$dbo->execute();
 							if ($dbo->getNumRows() == 0) {
-								$q = "INSERT INTO `#__vikbooking_dispcost` (`idroom`,`days`,`idprice`,`cost`,`attrdata`) VALUES('".$roomrows['id']."',".$dbo->quote($i).",'".$pr['id']."','".($tmpvarone * $i)."',".($multipattr ? "'".($tmpvartwo  * $i)."'" : $dbo->quote($tmpvartwo)).");";
+								$q = "INSERT INTO `#__vikbooking_dispcost` (`idroom`,`days`,`idprice`,`cost`,`attrdata`) VALUES('" . $roomrows['id'] . "'," . $dbo->quote($i) . ",'" . $pr['id'] . "','" . ($tmpvarone * $i) . "'," . ($multipattr ? "'" . ($tmpvartwo  * $i) . "'" : $dbo->quote($tmpvartwo)) . ");";
 								$dbo->setQuery($q);
 								$dbo->execute();
 							} elseif ($dbo->getNumRows() == 1) {
 								$upd_id = $dbo->loadResult();
-								$q = "UPDATE `#__vikbooking_dispcost` SET `cost`='".($tmpvarone * $i)."', `attrdata`=".($multipattr ? "'".($tmpvartwo  * $i)."'" : $dbo->quote($tmpvartwo))." WHERE `id`=".(int)$upd_id." AND `days`=".$dbo->quote($i)." AND `idroom`='".$roomrows['id']."' AND `idprice`='".$pr['id']."' LIMIT 1;";
+								$q = "UPDATE `#__vikbooking_dispcost` SET `cost`='" . ($tmpvarone * $i) . "', `attrdata`=" . ($multipattr ? "'" . ($tmpvartwo  * $i) . "'" : $dbo->quote($tmpvartwo)) . " WHERE `id`=" . (int)$upd_id . " AND `days`=" . $dbo->quote($i) . " AND `idroom`='" . $roomrows['id'] . "' AND `idprice`='" . $pr['id'] . "' LIMIT 1;";
 								$dbo->setQuery($q);
 								$dbo->execute();
 							}
@@ -101,20 +108,20 @@ class VikBookingViewTariffs extends JViewVikBooking {
 				}
 			}
 		}
-		$q = "SELECT * FROM `#__vikbooking_dispcost` WHERE `idroom`='".$roomrows['id']."' ORDER BY `#__vikbooking_dispcost`.`days` ASC, `#__vikbooking_dispcost`.`idprice` ASC;";
+
+		$q = "SELECT * FROM `#__vikbooking_dispcost` WHERE `idroom`=" . (int)$roomrows['id'] . " ORDER BY `#__vikbooking_dispcost`.`days` ASC, `#__vikbooking_dispcost`.`idprice` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		$rows = $dbo->getNumRows() > 0 ? $dbo->loadAssocList() : "";
+		$rows = $dbo->loadAssocList();
+
 		$q = "SELECT `id`,`name` FROM `#__vikbooking_rooms` ORDER BY `#__vikbooking_rooms`.`name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
 		$allc = $dbo->loadAssocList();
 
-		$this->roomrows = &$roomrows;
-		$this->rows = &$rows;
-		$this->prices = &$prices;
-		$this->allc = &$allc;
-		
+		$this->roomrows = $roomrows;
+		$this->rows = $rows;
+		$this->prices = $prices;
+		$this->allc = $allc;
+
 		// Display the template
 		parent::display($tpl);
 	}
@@ -122,7 +129,8 @@ class VikBookingViewTariffs extends JViewVikBooking {
 	/**
 	 * Sets the toolbar
 	 */
-	protected function addToolBar() {
+	protected function addToolBar()
+	{
 		JToolBarHelper::title(JText::translate('VBMAINTARIFFETITLE'), 'vikbooking');
 		JToolBarHelper::save('cancel', JText::translate('VBMAINTARIFFEBACK'));
 		JToolBarHelper::spacer();
@@ -132,5 +140,4 @@ class VikBookingViewTariffs extends JViewVikBooking {
 			JToolBarHelper::spacer();
 		}
 	}
-
 }

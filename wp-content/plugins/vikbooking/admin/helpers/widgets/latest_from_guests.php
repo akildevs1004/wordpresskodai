@@ -13,12 +13,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 /**
  * Class handler for admin widget "latest from guests".
  * 
- * @since 	1.4.0
- * 
- * @todo 	1.6.0 	add filter to browse all latest guest messages, not just
- * 					the ones where the thread has got no owner reply as the
- * 					latest message. VCM >= 1.8.9 is required. To fetch such
- * 					data use: VikChannelManager::getLatestFromGuests(['guest_messages']).
+ * @since 	1.14.0 (J) - 1.4.0 (WP)
  */
 class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 {
@@ -109,7 +104,7 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 		}
 
 		// avoid queries on certain pages, as VCM may not have been activated yet
-		if (defined('ABSPATH') && $this->vcm_exists) {
+		if (VBOPlatformDetection::isWordPress() && $this->vcm_exists) {
 			global $pagenow;
 			$skip_pages = ['update.php', 'plugins.php', 'plugin-install.php'];
 			if (isset($pagenow) && in_array($pagenow, $skip_pages)) {
@@ -132,14 +127,14 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 		}
 
 		// use VCM to load the latest guest activity ids
-		$latest_activities = array();
+		$latest_activities = [];
 		try {
-			$latest_activities = VikChannelManager::getLatestFromGuests(array('messages', 'reviews'), 0, 1);
+			$latest_activities = VikChannelManager::getLatestFromGuests(['messages', 'reviews'], 0, 1);
 		} catch (Exception $e) {
 			// do nothing
 		}
 
-		if (!is_array($latest_activities) || !count($latest_activities)) {
+		if (!is_array($latest_activities) || !$latest_activities) {
 			return null;
 		}
 
@@ -147,15 +142,17 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 		$watch_data = new stdClass;
 		$watch_data->guest_review  = 0;
 		$watch_data->guest_message = '';
+		$watch_data->message_id    = 0;
 		$watch_data->message_bid   = 0;
 
 		foreach ($latest_activities as $activity) {
 			if (isset($activity->id_review) && empty($watch_data->guest_review)) {
 				// this is a guest review
 				$watch_data->guest_review = $activity->id_review;
-			} elseif (!isset($activity->id_review) && empty($watch_data->message_bid)) {
+			} elseif (!isset($activity->id_review) && empty($watch_data->message_id)) {
 				// this is a guest message
 				$watch_data->guest_message = $activity->content;
+				$watch_data->message_id    = $activity->id_message;
 				$watch_data->message_bid   = $activity->idorder;
 			}
 		}
@@ -187,17 +184,18 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 		// grab latest watch data values
 		$latest_guest_review  = (int)$watch_data->get('guest_review', 0);
 		$latest_guest_message = $watch_data->get('guest_message', '');
+		$latest_message_id    = (int)$watch_data->get('message_id', 0);
 		$latest_message_bid   = (int)$watch_data->get('message_bid', 0);
 
 		// use VCM to load the latest guest activity ids
-		$latest_activities = array();
 		try {
-			$latest_activities = VikChannelManager::getLatestFromGuests(array('messages', 'reviews'), 0, 1);
+			$latest_activities = VikChannelManager::getLatestFromGuests(['messages', 'reviews'], 0, 1);
 		} catch (Exception $e) {
 			// do nothing
+			$latest_activities = [];
 		}
 
-		if (!is_array($latest_activities) || !count($latest_activities)) {
+		if (!$latest_activities) {
 			return [$watch_next, $notifications];
 		}
 
@@ -205,6 +203,7 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 		$watch_next = new stdClass;
 		$watch_next->guest_review  = $latest_guest_review;
 		$watch_next->guest_message = $latest_guest_message;
+		$watch_next->message_id    = $latest_message_id;
 		$watch_next->message_bid   = $latest_message_bid;
 
 		// new notifications pool (if any)
@@ -218,19 +217,31 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 					$watch_next->guest_review = $activity->id_review;
 					// compose the notification(s) to dispatch for the guest review(s)
 					$review_notifications = VBONotificationScheduler::getInstance()->buildReviewDataObjects([$activity]);
-					if (!empty($review_notifications) && is_array($review_notifications)) {
+					if ($review_notifications) {
 						$notifications = array_merge($notifications, $review_notifications);
 					}
 				}
 			} else {
 				// this is a guest message
-				if ($activity->idorder != $latest_message_bid || $activity->content != $latest_guest_message) {
+				if (isset($activity->sender_type) && (!strcasecmp($activity->sender_type, 'host') || !strcasecmp($activity->sender_type, 'hotel'))) {
+					// we don't want threads started by the host/hotel
+					continue;
+				}
+
+				// make sure this is a more recent activity than the last one
+				if ($activity->id_message > $latest_message_id && ($activity->idorder != $latest_message_bid || $activity->content != $latest_guest_message)) {
+					// overwrite properties to watch at the next scheduled interval
 					$watch_next->guest_message = $activity->content;
+					$watch_next->message_id    = $activity->id_message;
 					$watch_next->message_bid   = $activity->idorder;
-					// compose the notification(s) to dispatch for the guest message(s)
-					$guestmess_notifications = VBONotificationScheduler::getInstance()->buildGuestMessageDataObjects([$activity]);
-					if (!empty($guestmess_notifications) && is_array($guestmess_notifications)) {
-						$notifications = array_merge($notifications, $guestmess_notifications);
+
+					// make sure the same message was not previously dispatched through a Push notification
+					if (!$watch_data->matchPushedGuestMessage($activity)) {
+						// compose the notification(s) to dispatch for the guest message(s)
+						$guestmess_notifications = VBONotificationScheduler::getInstance()->buildGuestMessageDataObjects([$activity]);
+						if ($guestmess_notifications) {
+							$notifications = array_merge($notifications, $guestmess_notifications);
+						}
 					}
 				}
 			}
@@ -259,9 +270,9 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 		}
 
 		// load latest activities
-		$latest_activities = array();
+		$latest_activities = [];
 		try {
-			$latest_activities = VikChannelManager::getLatestFromGuests(array('messages', 'reviews'), $offset, $length);
+			$latest_activities = VikChannelManager::getLatestFromGuests(['messages', 'reviews'], $offset, $length);
 		} catch (Exception $e) {
 			// do nothing
 		}
@@ -273,11 +284,18 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 				$activity_content = '.....';
 			} elseif (strlen($activity_content) > 90) {
 				if (function_exists('mb_substr')) {
-					$activity_content = mb_substr($activity_content, 0, 90);
+					$activity_content = mb_substr($activity_content, 0, 90, 'UTF-8');
 				} else {
 					$activity_content = substr($activity_content, 0, 90);
 				}
 				$activity_content .= '...';
+			}
+			// determine sender type in case of guest message
+			$sender = 'Hotel';
+			if ($activity_type == 'message' && isset($activity->sender_type)) {
+				if (strcasecmp($activity->sender_type, 'Hotel') && strcasecmp($activity->sender_type, 'Host')) {
+					$sender = 'Guest';
+				}
 			}
 
 			?>
@@ -288,6 +306,11 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 					// highest priority goes to the profile picture, not always available
 					?>
 					<img class="vbo-dashboard-guest-activity-avatar-profile" src="<?php echo $activity->guest_avatar; ?>" />
+					<?php
+				} elseif (!empty($activity->pic)) {
+					// customer profile picture is not the same as the photo avatar
+					?>
+					<img class="vbo-dashboard-guest-activity-avatar-profile" src="<?php echo strpos($activity->pic, 'http') === 0 ? $activity->pic : VBO_SITE_URI . 'resources/uploads/' . $activity->pic; ?>" />
 					<?php
 				} elseif (!empty($activity->channel_logo)) {
 					// channel logo goes as second option
@@ -314,7 +337,7 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 								<?php
 							} else {
 								// we use just an icon to tell that it's a chat guest message
-								if (empty($activity->read_dt)) {
+								if (empty($activity->read_dt) && $sender === 'Guest') {
 									// print also an icon to inform that the message was not read
 									VikBookingIcons::e('exclamation-circle');
 									echo ' ';
@@ -388,7 +411,8 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 	 * 
 	 * Outputs the new number of activities found from the latest datetime.
 	 */
-	public function watchActivities() {
+	public function watchActivities()
+	{
 		$latest_dt = VikRequest::getString('latest_dt', '', 'request');
 		if (empty($latest_dt)) {
 			echo '0';
@@ -401,9 +425,9 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 		}
 
 		// load the latest activity (one is sufficient)
-		$latest_activities = array();
+		$latest_activities = [];
 		try {
-			$latest_activities = VikChannelManager::getLatestFromGuests(array('messages', 'reviews'), 0, 1);
+			$latest_activities = VikChannelManager::getLatestFromGuests(['messages', 'reviews'], 0, 1);
 		} catch (Exception $e) {
 			// do nothing
 		}
@@ -436,10 +460,16 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 			return;
 		}
 
+		// multitask data event identifier for intervals
+		$js_intvals_id = '';
+		if ($data && $data->isModalRendering()) {
+			$js_intvals_id = $data->getModalJsIdentifier();
+		}
+
 		?>
 		<div class="vbo-admin-widget-wrapper">
 			<div class="vbo-admin-widget-head">
-				<h4><?php VikBookingIcons::e('comments'); ?> <?php echo JText::translate('VBO_W_LATESTFROMGUESTS_TITLE'); ?></h4>
+				<h4><?php echo $this->widgetIcon; ?> <span><?php echo $this->widgetName; ?></span></h4>
 			</div>
 			<div id="<?php echo $wrapper_id; ?>" class="vbo-dashboard-guests-latest" data-offset="0" data-length="<?php echo $this->activities_per_type; ?>" data-latestdt="">
 				<div class="vbo-dashboard-guest-activities-inner">
@@ -474,8 +504,9 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 		<?php
 		if (static::$instance_counter === 0 || $is_ajax) {
 			// HTML helper tag for URL routing and some JS functions should be loaded once per widget instance
+			$admin_file_base = VBOPlatformDetection::isWordPress() ? 'admin.php' : 'index.php';
 		?>
-		<a class="vbo-widget-latest-from-guests-basenavuri" href="index.php?option=com_vikbooking&task=editorder&cid[]=%d" style="display: none;"></a>
+		<a class="vbo-widget-latest-from-guests-basenavuri" href="<?php echo $admin_file_base; ?>?option=com_vikbooking&task=editorder&cid[]=%d" style="display: none;"></a>
 
 		<script type="text/javascript">
 
@@ -546,9 +577,9 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 						wrapper: wrapper,
 						tmpl: "component"
 					},
-					function(response) {
+					(response) => {
 						try {
-							var obj_res = JSON.parse(response);
+							var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 							if (!obj_res.hasOwnProperty(call_method)) {
 								console.error('Unexpected JSON response', obj_res);
 								return false;
@@ -580,7 +611,7 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 							console.error('could not parse JSON response', err, response);
 						}
 					},
-					function(error) {
+					(error) => {
 						// remove the skeleton loading
 						widget_instance.find('.vbo-dashboard-guest-activities-list').find('.vbo-dashboard-guest-activity-skeleton').remove();
 						console.error(error);
@@ -647,9 +678,9 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 						latest_dt: latest_dt,
 						tmpl: "component"
 					},
-					function(response) {
+					(response) => {
 						try {
-							var obj_res = JSON.parse(response);
+							var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 							if (!obj_res.hasOwnProperty(call_method)) {
 								console.error('Unexpected JSON response', obj_res);
 								return false;
@@ -669,7 +700,7 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 							console.error('could not parse JSON response', err, response);
 						}
 					},
-					function(error) {
+					(error) => {
 						// do nothing
 						console.error(error);
 					}
@@ -683,18 +714,29 @@ class VikBookingAdminWidgetLatestFromGuests extends VikBookingAdminWidget
 
 		<script type="text/javascript">
 
-			jQuery(document).ready(function() {
+			jQuery(function() {
 
 				// when document is ready, load latest activities for this widget's instance
 				vboWidgetLatestFromGuestsLoad('<?php echo $wrapper_id; ?>');
 
 				// set interval for loading new activities automatically
-				setInterval(function() {
+				var watch_intv = setInterval(function() {
 					vboWidgetLatestFromGuestsWatch('<?php echo $wrapper_id; ?>');
 				}, 60000);
 
+			<?php
+			if ($js_intvals_id) {
+				// widget can be dismissed through the modal
+				?>
+				document.addEventListener(VBOCore.widget_modal_dismissed + '<?php echo $js_intvals_id; ?>', (e) => {
+					clearInterval(watch_intv);
+				});
+				<?php
+			}
+			?>
+
 			});
-			
+
 		</script>
 
 		<?php

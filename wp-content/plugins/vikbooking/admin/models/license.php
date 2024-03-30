@@ -334,6 +334,15 @@ class VikBookingModelLicense extends JModelForm
 		// process complete, clean up the temporary folder before exiting
 		JFolder::delete($dest);
 
+		/**
+		 * Trigger an action when the Pro version has been downloaded.
+		 * 
+		 * @param 	string 	$key 	the license key validated.
+		 * 
+		 * @since 	1.6.6
+		 */
+		do_action('vikbooking_license_after_complete', $key);
+
 		// restore template files that could have been overwritten by the Pro package
 		VikBookingLoader::import('update.manager');
 		VikBookingUpdateManager::restoreTemplateFiles();

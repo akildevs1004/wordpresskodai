@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.session
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -123,7 +123,14 @@ class JSessionHandler
 	 */
 	public static function isStarted()
 	{
-		return (bool) self::getId();
+		/**
+		 * Make sure the session status is currently active. This because,
+		 * in case someonehad manually closed the session, this method would
+		 * have improperly returned true.
+		 * 
+		 * @since 10.1.43
+		 */
+		return session_status() === PHP_SESSION_ACTIVE && self::getId();
 	}
 
 	/**

@@ -40,6 +40,15 @@ interface VBONotificationData
 	public function getNoTime();
 
 	/**
+	 * Gathers the options for dispatching the notification.
+	 * 
+	 * @return 	array 	associative list of notification options.
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function getOptions();
+
+	/**
 	 * Returns the list of notification object properties.
 	 * 
 	 * @return 	object    the notification data object.

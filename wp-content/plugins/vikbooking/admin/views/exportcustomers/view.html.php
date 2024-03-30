@@ -24,11 +24,10 @@ class VikBookingViewExportcustomers extends JViewVikBooking {
 		$dbo = JFactory::getDBO();
 		$q = "SELECT * FROM `#__vikbooking_countries` ORDER BY `#__vikbooking_countries`.`country_name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
 		$countries = $dbo->loadAssocList();
 		
-		$this->cid = &$cid;
-		$this->countries = &$countries;
+		$this->cid = $cid;
+		$this->countries = $countries;
 		
 		// Display the template
 		parent::display($tpl);

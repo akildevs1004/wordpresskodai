@@ -39,7 +39,7 @@ class VikBookingViewManageiva extends JViewVikBooking {
 			$row = $dbo->loadAssoc();
 		}
 		
-		$this->row = &$row;
+		$this->row = $row;
 		
 		// Display the template
 		parent::display($tpl);

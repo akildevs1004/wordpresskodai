@@ -164,9 +164,10 @@ $data 	 = !is_array($data) ? array() : $data;
 				</td>
 				<td>
 					<?php
-					$current_vatexempt_catcode = isset($data['params']) && !empty($data['params']['vat_exempt_cat']) ? $data['params']['vat_exempt_cat'] : '1';
+					$current_vatexempt_catcode = isset($data['params']) && !empty($data['params']['vat_exempt_cat']) ? $data['params']['vat_exempt_cat'] : '';
 					?>
 					<select name="vat_exempt_cat">
+						<option value="">Not specified</option>
 						<option value="1"<?php echo $current_vatexempt_catcode == '1' ? ' selected="selected"' : ''; ?>>Without VAT - article 3 of the VAT code</option>
 						<option value="2"<?php echo $current_vatexempt_catcode == '2' ? ' selected="selected"' : ''; ?>>Without VAT - article 5 of the VAT code</option>
 						<option value="3"<?php echo $current_vatexempt_catcode == '3' ? ' selected="selected"' : ''; ?>>Without VAT - article 13 of the VAT code</option>

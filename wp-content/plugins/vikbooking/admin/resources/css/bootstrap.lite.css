@@ -539,3 +539,7 @@ button.close {
 	border-bottom-left-radius: 0;
 
 }
+/* Force visibility to avoid conflicts with other plugins */
+.modal.hide.fade.in {
+	display: block !important; 
+}

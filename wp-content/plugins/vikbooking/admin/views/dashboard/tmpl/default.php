@@ -10,20 +10,7 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-// make sure the basic setup has been completed
-$up_running = true;
-
-/**
- * @wponly - check if some shortcodes have been defined before showing the Dashboard
- */
-$model = JModel::getInstance('vikbooking', 'shortcodes');
-$itemid = $model->all('post_id');
-//
-
-if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $this->arrayfirst['totdailyfares'] < 1 || count($itemid) < 1) {
-	// first setup helper needed
-	$up_running = false;
-
+if (!$this->metrics['completed']) {
 	?>
 <div class="vbo-dashboard-firstsetup-wrap">
 	<div class="vbo-dashboard-firstsetup-container">
@@ -41,7 +28,7 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 		//
 		?>
 		<div class="vbo-dashboard-firstsetup-body">
-			<div class="vbo-dashboard-firstsetup-task vbo-dashboard-firstsetup-task-<?php echo $this->arrayfirst['totprices'] < 1 ? 'incomplete' : 'completed'; ?>">
+			<div class="vbo-dashboard-firstsetup-task vbo-dashboard-firstsetup-task-<?php echo $this->metrics['totprices'] < 1 ? 'incomplete' : 'completed'; ?>">
 				<div class="vbo-dashboard-firstsetup-task-wrap">
 					<div class="vbo-dashboard-firstsetup-task-number">
 						<span>1.</span>
@@ -49,9 +36,9 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 					<div class="vbo-dashboard-firstsetup-task-details">
 						<div class="vbo-dashboard-firstsetup-task-name"><?php echo JText::translate('VBDASHNOPRICES'); ?></div>
 						<div class="vbo-dashboard-firstsetup-task-count">
-							<span class="vbo-dashboard-firstsetup-task-val"><?php echo $this->arrayfirst['totprices']; ?></span>
+							<span class="vbo-dashboard-firstsetup-task-val"><?php echo $this->metrics['totprices']; ?></span>
 						<?php
-						if ($this->arrayfirst['totprices'] > 0) {
+						if ($this->metrics['totprices'] > 0) {
 							?>
 							<span class="vbo-dashboard-firstsetup-done"><?php VikBookingIcons::e('check-circle'); ?></span>
 							<?php
@@ -60,7 +47,7 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 						</div>
 					</div>
 				<?php
-				if ($this->arrayfirst['totprices'] < 1) {
+				if ($this->metrics['totprices'] < 1) {
 					?>
 					<div class="vbo-dashboard-firstsetup-task-action">
 						<a href="index.php?option=com_vikbooking&task=prices" class="button button-secondary"><?php echo JText::translate('VBCONFIGURETASK'); ?></a>
@@ -73,7 +60,7 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 					</div>
 				</div>
 			</div>
-			<div class="vbo-dashboard-firstsetup-task vbo-dashboard-firstsetup-task-<?php echo $this->arrayfirst['totrooms'] < 1 ? 'incomplete' : 'completed'; ?>">
+			<div class="vbo-dashboard-firstsetup-task vbo-dashboard-firstsetup-task-<?php echo $this->metrics['totrooms'] < 1 ? 'incomplete' : 'completed'; ?>">
 				<div class="vbo-dashboard-firstsetup-task-wrap">
 					<div class="vbo-dashboard-firstsetup-task-number">
 						<span>2.</span>
@@ -81,9 +68,9 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 					<div class="vbo-dashboard-firstsetup-task-details">
 						<div class="vbo-dashboard-firstsetup-task-name"><?php echo JText::translate('VBDASHNOROOMS'); ?></div>
 						<div class="vbo-dashboard-firstsetup-task-count">
-							<span class="vbo-dashboard-firstsetup-task-val"><?php echo $this->arrayfirst['totrooms']; ?></span>
+							<span class="vbo-dashboard-firstsetup-task-val"><?php echo $this->metrics['totrooms']; ?></span>
 						<?php
-						if ($this->arrayfirst['totrooms'] > 0) {
+						if ($this->metrics['totrooms'] > 0) {
 							?>
 							<span class="vbo-dashboard-firstsetup-done"><?php VikBookingIcons::e('check-circle'); ?></span>
 							<?php
@@ -92,7 +79,7 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 						</div>
 					</div>
 					<?php
-				if ($this->arrayfirst['totrooms'] < 1) {
+				if ($this->metrics['totrooms'] < 1) {
 					?>
 					<div class="vbo-dashboard-firstsetup-task-action">
 						<a href="index.php?option=com_vikbooking&task=rooms" class="button button-secondary"><?php echo JText::translate('VBCONFIGURETASK'); ?></a>
@@ -109,7 +96,7 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 				 * 
 				 * @since 	1.3.5
 				 */
-				if ($this->arrayfirst['totrooms'] > 0) {
+				if ($this->metrics['totrooms'] > 0) {
 					$tpp_supported = VikBooking::canImportBookingsFromThirdPartyPlugins();
 					if ($tpp_supported !== false) {
 						?>
@@ -124,7 +111,7 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 				?>
 				</div>
 			</div>
-			<div class="vbo-dashboard-firstsetup-task vbo-dashboard-firstsetup-task-<?php echo $this->arrayfirst['totdailyfares'] < 1 ? 'incomplete' : 'completed'; ?>">
+			<div class="vbo-dashboard-firstsetup-task vbo-dashboard-firstsetup-task-<?php echo $this->metrics['totdailyfares'] < 1 ? 'incomplete' : 'completed'; ?>">
 				<div class="vbo-dashboard-firstsetup-task-wrap">
 					<div class="vbo-dashboard-firstsetup-task-number">
 						<span>3.</span>
@@ -132,9 +119,9 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 					<div class="vbo-dashboard-firstsetup-task-details">
 						<div class="vbo-dashboard-firstsetup-task-name"><?php echo JText::translate('VBDASHNODAILYFARES'); ?></div>
 						<div class="vbo-dashboard-firstsetup-task-count">
-							<span class="vbo-dashboard-firstsetup-task-val"><?php echo $this->arrayfirst['totdailyfares'] < 1 ? '0' : ''; ?></span>
+							<span class="vbo-dashboard-firstsetup-task-val"><?php echo $this->metrics['totdailyfares'] < 1 ? '0' : ''; ?></span>
 						<?php
-						if ($this->arrayfirst['totdailyfares'] > 0) {
+						if ($this->metrics['totdailyfares'] > 0) {
 							?>
 							<span class="vbo-dashboard-firstsetup-done"><?php VikBookingIcons::e('check-circle'); ?></span>
 							<?php
@@ -143,7 +130,7 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 						</div>
 					</div>
 					<?php
-				if ($this->arrayfirst['totdailyfares'] < 1) {
+				if ($this->metrics['totdailyfares'] < 1) {
 					?>
 					<div class="vbo-dashboard-firstsetup-task-action">
 						<a href="index.php?option=com_vikbooking&task=tariffs" class="button button-secondary"><?php echo JText::translate('VBCONFIGURETASK'); ?></a>
@@ -156,7 +143,7 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 					</div>
 				</div>
 			</div>
-			<div class="vbo-dashboard-firstsetup-task vbo-dashboard-firstsetup-task-<?php echo count($itemid) < 1 ? 'incomplete' : 'completed'; ?>">
+			<div class="vbo-dashboard-firstsetup-task vbo-dashboard-firstsetup-task-<?php echo !$this->metrics['shortcodes'] ? 'incomplete' : 'completed'; ?>">
 				<div class="vbo-dashboard-firstsetup-task-wrap">
 					<div class="vbo-dashboard-firstsetup-task-number">
 						<span>4.</span>
@@ -164,9 +151,9 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 					<div class="vbo-dashboard-firstsetup-task-details">
 						<div class="vbo-dashboard-firstsetup-task-name"><?php echo JText::translate('VBFIRSTSETSHORTCODES'); ?></div>
 						<div class="vbo-dashboard-firstsetup-task-count">
-							<span class="vbo-dashboard-firstsetup-task-val"><?php echo count($itemid); ?></span>
+							<span class="vbo-dashboard-firstsetup-task-val"><?php echo count($this->metrics['shortcodes']); ?></span>
 						<?php
-						if (count($itemid) > 0) {
+						if ($this->metrics['shortcodes']) {
 							?>
 							<span class="vbo-dashboard-firstsetup-done"><?php VikBookingIcons::e('check-circle'); ?></span>
 							<?php
@@ -175,7 +162,7 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 						</div>
 					</div>
 					<?php
-				if (count($itemid) < 1) {
+				if (!$this->metrics['shortcodes']) {
 					?>
 					<div class="vbo-dashboard-firstsetup-task-action">
 						<a href="index.php?option=com_vikbooking&view=shortcodes" class="button button-secondary"><?php echo JText::translate('VBCONFIGURETASK'); ?></a>
@@ -194,7 +181,7 @@ if ($this->arrayfirst['totprices'] < 1 || $this->arrayfirst['totrooms'] < 1 || $
 	<?php
 }
 
-if ($up_running === true) {
+if ($this->metrics['completed']) {
 	// load the admin widgets
 	?>
 <div class="vbo-dashboard-fullcontainer vbo-admin-widgets-container">

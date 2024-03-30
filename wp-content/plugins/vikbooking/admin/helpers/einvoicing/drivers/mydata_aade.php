@@ -1707,7 +1707,7 @@ class VikBookingEInvoicingMydataAade extends VikBookingEInvoicing
 					<netValue>' . number_format($row['net'], 2, '.', '') . '</netValue>
 					<vatCategory>' . $vat_category . '</vatCategory>
 					<vatAmount>' . number_format($row['tax'], 2, '.', '') . '</vatAmount>
-					' . ((int)$row['aliq'] === 0 ? '<vatExemptionCategory>' . $settings['params']['vat_exempt_cat'] . '</vatExemptionCategory>' : '') . '
+					' . ((int)$row['aliq'] === 0 && !empty($settings['params']['vat_exempt_cat']) ? '<vatExemptionCategory>' . $settings['params']['vat_exempt_cat'] . '</vatExemptionCategory>' : '') . '
 					<lineComments>'.$this->convertSpecials($row['service']).'</lineComments>
 					' . $inc_classf_nodes . '
 				</invoiceDetails>');
@@ -1767,7 +1767,7 @@ class VikBookingEInvoicingMydataAade extends VikBookingEInvoicing
 					<netValue>' . number_format($cost_minus_tax, 2, '.', '') . '</netValue>
 					<vatCategory>' . VikBookingMydataAadeConstants::getVatCategory($aliq) . '</vatCategory>
 					<vatAmount>' . number_format($cost_tax_amount, 2, '.', '') . '</vatAmount>
-					' . ((int)$aliq === 0 ? '<vatExemptionCategory>' . $settings['params']['vat_exempt_cat'] . '</vatExemptionCategory>' : '') . '
+					' . ((int)$aliq === 0 && !empty($settings['params']['vat_exempt_cat']) ? '<vatExemptionCategory>' . $settings['params']['vat_exempt_cat'] . '</vatExemptionCategory>' : '') . '
 					' . (($num + $extralinenum) == 1 ? $discount_nodes : '') . '
 					<lineComments>' . $this->convertSpecials($descr) . '</lineComments>
 					' . $inc_classf_nodes . '
@@ -1813,7 +1813,7 @@ class VikBookingEInvoicingMydataAade extends VikBookingEInvoicing
 					<netValue>' . number_format($cost_minus_tax, 2, '.', '') . '</netValue>
 					<vatCategory>' . VikBookingMydataAadeConstants::getVatCategory($aliq) . '</vatCategory>
 					<vatAmount>' . number_format($tax, 2, '.', '') . '</vatAmount>
-					' . ((int)$aliq === 0 ? '<vatExemptionCategory>' . $settings['params']['vat_exempt_cat'] . '</vatExemptionCategory>' : '') . '
+					' . ((int)$aliq === 0 && !empty($settings['params']['vat_exempt_cat']) ? '<vatExemptionCategory>' . $settings['params']['vat_exempt_cat'] . '</vatExemptionCategory>' : '') . '
 					' . (($num + $extralinenum) == 1 ? $discount_nodes : '') . '
 					<lineComments>' . $this->convertSpecials($descr) . '</lineComments>
 					' . $inc_classf_nodes . '
@@ -1929,7 +1929,7 @@ class VikBookingEInvoicingMydataAade extends VikBookingEInvoicing
 						<netValue>' . number_format($opt_minus_tax, 2, '.', '') . '</netValue>
 						<vatCategory>' . VikBookingMydataAadeConstants::getVatCategory($aliq) . '</vatCategory>
 						<vatAmount>' . number_format($tax, 2, '.', '') . '</vatAmount>
-						' . ((int)$aliq === 0 ? '<vatExemptionCategory>' . $settings['params']['vat_exempt_cat'] . '</vatExemptionCategory>' : '') . '
+						' . ((int)$aliq === 0 && !empty($settings['params']['vat_exempt_cat']) ? '<vatExemptionCategory>' . $settings['params']['vat_exempt_cat'] . '</vatExemptionCategory>' : '') . '
 						<lineComments>' . $this->convertSpecials($descr) . '</lineComments>
 						' . $inc_classf_nodes . '
 					</invoiceDetails>');
@@ -1982,7 +1982,7 @@ class VikBookingEInvoicingMydataAade extends VikBookingEInvoicing
 						<netValue>' . number_format($ec_minus_tax, 2, '.', '') . '</netValue>
 						<vatCategory>' . VikBookingMydataAadeConstants::getVatCategory($aliq) . '</vatCategory>
 						<vatAmount>' . number_format($tax, 2, '.', '') . '</vatAmount>
-						' . ((int)$aliq === 0 ? '<vatExemptionCategory>' . $settings['params']['vat_exempt_cat'] . '</vatExemptionCategory>' : '') . '
+						' . ((int)$aliq === 0 && !empty($settings['params']['vat_exempt_cat']) ? '<vatExemptionCategory>' . $settings['params']['vat_exempt_cat'] . '</vatExemptionCategory>' : '') . '
 						<lineComments>' . $this->convertSpecials($descr) . '</lineComments>
 						' . $inc_classf_nodes . '
 					</invoiceDetails>');
@@ -2232,56 +2232,10 @@ class VikBookingEInvoicingMydataAade extends VikBookingEInvoicing
 			if ($this->dbo->getNumRows() > 0) {
 				$tar = $this->dbo->loadAssocList();
 				$tar = VikBooking::applySeasonsRoom($tar, $or['checkin'], $or['checkout']);
-				// different usage
-				if ($or['fromadult'] <= $or['adults'] && $or['toadult'] >= $or['adults']) {
-					$diffusageprice = VikBooking::loadAdultsDiff($or['idroom'], $or['adults']);
-					// Occupancy Override
-					$occ_ovr = VikBooking::occupancyOverrideExists($tar, $or['adults']);
-					$diffusageprice = $occ_ovr !== false ? $occ_ovr : $diffusageprice;
-					//
-					if (is_array($diffusageprice)) {
-						// set a charge or discount to the price(s) for the different usage of the room
-						foreach ($tar as $kpr => $vpr) {
-							$tar[$kpr]['diffusage'] = $or['adults'];
-							if ($diffusageprice['chdisc'] == 1) {
-								// charge
-								if ($diffusageprice['valpcent'] == 1) {
-									// fixed value
-									$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
-									$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $tar[$kpr]['days'] : $diffusageprice['value'];
-									$tar[$kpr]['diffusagecost'] = "+".$aduseval;
-									$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-									$tar[$kpr]['cost'] = $vpr['cost'] + $aduseval;
-								} else {
-									// percentage value
-									$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
-									$aduseval = $diffusageprice['pernight'] == 1 ? round(($vpr['cost'] * $diffusageprice['value'] / 100) * $tar[$kpr]['days'] + $vpr['cost'], 2) : round(($vpr['cost'] * (100 + $diffusageprice['value']) / 100), 2);
-									$tar[$kpr]['diffusagecost'] = "+".$diffusageprice['value']."%";
-									$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-									$tar[$kpr]['cost'] = $aduseval;
-								}
-							} else {
-								// discount
-								if ($diffusageprice['valpcent'] == 1) {
-									// fixed value
-									$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? 1 : 0;
-									$aduseval = $diffusageprice['pernight'] == 1 ? $diffusageprice['value'] * $tar[$kpr]['days'] : $diffusageprice['value'];
-									$tar[$kpr]['diffusagecost'] = "-".$aduseval;
-									$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-									$tar[$kpr]['cost'] = $vpr['cost'] - $aduseval;
-								} else {
-									// percentage value
-									$tar[$kpr]['diffusagecostpernight'] = $diffusageprice['pernight'] == 1 ? $vpr['cost'] : 0;
-									$aduseval = $diffusageprice['pernight'] == 1 ? round($vpr['cost'] - ((($vpr['cost'] / $tar[$kpr]['days']) * $diffusageprice['value'] / 100) * $tar[$kpr]['days']), 2) : round(($vpr['cost'] * (100 - $diffusageprice['value']) / 100), 2);
-									$tar[$kpr]['diffusagecost'] = "-".$diffusageprice['value']."%";
-									$tar[$kpr]['room_base_cost'] = $vpr['cost'];
-									$tar[$kpr]['cost'] = $aduseval;
-								}
-							}
-						}
-					}
-				}
-				//
+
+				// apply OBP rules
+				$tar = VBORoomHelper::getInstance()->applyOBPRules($tar, $or, $or['adults']);
+
 				$tars[$num] = $tar[0];
 			}
 		}

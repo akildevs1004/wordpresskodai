@@ -61,6 +61,8 @@ class VikBookingReportRatesFlow extends VikBookingReport
 
 		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
 
+		$this->registerExportCSVFileName();
+
 		parent::__construct();
 	}
 
@@ -778,7 +780,7 @@ class VikBookingReportRatesFlow extends VikBookingReport
 							array_push($data_parts, 'LOS Model');
 						}
 						if (isset($val->Restrictions)) {
-							if (isset($val->Restrictions->minLOS) && (int)$val->Restrictions->minLOS > 1) {
+							if (isset($val->Restrictions->minLOS)) {
 								array_push($data_parts, 'Min LOS ' . $val->Restrictions->minLOS);
 							}
 							if (isset($val->Restrictions->cta)) {
@@ -816,58 +818,6 @@ class VikBookingReportRatesFlow extends VikBookingReport
 		$this->defaultKeyOrder = $pkrorder;
 
 		return true;
-	}
-
-	/**
-	 * Generates the report columns and rows, then it outputs a CSV file
-	 * for download. In case of errors, the process is not terminated (exit)
-	 * to let the View display the error message.
-	 *
-	 * @return 	mixed 	void on success with script termination, false otherwise.
-	 */
-	public function exportCSV()
-	{
-		if (!count($this->rows) && !$this->getReportData()) {
-			return false;
-		}
-		$pfromdate = VikRequest::getString('fromdate', '', 'request');
-		$ptodate = VikRequest::getString('todate', '', 'request');
-
-		$csvlines = array();
-
-		// push the head of the CSV file
-		$csvcols = array();
-		foreach ($this->cols as $col) {
-			array_push($csvcols, $col['label']);
-		}
-		array_push($csvlines, $csvcols);
-
-		// push the rows of the CSV file
-		foreach ($this->rows as $row) {
-			$csvrow = array();
-			foreach ($row as $field) {
-				array_push($csvrow, (isset($field['callback']) && is_callable($field['callback']) ? $field['callback']($field['value']) : $field['value']));
-			}
-			array_push($csvlines, $csvrow);
-		}
-
-		$report_extraname = '';
-		$pchannel = VikRequest::getInt('channel', 0, 'request');
-		if (!empty($pchannel)) {
-			// set channel name for exported file
-			$report_extraname = $this->sayChannelName($pchannel);
-		}
-
-		// force CSV download
-		header("Content-type: text/csv");
-		header("Cache-Control: no-store, no-cache");
-		header('Content-Disposition: attachment; filename="' . $this->reportName . (!empty($report_extraname) ? '-' . $report_extraname : '') . '-' . str_replace('/', '_', $pfromdate) . '-' . str_replace('/', '_', $ptodate) . '.csv"');
-		$outstream = fopen("php://output", 'w');
-		foreach ($csvlines as $csvline) {
-			fputcsv($outstream, $csvline);
-		}
-		fclose($outstream);
-		exit;
 	}
 
 	/**
@@ -927,6 +877,28 @@ class VikBookingReportRatesFlow extends VikBookingReport
 	}
 
 	/**
+	 * Registers the name to give to the CSV file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	private function registerExportCSVFileName()
+	{
+		$pfromdate = VikRequest::getString('fromdate', '', 'request');
+		$ptodate = VikRequest::getString('todate', '', 'request');
+
+		$report_extraname = '';
+		$pchannel = VikRequest::getInt('channel', 0, 'request');
+		if (!empty($pchannel)) {
+			// set channel name for exported file
+			$report_extraname = $this->sayChannelName($pchannel);
+		}
+
+		$this->setExportCSVFileName($this->reportName . (!empty($report_extraname) ? '-' . $report_extraname : '') . '-' . str_replace('/', '_', $pfromdate) . '-' . str_replace('/', '_', $ptodate) . '.csv');
+	}
+
+	/**
 	 * Given a channel identifier number, returns a proper name for it.
 	 * 
 	 * @param 	int 	$ch_key 	 	the channel identifier number.
@@ -951,6 +923,7 @@ class VikBookingReportRatesFlow extends VikBookingReport
 				}
 				$channel_name = $ch_id == VikChannelManagerConfig::GOOGLEHOTEL ? 'Google Hotel' : ucwords($ch_name);
 				$channel_name = $ch_id == VikChannelManagerConfig::AIRBNBAPI ? 'Airbnb' : $channel_name;
+				$channel_name = defined('VikChannelManagerConfig::VRBOAPI') && $ch_id == VikChannelManagerConfig::VRBOAPI ? 'Vrbo' : $channel_name;
 			}
 		} catch (Exception $e) {
 			// do nothing

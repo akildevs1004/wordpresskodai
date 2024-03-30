@@ -150,10 +150,10 @@ class VikbookingViewPromotions extends JViewVikBooking {
 			}
 		}
 		
-		$this->promotions = &$promotions;
-		$this->rooms = &$rooms;
-		$this->showrooms = &$pshowrooms;
-		$this->vbo_tn = &$vbo_tn;
+		$this->promotions = $promotions;
+		$this->rooms = $rooms;
+		$this->showrooms = $pshowrooms;
+		$this->vbo_tn = $vbo_tn;
 		//theme
 		$theme = VikBooking::getTheme();
 		if ($theme != 'default') {

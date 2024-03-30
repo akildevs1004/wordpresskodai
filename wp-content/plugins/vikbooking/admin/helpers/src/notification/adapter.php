@@ -26,7 +26,8 @@ abstract class VBONotificationAdapter extends JObject implements VBONotification
 	protected $_notification_type = '';
 
 	/**
-	 * The default admin endpoint for displaying (building) a notification.
+	 * The default admin endpoint for displaying (building) a notification. Those notification
+	 * types that must be built through AJAX will have to convert this relative URL to an AJAX URL.
 	 * 
 	 * @var 	string
 	 */
@@ -89,7 +90,7 @@ abstract class VBONotificationAdapter extends JObject implements VBONotification
 	 */
 	public function getNoTime()
 	{
-		return (bool)$this->set('_no_time', false);
+		return (bool)$this->get('_no_time', false);
 	}
 
 	/**
@@ -108,14 +109,32 @@ abstract class VBONotificationAdapter extends JObject implements VBONotification
 	}
 
 	/**
+	 * @inheritDoc
+	 * 
+	 * @since 	1.16.5 (J) - 1.6.5 (WP)
+	 */
+	public function getOptions()
+	{
+		return (array)$this->get('_options', []);
+	}
+
+	/**
 	 * Returns the notification data object to be encoded.
 	 * 
 	 * @return 	object 	the notification data object for the document.
 	 */
 	public function toDataObject()
 	{
+		// get all data options set
+		$options = $this->getOptions();
+
 		// access all "public" (not reserved) properties
 		$props = $this->getProperties($public = true);
+
+		// merge public properties with data options, if any
+		if ($options) {
+			$props['_options'] = $options;
+		}
 
 		// build data object
 		$data = (object)$props;

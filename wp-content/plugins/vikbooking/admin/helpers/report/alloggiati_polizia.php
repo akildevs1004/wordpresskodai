@@ -11,14 +11,14 @@
 defined('ABSPATH') or die('No script kiddies please!');
 
 /**
-* AlloggiatiPolizia child Class of VikBookingReport.
-* The Class was designed to export the customers details for the Italian Police.
-* 
-* @link https://alloggiatiweb.poliziadistato.it/PortaleAlloggiati/TechSupp.aspx
-* @link https://alloggiatiweb.poliziadistato.it/PortaleAlloggiati/Download/CREAFILE.pdf (da pagina 4)
-* @link https://alloggiatiweb.poliziadistato.it/PortaleAlloggiati/Download/MANUALEALBERGHI.pdf
-* @link https://alloggiatiweb.poliziadistato.it/PortaleAlloggiati/Download/TABELLE.zip
-*/
+ * AlloggiatiPolizia child Class of VikBookingReport.
+ * The Class was designed to export the customers details for the Italian Police.
+ * 
+ * @link https://alloggiatiweb.poliziadistato.it/PortaleAlloggiati/TechSupp.aspx
+ * @link https://alloggiatiweb.poliziadistato.it/PortaleAlloggiati/Download/CREAFILE.pdf (da pagina 4)
+ * @link https://alloggiatiweb.poliziadistato.it/PortaleAlloggiati/Download/MANUALEALBERGHI.pdf
+ * @link https://alloggiatiweb.poliziadistato.it/PortaleAlloggiati/Download/TABELLE.zip
+ */
 class VikBookingReportAlloggiatiPolizia extends VikBookingReport
 {
 	/**
@@ -89,6 +89,8 @@ class VikBookingReportAlloggiatiPolizia extends VikBookingReport
 		$this->documenti = $this->loadDocumenti();
 
 		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
+
+		$this->registerExportFileName();
 
 		parent::__construct();
 	}
@@ -791,11 +793,14 @@ class VikBookingReportAlloggiatiPolizia extends VikBookingReport
 				'attr' => array(
 					'class="center"'
 				),
-				'label' => 'ID'
+				'label' => 'ID / #'
 			),
 		);
 
-		//loop over the bookings to build the rows of the report
+		// line number (to facilitate identifying a specific guest in case of errors with the file submission)
+		$line_number = 0;
+
+		// loop over the bookings to build the rows of the report
 		$from_info = getdate($from_ts);
 		foreach ($bookings as $gbook) {
 			// count the total number of guests for all rooms of this booking
@@ -1328,19 +1333,22 @@ class VikBookingReportAlloggiatiPolizia extends VikBookingReport
 					'attr' => array(
 						'class="center"'
 					),
-					'callback' => function ($val) {
+					'callback' => function ($val) use ($line_number) {
 						// make sure to keep the data-bid attribute as it's used by JS to identify the booking ID
-						return '<a data-bid="' . $val . '" href="index.php?option=com_vikbooking&task=editorder&cid[]=' . $val . '" target="_blank"><i class="' . VikBookingIcons::i('external-link') . '"></i> ' . $val . '</a>';
+						return '<a data-bid="' . $val . '" href="index.php?option=com_vikbooking&task=editorder&cid[]=' . $val . '" target="_blank"><i class="' . VikBookingIcons::i('external-link') . '"></i> ' . $val . '</a> / <span>#' . $line_number . '</span>';
 					},
 					'ignore_export' => 1,
 					'value' => $guests['id']
 				));
 
-				//push fields in the rows array as a new row
+				// push fields in the rows array as a new row
 				array_push($this->rows, $insert_row);
 
-				//increment guest index
+				// increment guest index
 				$guest_ind++;
+
+				// increment line number
+				$line_number++;
 			}
 		}
 		
@@ -1388,6 +1396,7 @@ class VikBookingReportAlloggiatiPolizia extends VikBookingReport
 		if (!$this->getReportData()) {
 			return false;
 		}
+
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$ptodate = VikRequest::getString('todate', '', 'request');
 		$pfiller = VikRequest::getString('filler', '', 'request', VIKREQUEST_ALLOWRAW);
@@ -1461,17 +1470,30 @@ class VikBookingReportAlloggiatiPolizia extends VikBookingReport
 			//push the line in the array of lines
 			array_push($lines, $line_cont);
 		}
-		
 
 		// update the history for all bookings affected
 		foreach ($booking_ids as $bid) {
 			VikBooking::getBookingHistoryInstance()->setBid($bid)->store('RP', $this->reportName);
 		}
 
-		// Force text file download
+		/**
+		 * Custom export method supports a custom export handler, if previously set.
+		 * 
+		 * @since 	1.16.1 (J) - 1.6.1 (WP)
+		 */
+		if ($this->hasExportHandler()) {
+			// write data onto the custom file handler
+			$fp = $this->getExportCSVHandler();
+			fwrite($fp, implode("\r\n", $lines));
+			fclose($fp);
+
+			return true;
+		}
+
+		// force text file download
 		header("Content-type: text/plain");
 		header("Cache-Control: no-store, no-cache");
-		header('Content-Disposition: attachment; filename="'.$this->reportName.'-'.str_replace('/', '_', $pfromdate).'-'.str_replace('/', '_', $ptodate).'.txt"');
+		header('Content-Disposition: attachment; filename="' . $this->getExportCSVFileName() . '"');
 		echo implode("\r\n", $lines);
 
 		exit;
@@ -1487,19 +1509,19 @@ class VikBookingReportAlloggiatiPolizia extends VikBookingReport
 	 */
 	public function updatePaxData($manual_data = array())
 	{
-		if (!is_array($manual_data) || !count($manual_data)) {
+		if (!is_array($manual_data) || !$manual_data) {
 			VBOHttpDocument::getInstance()->close(400, 'Nothing to save!');
 		}
 
 		// re-build manual entries object representation
 		$bids_guests = array();
 		foreach ($manual_data as $guest_ind => $guest_data) {
-			if (!is_numeric($guest_ind) || !is_array($guest_data) || empty($guest_data['bid']) || empty($guest_data['bid_index']) || count($guest_data) < 2) {
+			if (!is_numeric($guest_ind) || !is_array($guest_data) || empty($guest_data['bid']) || !isset($guest_data['bid_index']) || count($guest_data) < 2) {
 				// empty or invalid manual entries array
 				continue;
 			}
 			// the guest index in the reportObj starts from 0
-			$use_guest_ind = ($guest_ind + 1 - $guest_data['bid_index']);
+			$use_guest_ind = ($guest_ind + 1 - (int)$guest_data['bid_index']);
 			if (!isset($bids_guests[$guest_data['bid']])) {
 				$bids_guests[$guest_data['bid']] = array();
 			}
@@ -1560,6 +1582,21 @@ class VikBookingReportAlloggiatiPolizia extends VikBookingReport
 		}
 
 		return $bids_updated ? [true] : [false];
+	}
+
+	/**
+	 * Registers the name to give to the file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	protected function registerExportFileName()
+	{
+		$pfromdate = VikRequest::getString('fromdate', '', 'request');
+		$ptodate = VikRequest::getString('todate', '', 'request');
+
+		$this->setExportCSVFileName($this->reportName . '-' . str_replace('/', '_', $pfromdate) . '-' . str_replace('/', '_', $ptodate) . '.txt');
 	}
 
 	/**

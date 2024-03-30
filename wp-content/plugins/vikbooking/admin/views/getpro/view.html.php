@@ -60,10 +60,10 @@ class VikBookingViewGetpro extends JViewVikBooking {
 			exit;
 		}
 		
-		$this->changelog = &$changelog;
-		$this->lic_key = &$lic_key;
-		$this->lic_date = &$lic_date;
-		$this->is_pro = &$is_pro;
+		$this->changelog = $changelog;
+		$this->lic_key = $lic_key;
+		$this->lic_date = $lic_date;
+		$this->is_pro = $is_pro;
 		
 		// Display the template
 		parent::display($tpl);

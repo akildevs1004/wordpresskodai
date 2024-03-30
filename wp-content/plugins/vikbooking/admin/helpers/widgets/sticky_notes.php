@@ -13,7 +13,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 /**
  * Class handler for admin widget "sticky notes". This widget has settings.
  * 
- * @since 	1.4.0
+ * @since 	1.14.0 (J) - 1.4.0 (WP)
  */
 class VikBookingAdminWidgetStickyNotes extends VikBookingAdminWidget
 {
@@ -248,6 +248,21 @@ class VikBookingAdminWidgetStickyNotes extends VikBookingAdminWidget
 		echo 'e4j.ok';
 	}
 
+	/**
+	 * Preload the necessary assets.
+	 * 
+	 * @return 	void
+	 */
+	public function preload()
+	{
+		// JS lang def
+		JText::script('VBO_STICKYN_TITLE');
+		JText::script('VBO_STICKYN_TEXT');
+		JText::script('VBO_STICKYN_TEXT2');
+		JText::script('VBO_STICKYN_CUSTOMURI');
+		JText::script('VBO_WIDGETS_CONFRMELEM');
+	}
+
 	public function render(VBOMultitaskData $data = null)
 	{
 		// increase widget's instance counter
@@ -297,7 +312,7 @@ class VikBookingAdminWidgetStickyNotes extends VikBookingAdminWidget
 		?>
 		<div class="vbo-admin-widget-wrapper">
 			<div class="vbo-admin-widget-head">
-				<h4><?php VikBookingIcons::e('thumbtack'); ?> <?php echo JText::translate('VBO_W_STICKYN_TITLE'); ?></h4>
+				<h4><?php echo $this->widgetIcon; ?> <span><?php echo $this->widgetName; ?></span></h4>
 				<div class="btn-toolbar pull-right vbo-btn-toolbar-hastext">
 					<span class="vbo-sticky-shortcuts-help"<?php echo count($instance_settings) ? ' style="display: none;"' : ''; ?>>
 						<?php
@@ -351,7 +366,7 @@ class VikBookingAdminWidgetStickyNotes extends VikBookingAdminWidget
 			// declare global variables for notes sorting
 			var vbo_stickynote_initial_pos = null;
 
-			jQuery(document).ready(function() {
+			jQuery(function() {
 
 				// register input event listener for each sticky note
 				var stickies<?php echo $wrapper_instance; ?> = document.querySelectorAll('#<?php echo $wrapper_id; ?> .vbo-widget-sticky-canvas');
@@ -401,7 +416,7 @@ class VikBookingAdminWidgetStickyNotes extends VikBookingAdminWidget
 									// unset global note position var
 									vbo_stickynote_initial_pos = null;
 									try {
-										var obj_res = JSON.parse(response);
+										var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 										if (!obj_res.hasOwnProperty(call_method)) {
 											console.error('Unexpected JSON response', obj_res);
 										}
@@ -429,7 +444,7 @@ class VikBookingAdminWidgetStickyNotes extends VikBookingAdminWidget
 		if (static::$instance_counter === 0 || $is_ajax) {
 		?>
 		<script type="text/javascript">
-			jQuery(document).ready(function() {
+			jQuery(function() {
 
 				/**
 				 * Add event listener to keydown for shortcuts during typing on contenteditable elements.
@@ -595,7 +610,7 @@ class VikBookingAdminWidgetStickyNotes extends VikBookingAdminWidget
 						},
 						function(response) {
 							try {
-								var obj_res = JSON.parse(response);
+								var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 								if (!obj_res.hasOwnProperty(call_method)) {
 									console.error('Unexpected JSON response', obj_res);
 								}
@@ -642,7 +657,7 @@ class VikBookingAdminWidgetStickyNotes extends VikBookingAdminWidget
 					},
 					function(response) {
 						try {
-							var obj_res = JSON.parse(response);
+							var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 							if (!obj_res.hasOwnProperty(call_method)) {
 								console.error('Unexpected JSON response', obj_res);
 							} else {

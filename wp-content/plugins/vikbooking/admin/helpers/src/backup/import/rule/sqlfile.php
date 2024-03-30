@@ -59,7 +59,7 @@ class VBOBackupImportRuleSqlfile extends VBOBackupImportRuleSql
 		$queries = [];
 
 		// split SQL queries into an array according to the platform in use
-		if (defined('ABSPATH'))
+		if (VBOPlatformDetection::isWordPress())
 		{
 			$queries = JDatabaseHelper::splitSql($buffer);
 		}

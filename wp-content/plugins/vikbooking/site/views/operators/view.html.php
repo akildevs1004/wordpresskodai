@@ -26,7 +26,7 @@ class VikbookingViewOperators extends JViewVikBooking {
 			$tpl = 'dashboard';
 		}
 
-		$this->operator = &$operator;
+		$this->operator = $operator;
 
 		parent::display($tpl);
 	}

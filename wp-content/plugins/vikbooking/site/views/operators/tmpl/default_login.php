@@ -26,7 +26,7 @@ $return_url = base64_encode($goto);
 <div class="vbo-operators-login-wrap">
 
 	<div class="vbo-operators-authcode">
-		<form action="index.php?option=com_vikbooking" method="post">
+		<form action="<?php echo JRoute::rewrite('index.php?option=com_vikbooking&task=operatorlogin&Itemid=' . $pitemid); ?>" method="post">
 			<label for="authcode"><?php echo JText::translate('VBOOPERAUTHCODE'); ?></label>
 			<input type="text" name="authcode" id="authcode" value="" />
 			<input type="submit" value="<?php echo JText::translate('VBREGSIGNINBTN'); ?>" class="btn booknow vbo-pref-color-btn" name="Login" />

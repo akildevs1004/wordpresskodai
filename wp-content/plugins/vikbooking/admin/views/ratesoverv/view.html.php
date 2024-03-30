@@ -13,16 +13,17 @@ defined('ABSPATH') or die('No script kiddies please!');
 // import Joomla view library
 jimport('joomla.application.component.view');
 
-class VikBookingViewRatesoverv extends JViewVikBooking {
-	
-	function display($tpl = null) {
+class VikBookingViewRatesoverv extends JViewVikBooking
+{
+	public function display($tpl = null)
+	{
 		// Set the toolbar
 		$this->addToolBar();
 
 		/**
 		 * Check the next festivities periodically
 		 * 
-		 * @since 	1.2.0
+		 * @since 	1.12.0 (J) - 1.2.0 (WP)
 		 */
 		$fests = VikBooking::getFestivitiesInstance();
 		if ($fests->shouldCheckFestivities()) {
@@ -30,7 +31,7 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 		}
 		$festivities = $fests->loadFestDates();
 
-		$dbo = JFactory::getDBO();
+		$dbo = JFactory::getDbo();
 		$mainframe = JFactory::getApplication();
 		$session = JFactory::getSession();
 
@@ -47,16 +48,11 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 		if (empty($roomid)) {
 			$q = "SELECT `id` FROM `#__vikbooking_rooms` WHERE `avail`=1 ORDER BY `#__vikbooking_rooms`.`name` ASC LIMIT 1";
 			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows()) {
-				$roomid = $dbo->loadResult();
-			} else {
+			$roomid = $dbo->loadResult();
+			if (!$roomid) {
 				$q = "SELECT `id` FROM `#__vikbooking_rooms` ORDER BY `#__vikbooking_rooms`.`name` ASC LIMIT 1";
 				$dbo->setQuery($q);
-				$dbo->execute();
-				if ($dbo->getNumRows()) {
-					$roomid = $dbo->loadResult();
-				}
+				$roomid = $dbo->loadResult();
 			}
 		}
 		if (empty($roomid)) {
@@ -68,23 +64,21 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 		//
 		$q = "SELECT `id`,`name` FROM `#__vikbooking_rooms` ORDER BY `#__vikbooking_rooms`.`name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		$all_rooms = $dbo->getNumRows() ? $dbo->loadAssocList() : [];
+		$all_rooms = $dbo->loadAssocList();
 
 		/**
 		 * Load categories to be used for group filter.
 		 * 
-		 * @since 	1.3.0
+		 * @since 	1.13 (J) - 1.3.0 (WP)
 		 */
 		$q = "SELECT `id`,`name` FROM `#__vikbooking_categories` ORDER BY `#__vikbooking_categories`.`name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		$categories = $dbo->getNumRows() ? $dbo->loadAssocList() : array();
+		$categories = $dbo->loadAssocList();
 
 		// load rooms rows for all requested rooms
-		$roomrows = array();
-		$reqids = array();
-		$reqcats = array();
+		$roomrows = [];
+		$reqids = [];
+		$reqcats = [];
 		foreach ($cid as $rid) {
 			if (empty($rid)) {
 				continue;
@@ -107,7 +101,7 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 			// push the first 5 rooms by default
 			$max_def_rooms = 5;
 			$def_rooms_count = 0;
-			$reqids = array();
+			$reqids = [];
 			foreach ($all_rooms as $aroom) {
 				$reqids[] = $aroom['id'];
 				$def_rooms_count++;
@@ -117,7 +111,7 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 			}
 		}
 
-		$clauses = array();
+		$clauses = [];
 		if (count($reqids)) {
 			array_push($clauses, "`id` IN (" . implode(', ', $reqids) . ")");
 		}
@@ -126,18 +120,17 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 		}
 		$q = "SELECT * FROM `#__vikbooking_rooms` WHERE ".implode(' OR ', $clauses)." ORDER BY `name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows()) {
-			$rows = $dbo->loadAssocList();
+		$rows = $dbo->loadAssocList();
+		if ($rows) {
 			foreach ($rows as $row) {
 				$roomrows[$row['id']] = $row;
 			}
 		}
-		if (!count($roomrows)) {
+		if (!$roomrows) {
 			$mainframe->redirect("index.php?option=com_vikbooking&task=rooms");
 			exit;
 		}
-		if (!count($reqids)) {
+		if (!$reqids) {
 			// in case of just a category filter we need to restore the requested room IDs for later actions
 			$reqids = array_keys($roomrows);
 		}
@@ -145,7 +138,7 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 		$req_room_ids = array_keys($roomrows);
 		$session->set('vbRatesOviewCids', $req_room_ids);
 		// Restrictions
-		$all_restrictions = array();
+		$all_restrictions = [];
 		foreach ($req_room_ids as $rid) {
 			$all_restrictions[(int)$rid] = VikBooking::loadRestrictions(true, array($rid));
 		}
@@ -153,21 +146,20 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 		$first_roomrestr = isset($all_restrictions[(int)$roomid]) ? $all_restrictions[(int)$roomid] : array();
 		$pnights_cal = VikRequest::getVar('nights_cal', array());
 		$pnights_cal = VikBooking::filterNightsSeasonsCal($pnights_cal);
-		$room_nights_cal = explode(',', VikBooking::getRoomParam('seasoncal_nights', $roomrows[(int)$roomid]['params']));
+		$room_nights_cal = isset($roomrows[(int)$roomid]) ? explode(',', VikBooking::getRoomParam('seasoncal_nights', $roomrows[(int)$roomid]['params'])) : [];
 		$room_nights_cal = VikBooking::filterNightsSeasonsCal($room_nights_cal);
-		$seasons_cal = array();
-		$seasons_cal_nights = array();
-		if (count($pnights_cal) > 0) {
+		$seasons_cal = [];
+		$seasons_cal_nights = [];
+		if ($pnights_cal) {
 			$seasons_cal_nights = $pnights_cal;
-		} elseif (count($room_nights_cal) > 0) {
+		} elseif ($room_nights_cal) {
 			$seasons_cal_nights = $room_nights_cal;
 		} else {
 			$q = "SELECT `days` FROM `#__vikbooking_dispcost` WHERE `idroom`=".intval($roomid)." ORDER BY `#__vikbooking_dispcost`.`days` ASC LIMIT 7;";
 			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows() > 0) {
-				$nights_vals = $dbo->loadAssocList();
-				$nights_got = array();
+			$nights_vals = $dbo->loadAssocList();
+			if ($nights_vals) {
+				$nights_got = [];
 				foreach ($nights_vals as $night) {
 					$nights_got[] = $night['days'];
 				}
@@ -176,15 +168,14 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 		}
 		if (count($req_room_ids) > 1) {
 			// it's useless to spend server resources to calculate the seasons calendar nights (LOS Pricing Overview) since it won't be displayed when more than 1 room
-			$seasons_cal_nights = array();
+			$seasons_cal_nights = [];
 		}
-		if (count($seasons_cal_nights) > 0) {
+		if ($seasons_cal_nights) {
 			$q = "SELECT `p`.*,`tp`.`name`,`tp`.`attr`,`tp`.`idiva`,`tp`.`breakfast_included`,`tp`.`free_cancellation`,`tp`.`canc_deadline` FROM `#__vikbooking_dispcost` AS `p` LEFT JOIN `#__vikbooking_prices` `tp` ON `p`.`idprice`=`tp`.`id` WHERE `p`.`days` IN (".implode(',', $seasons_cal_nights).") AND `p`.`idroom`=".(int)$roomid." ORDER BY `p`.`days` ASC, `p`.`cost` ASC;";
 			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows() > 0) {
-				$tars = $dbo->loadAssocList();
-				$arrtar = array();
+			$tars = $dbo->loadAssocList();
+			if ($tars) {
+				$arrtar = [];
 				foreach ($tars as $tar) {
 					$arrtar[$tar['days']][] = $tar;
 				}
@@ -192,11 +183,10 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 				$seasons_cal['offseason'] = $arrtar;
 				$q = "SELECT * FROM `#__vikbooking_seasons` WHERE `idrooms` LIKE '%-".$roomid."-%';";
 				$dbo->setQuery($q);
-				$dbo->execute();
-				if ($dbo->getNumRows() > 0) {
-					$seasons = $dbo->loadAssocList();
+				$seasons = $dbo->loadAssocList();
+				if ($seasons) {
 					//Restrictions
-					$all_seasons = array();
+					$all_seasons = [];
 					$curtime = time();
 					foreach ($seasons as $sk => $s) {
 						if (empty($s['from']) && empty($s['to'])) {
@@ -232,8 +222,8 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 						}
 						$all_seasons = VikBooking::sortSeasonsRangeTs($all_seasons);
 						$seasons_cal['seasons'] = $all_seasons;
-						$seasons_cal['season_prices'] = array();
-						$seasons_cal['restrictions'] = array();
+						$seasons_cal['season_prices'] = [];
+						$seasons_cal['restrictions'] = [];
 						//calc price changes for each season and for each num-night
 						foreach ($all_seasons as $sk => $s) {
 							$checkin_base_ts = $s['from_ts'];
@@ -286,10 +276,9 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 				$tsstart = $prevts;
 			}
 		}
-		$roomrates = array();
+		$roomrates = [];
 		// read the rates for the lowest number of nights for each room requested
 		foreach ($req_room_ids as $rid) {
-			$nowroomrates = array();
 			/**
 			 * Some types of price may not have a cost for 1 or 2 nights,
 			 * so joining by MIN(`days`) may exclude certain types of price.
@@ -298,14 +287,13 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 			 * compatible with the SQL strict mode (only_full_group_by).
 			 * $q = "SELECT `r`.`id`,`r`.`idroom`,`r`.`days`,`r`.`idprice`,`r`.`cost`,`p`.`name` FROM `#__vikbooking_dispcost` AS `r` INNER JOIN (SELECT MIN(`days`) AS `min_days` FROM `#__vikbooking_dispcost` WHERE `idroom`=".(int)$rid." GROUP BY `idroom`) AS `r2` ON `r`.`days`=`r2`.`min_days` LEFT JOIN `#__vikbooking_prices` `p` ON `p`.`id`=`r`.`idprice` WHERE `r`.`idroom`=".(int)$rid." GROUP BY `r`.`id`,`r`.`idroom`,`r`.`days`,`r`.`idprice`,`r`.`cost`,`p`.`name` ORDER BY `r`.`days` ASC, `r`.`cost` ASC;";
 			 * 
-			 * @since 	1.0.14
+			 * @since 	1.10 (J) - 1.0.14 (WP)
 			 */
 			$q = "SELECT `r`.`id`,`r`.`idroom`,`r`.`days`,`r`.`idprice`,`r`.`cost`,`p`.`name`,`p`.`minlos` FROM `#__vikbooking_dispcost` AS `r` LEFT JOIN `#__vikbooking_prices` `p` ON `p`.`id`=`r`.`idprice` WHERE `r`.`idroom`=".(int)$rid." ORDER BY `r`.`days` ASC, `r`.`cost` ASC LIMIT 50;";
 			$dbo->setQuery($q);
-			$dbo->execute();
-			if ($dbo->getNumRows() > 0) {
-				$nowroomrates = $dbo->loadAssocList();
-				$parsed_room_prices = array();
+			$nowroomrates = $dbo->loadAssocList();
+			if ($nowroomrates) {
+				$parsed_room_prices = [];
 				foreach ($nowroomrates as $rrk => $rrv) {
 					if (isset($parsed_room_prices[$rrv['idprice']])) {
 						unset($nowroomrates[$rrk]);
@@ -327,23 +315,22 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 		}
 
 		// read all the bookings between these dates for all rooms
-		$booked_dates = array();
+		$booked_dates = [];
 		$MAX_DAYS = 60;
 		$info_start = getdate($tsstart);
 		$endts = mktime(23, 59, 59, $info_start['mon'], ($info_start['mday'] + $MAX_DAYS), $info_start['year']);
 		$q = "SELECT `b`.*,`ob`.`idorder` FROM `#__vikbooking_busy` AS `b`,`#__vikbooking_ordersbusy` AS `ob` WHERE `b`.`idroom` IN (".implode(', ', $reqids).") AND `b`.`id`=`ob`.`idbusy` AND (`b`.`checkin`>=".$tsstart." OR `b`.`checkout`>=".$tsstart.") AND (`b`.`checkin`<=".$endts." OR `b`.`checkout`<=".$tsstart.");";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		$rbusy = $dbo->getNumRows() > 0 ? $dbo->loadAssocList() : array();
-		$ridbusy = array();
+		$rbusy = $dbo->loadAssocList();
+		$ridbusy = [];
 		foreach ($rbusy as $rb) {
 			if (!isset($ridbusy[$rb['idroom']])) {
-				$ridbusy[$rb['idroom']] = array();
+				$ridbusy[$rb['idroom']] = [];
 			}
 			array_push($ridbusy[$rb['idroom']], $rb);
 		}
 		foreach ($req_room_ids as $rid) {
-			$booked_dates[(int)$rid] = isset($ridbusy[(int)$rid]) ? $ridbusy[(int)$rid] : "";
+			$booked_dates[(int)$rid] = isset($ridbusy[(int)$rid]) ? $ridbusy[(int)$rid] : [];
 		}
 
 		/**
@@ -354,20 +341,20 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 		$rdaynotes = VikBooking::getCriticalDatesInstance()->loadRoomDayNotes(date('Y-m-d', $tsstart), date('Y-m-d', $endts));
 		//
 		
-		$this->all_rooms = &$all_rooms;
-		$this->categories = &$categories;
-		$this->reqcats = &$reqcats;
-		$this->all_restrictions = &$all_restrictions;
-		$this->roomrows = &$roomrows;
-		$this->seasons_cal_nights = &$seasons_cal_nights;
-		$this->seasons_cal = &$seasons_cal;
-		$this->tsstart = &$tsstart;
-		$this->roomrates = &$roomrates;
-		$this->booked_dates = &$booked_dates;
-		$this->req_room_ids = &$req_room_ids;
-		$this->firstroom = &$roomid;
-		$this->festivities = &$festivities;
-		$this->rdaynotes = &$rdaynotes;
+		$this->all_rooms = $all_rooms;
+		$this->categories = $categories;
+		$this->reqcats = $reqcats;
+		$this->all_restrictions = $all_restrictions;
+		$this->roomrows = $roomrows;
+		$this->seasons_cal_nights = $seasons_cal_nights;
+		$this->seasons_cal = $seasons_cal;
+		$this->tsstart = $tsstart;
+		$this->roomrates = $roomrates;
+		$this->booked_dates = $booked_dates;
+		$this->req_room_ids = $req_room_ids;
+		$this->firstroom = $roomid;
+		$this->festivities = $festivities;
+		$this->rdaynotes = $rdaynotes;
 		
 		// Display the template
 		parent::display($tpl);
@@ -376,7 +363,8 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 	/**
 	 * Sets the toolbar
 	 */
-	protected function addToolBar() {
+	protected function addToolBar()
+	{
 		JToolBarHelper::title(JText::translate('VBMAINRATESOVERVIEWTITLE'), 'vikbooking');
 		if (JFactory::getUser()->authorise('core.create', 'com_vikbooking')) {
 			JToolBarHelper::addNew('newseason', JText::translate('VBMAINSEASONSNEW'));
@@ -387,5 +375,4 @@ class VikBookingViewRatesoverv extends JViewVikBooking {
 		JToolBarHelper::cancel( 'cancel', JText::translate('VBBACK'));
 		JToolBarHelper::spacer();
 	}
-
 }

@@ -75,6 +75,7 @@ class VboCurrencyConverter
 		'BBD' => 'BBD - Barbadian Dollar',
 		'BDT' => 'BDT - Bangladeshi Taka',
 		'BGN' => 'BGN - Bulgarian Lev',
+		'BHD' => 'BHD - Bahraini Dinar',
 		'BIF' => 'BIF - Burundian Franc',
 		'BMD' => 'BMD - Bermudian Dollar',
 		'BND' => 'BND - Brunei Dollar',
@@ -128,6 +129,7 @@ class VboCurrencyConverter
 		'KRW' => 'KRW - South Korean Won',
 		'KYD' => 'KYD - Cayman Islands Dollar',
 		'KZT' => 'KZT - Kazakhstani Tenge',
+		'KWD' => 'KWD - Kuwaiti Dinar',
 		'LAK' => 'LAK - Lao Kip',
 		'LBP' => 'LBP - Lebanese Pound',
 		'LKR' => 'LKR - Sri Lankan Rupee',
@@ -141,7 +143,7 @@ class VboCurrencyConverter
 		'MKD' => 'MKD - Macedonian Denar',
 		'MNT' => 'MNT - Mongolian Tögrög',
 		'MOP' => 'MOP - Macanese Pataca',
-		'MRO' => 'MRO - Mauritanian Ouguiya',
+		'MRU' => 'MRU - Mauritanian Ouguiya',
 		'MUR' => 'MUR - Mauritian Rupee',
 		'MVR' => 'MVR - Maldivian Rufiyaa',
 		'MWK' => 'MWK - Malawian Kwacha',
@@ -154,6 +156,7 @@ class VboCurrencyConverter
 		'NOK' => 'NOK - Norwegian Krone',
 		'NPR' => 'NPR - Nepalese Rupee',
 		'NZD' => 'NZD - New Zealand Dollar',
+		'OMR' => 'OMR - Omani Rial',
 		'PAB' => 'PAB - Panamanian Balboa',
 		'PEN' => 'PEN - Peruvian Nuevo Sol',
 		'PGK' => 'PGK - Papua New Guinean Kina',
@@ -242,6 +245,7 @@ class VboCurrencyConverter
 			'BAM' => array('symbol' => '75'),
 			'BWP' => array('symbol' => '80'),
 			'BGN' => array('symbol' => '1083'),
+			'BHD' => array('decimals' => 3),
 			'BRL' => array('symbol' => '82'),
 			'BND' => array('symbol' => '36'),
 			'KHR' => array('symbol' => '6107'),
@@ -285,6 +289,7 @@ class VboCurrencyConverter
 			'KPW' => array('symbol' => '8361'),
 			'KRW' => array('symbol' => '8361', 'decimals' => 0),
 			'KGS' => array('symbol' => '1083'),
+			'KWD' => array('decimals' => 3),
 			'LAK' => array('symbol' => '8365'),
 			'LVL' => array('symbol' => '76'),
 			'LBP' => array('symbol' => '163'),
@@ -323,7 +328,7 @@ class VboCurrencyConverter
 			'ZAR' => array('symbol' => '82'),
 			'LKR' => array('symbol' => '8360'),
 			'SEK' => array('symbol' => '107'),
-			'CHF' => array('symbol' => '67'),
+			'CHF' => array('symbol' => '8355'),
 			'SRD' => array('symbol' => '36'),
 			'SYP' => array('symbol' => '163'),
 			'TWD' => array('symbol' => '78'),
@@ -782,6 +787,16 @@ class VboCurrencyConverter
 	 */
 	protected function currencySymbol()
 	{
+		/**
+		 * Trigger event to allow third party plugins to return specific information for a currency.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$custom_conv = VBOFactory::getPlatform()->getDispatcher()->filter('onGetCurrencyDataVikBooking', [$this->to_currency]);
+		if (is_array($custom_conv) && !empty($custom_conv[0]) && is_array($custom_conv[0]) && !empty($custom_conv[0]['symbol'])) {
+			return $custom_conv[0]['symbol'];
+		}
+
 		if (isset($this->currencymap[$this->to_currency]) && isset($this->currencymap[$this->to_currency]['symbol'])) {
 			$symbol = '&#'.$this->currencymap[$this->to_currency]['symbol'].';';	
 		} else {
@@ -809,7 +824,24 @@ class VboCurrencyConverter
 			}
 		}
 
-		return number_format($num, $num_decimals, $this->format[1], $this->format[2]);
+		// decimals and thousands separators for this currency
+		$decimals_sep  = $this->format[1];
+		$thousands_sep = $this->format[2];
+
+		/**
+		 * Trigger event to allow third party plugins to return specific information for a currency.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$custom_conv = VBOFactory::getPlatform()->getDispatcher()->filter('onGetCurrencyDataVikBooking', [$this->to_currency]);
+		if (is_array($custom_conv) && !empty($custom_conv[0]) && is_array($custom_conv[0])) {
+			// override currency information for formatting the amounts
+			$num_decimals  = isset($custom_conv[0]['decimals']) && is_int($custom_conv[0]['decimals']) ? $custom_conv[0]['decimals'] : $num_decimals;
+			$decimals_sep  = isset($custom_conv[0]['decimals_separator']) && is_string($custom_conv[0]['decimals_separator']) ? $custom_conv[0]['decimals_separator'] : $decimals_sep;
+			$thousands_sep = isset($custom_conv[0]['thousands_separator']) && is_string($custom_conv[0]['thousands_separator']) ? $custom_conv[0]['thousands_separator'] : $thousands_sep;
+		}
+
+		return number_format($num, $num_decimals, $decimals_sep, $thousands_sep);
 	}
 	
 	/**
@@ -824,8 +856,9 @@ class VboCurrencyConverter
 	 */
 	public function convert($get_floats = false)
 	{
-		$conversion = array();
-		if (empty($this->prices) || count($this->prices) == 0) {
+		$conversion = [];
+
+		if (!is_array($this->prices) || !$this->prices) {
 			return $conversion;
 		}
 
@@ -885,6 +918,16 @@ class VboCurrencyConverter
 		$conversions_made = array();
 		$data = '';
 		$conv_rate = false;
+
+		/**
+		 * Trigger event to allow third party plugins to return a specific conversion rate for these currencies.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$custom_conv = VBOFactory::getPlatform()->getDispatcher()->filter('onGetConversionRateVikBooking', [$this->from_currency, $this->to_currency]);
+		if (is_array($custom_conv) && !empty($custom_conv[0]) && (is_int($custom_conv[0]) || is_float($custom_conv[0]))) {
+			return $custom_conv[0];
+		}
 		
 		if (is_array($ses_conversions) && count($ses_conversions)) {
 			$conversions_made = $ses_conversions;
@@ -924,7 +967,21 @@ class VboCurrencyConverter
 	 */
 	public function currencyExists($currency_name)
 	{
-		return isset($this->currencymap[$currency_name]);
+		if (isset($this->currencymap[$currency_name])) {
+			return true;
+		}
+
+		/**
+		 * Trigger event to allow third party plugins to register a custom currency code.
+		 * 
+		 * @since 	1.16.0 (J) - 1.6.0 (WP)
+		 */
+		$existing = VBOFactory::getPlatform()->getDispatcher()->filter('onCheckCurrencyExistsVikBooking', [$currency_name]);
+		if (is_array($existing) && in_array(true, $existing, true)) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -936,7 +993,7 @@ class VboCurrencyConverter
 	 * 
 	 * @since 	1.15.0 (J) - 1.5.0 (WP)
 	 */
-	public function setPrices($prices = array())
+	public function setPrices(array $prices = [])
 	{
 		$this->prices = $prices;
 

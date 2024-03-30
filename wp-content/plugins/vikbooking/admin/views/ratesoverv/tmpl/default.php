@@ -17,9 +17,20 @@ $seasoncal_nights = $this->seasons_cal_nights;
 $seasons_cal = $this->seasons_cal;
 $tsstart = $this->tsstart;
 $roomrates = $this->roomrates;
-$booked_dates = $this->booked_dates;
 
+// JS lang defs
 JText::script('VBO_BOOKNOW');
+JText::script('VBPVIEWORDERSTHREE');
+JText::script('VBEDITORDERTHREE');
+JText::script('VBDAYS');
+JText::script('VBDAY');
+JText::script('VBMAILADULTS');
+JText::script('VBMAILADULT');
+JText::script('VBMAILCHILDREN');
+JText::script('VBMAILCHILD');
+JText::script('VBO_MISSING_SUBUNIT');
+JText::script('VBRATESOVWRATESCALCULATORCALC');
+JText::script('VBRATESOVWRATESCALCULATORCALCING');
 
 $document = JFactory::getDocument();
 
@@ -106,7 +117,7 @@ $room_helper = VBORoomHelper::getInstance();
 	</div>
 </div>
 
-<div class="vbo-ratesoverview-top-container">
+<div class="vbo-ratesoverview-top-container<?php echo $collapse_status ? ' collapsed' : ''; ?>">
 	<div class="vbo-ratesoverview-roomsel-block">
 		<form method="get" action="index.php?option=com_vikbooking" name="vboratesovwform">
 		<input type="hidden" name="option" value="com_vikbooking" />
@@ -260,7 +271,14 @@ $room_helper = VBORoomHelper::getInstance();
 			}
 			?>
 		<div class="vbo-ratesoverview-roomdetails">
-			<h3 class="vbo-ratesoverview-roomname"><?php echo $roomrow['name']; ?></h3>
+			<h3 class="vbo-ratesoverview-roomname" data-idroom="<?php echo $roomrow['id']; ?>"><?php echo $roomrow['name']; ?></h3>
+		</div>
+			<?php
+		} else {
+			// room name node is needed for JS
+			?>
+		<div class="vbo-ratesoverview-roomdetails" style="display: none;">
+			<h3 class="vbo-ratesoverview-roomname" data-idroom="<?php echo $roomrow['id']; ?>"><?php echo $roomrow['name']; ?></h3>
 		</div>
 			<?php
 		}
@@ -393,6 +411,7 @@ $room_helper = VBORoomHelper::getInstance();
 							</td>
 						</tr>
 					<?php
+					$room_obp_overrides = [];
 					$closed_roomrateplans = VikBooking::getRoomRplansClosingDates($roomrow['id']);
 					foreach ($roomrates[$rid] as $roomrate) {
 						$nowts = getdate($tsstart);
@@ -440,6 +459,17 @@ $room_helper = VBORoomHelper::getInstance();
 
 							$tars = VikBooking::applySeasonsRoom(array($roomrate), $today_tsin, $today_tsout);
 
+							// store the OBP overrides for this day and rate plan
+							if (!empty($tars[0]['occupancy_ovr'])) {
+								if (!isset($room_obp_overrides[$nowts[0]])) {
+									$room_obp_overrides[$nowts[0]] = [];
+								}
+								$room_obp_overrides[$nowts[0]][] = [
+									'idprice' => $roomrate['idprice'],
+									'obp' 	  => $tars[0]['occupancy_ovr'],
+								];
+							}
+
 							?>
 							<td align="center" class="<?php echo $dclass.' cell-'.$nowts['mday'].'-'.$nowts['mon']; ?>" id="<?php echo $id_block; ?>" data-vboprice="<?php echo $tars[0]['cost']; ?>" data-vbodate="<?php echo date('Y-m-d', $nowts[0]); ?>" data-vbodateread="<?php echo $days_labels[$nowts['wday']].', '.$months_labels[$nowts['mon']-1].' '.$nowts['mday']; ?>" data-vbospids="<?php echo (array_key_exists('spids', $tars[0]) && count($tars[0]['spids']) > 0 ? implode('-', $tars[0]['spids']) : ''); ?>"<?php echo $style; ?>>
 								<span class="vbo-rplan-currency"><?php echo $currencysymb; ?></span>
@@ -457,9 +487,13 @@ $room_helper = VBORoomHelper::getInstance();
 						</tr>
 						<?php
 					}
-					// VBO 1.11 - Occupancy pricing
+
+					// Occupancy Based Pricing rules
 					$adultsdiff = array_reverse(VikBooking::loadRoomAdultsDiff($roomrow['id']), true);
+
+					// display the room OBP rules (must be defined at room-level or no overrides will be displayed)
 					foreach ($adultsdiff as $adults => $diffusageprice) {
+						$base_obp_rules = $diffusageprice;
 						$nowts = getdate($tsstart);
 						$cell_count = 0;
 						?>
@@ -474,6 +508,27 @@ $room_helper = VBORoomHelper::getInstance();
 						while ($cell_count < $MAX_DAYS) {
 							$style = '';
 							$dclass = "vbo-roverw-rplan-occ";
+
+							// check for OBP overrides
+							$compare_obp_ovr = [];
+							if (isset($room_obp_overrides[$nowts[0]]) && count($room_obp_overrides[$nowts[0]]) === count($roomrates[$rid])) {
+								// the OBP overrides affect all room rate plans, make sure the overrides are identical though
+								$compare_obp_ovr = $room_obp_overrides[$nowts[0]][0]['obp'];
+								foreach ($room_obp_overrides[$nowts[0]] as $room_obp_override) {
+									if ($compare_obp_ovr != $room_obp_override['obp']) {
+										// this OBP override does not match the first one
+										$compare_obp_ovr = [];
+										break;
+									}
+								}
+							}
+							if ($compare_obp_ovr && isset($compare_obp_ovr[$adults])) {
+								// display the OBP override value for this day
+								$diffusageprice = $compare_obp_ovr[$adults];
+							} else {
+								// display the OBP rules at room-level
+								$diffusageprice = $base_obp_rules;
+							}
 
 							if (($diffusageprice['value'] - floor($diffusageprice['value'])) <= 0) {
 								$diffusageprice['value'] = intval($diffusageprice['value']);
@@ -515,7 +570,6 @@ $room_helper = VBORoomHelper::getInstance();
 						</tr>
 						<?php
 					}
-					//
 					?>
 						<tr class="vbo-roverviewtableavrow">
 							<td><span class="vbo-roverview-roomunits"><?php echo $roomrow['units']; ?></span><span class="vbo-roverview-uleftlbl"><?php echo JText::translate('VBPCHOOSEBUSYCAVAIL'); ?></span></td>
@@ -529,21 +583,27 @@ $room_helper = VBORoomHelper::getInstance();
 
 							$totfound = 0;
 							$last_bid = 0;
-							if (array_key_exists($roomrow['id'], $booked_dates) && is_array($booked_dates[$roomrow['id']])) {
-								foreach ($booked_dates[$roomrow['id']] as $b) {
+							$bids_pool = [];
+
+							if (isset($this->booked_dates[$roomrow['id']]) && $this->booked_dates[$roomrow['id']]) {
+								foreach ($this->booked_dates[$roomrow['id']] as $b) {
 									$tmpone = getdate($b['checkin']);
-									$rit = ($tmpone['mon'] < 10 ? "0".$tmpone['mon'] : $tmpone['mon'])."/".($tmpone['mday'] < 10 ? "0".$tmpone['mday'] : $tmpone['mday'])."/".$tmpone['year'];
-									$ritts = strtotime($rit);
+									$ritts = mktime(0, 0, 0, $tmpone['mon'], $tmpone['mday'], $tmpone['year']);
 									$tmptwo = getdate($b['checkout']);
-									$con = ($tmptwo['mon'] < 10 ? "0".$tmptwo['mon'] : $tmptwo['mon'])."/".($tmptwo['mday'] < 10 ? "0".$tmptwo['mday'] : $tmptwo['mday'])."/".$tmptwo['year'];
-									$conts = strtotime($con);
+									$conts = mktime(0, 0, 0, $tmptwo['mon'], $tmptwo['mday'], $tmptwo['year']);
 									if ($nowts[0] >= $ritts && $nowts[0] < $conts) {
 										$dclass = "vbo-roverw-daybusy";
 										$last_bid = $b['idorder'];
 										$totfound++;
+										// push bid to pool
+										$bid_str = '-' . $b['idorder'] . '-';
+										if (!in_array($bid_str, $bids_pool)) {
+											$bids_pool[] = $bid_str;
+										}
 									}
 								}
 							}
+
 							$units_remaining = $roomrow['units'] - $totfound;
 							if ($units_remaining > 0 && $units_remaining < $roomrow['units'] && $roomrow['units'] > 1) {
 								$dclass .= " vbo-roverw-daybusypartially";
@@ -566,7 +626,7 @@ $room_helper = VBORoomHelper::getInstance();
 							}
 
 							?>
-							<td align="center" class="<?php echo $dclass.' cell-'.$nowts['mday'].'-'.$nowts['mon']; ?>" id="<?php echo $id_block; ?>" data-vbodateread="<?php echo $days_labels[$nowts['wday']].', '.$months_labels[$nowts['mon']-1].' '.$nowts['mday']; ?>"<?php echo $style; ?>>
+							<td align="center" class="<?php echo $dclass.' cell-'.$nowts['mday'].'-'.$nowts['mon']; ?>" id="<?php echo $id_block; ?>" data-bids="<?php echo implode(',', $bids_pool); ?>" data-vbodateread="<?php echo $days_labels[$nowts['wday']].', '.$months_labels[$nowts['mon']-1].' '.$nowts['mday']; ?>"<?php echo $style; ?>>
 								<span class="vbo-roverw-curunits"><?php echo $units_remaining; ?></span>
 							</td>
 							<?php
@@ -749,8 +809,9 @@ $room_helper = VBORoomHelper::getInstance();
 				?>
 			</ul>
 		</div>
+
 		<script>
-		jQuery(document).ready(function(){
+		jQuery(function() {
 			jQuery('.vbo-timeline-container').css('min-height', (jQuery('.vbo-timeline-container').outerHeight() + 20));
 		});
 		</script>
@@ -977,7 +1038,7 @@ $room_helper = VBORoomHelper::getInstance();
 		// end los pricing overview IF statement for just 1 room
 		endif;
 	}
-?>
+	?>
 </div>
 <?php
 
@@ -1058,6 +1119,7 @@ $vcm_enabled = VikBooking::vcmAutoUpdate();
 </form>
 
 <a id="vbo-base-booknow-link" style="display: none;" href="index.php?option=com_vikbooking&task=calendar&cid[]=&checkin=&checkout=&adults=&children=&idprice=&booknow=1"></a>
+<a class="vbo-basenavuri-details" href="index.php?option=com_vikbooking&task=editorder&goto=ratesoverv&cid[]=%d" style="display: none;"></a>
 
 <script type="text/Javascript">
 function vboFormatCalDate(elem, idc) {
@@ -1183,7 +1245,7 @@ function vboDisplayNextDays(btn) {
 	}
 }
 
-jQuery(document).ready(function() {
+jQuery(function() {
 	jQuery('.vbodatepicker').datepicker({
 		showOn: 'focus',
 		dateFormat: '<?php echo $juidf; ?>',
@@ -1306,7 +1368,18 @@ var roverw_messages = {
 var vboFests = <?php echo json_encode($this->festivities); ?>;
 var vboRdayNotes = <?php echo json_encode($this->rdaynotes); ?>;
 </script>
+
 <script type="text/Javascript">
+/**
+ * Open a booking in a new tab.
+ */
+function vboRovervOpenBooking(bid) {
+	var open_url = jQuery('.vbo-basenavuri-details').attr('href');
+	open_url = open_url.replace('%d', bid);
+	// navigate in a new tab
+	window.open(open_url, '_blank');
+}
+
 /* Labels for months and weekdays */
 var vbowdays = <?php echo json_encode($long_days_labels); ?>;
 var vbomonths = <?php echo json_encode($long_months_labels); ?>;
@@ -1314,7 +1387,8 @@ var vbomonths = <?php echo json_encode($long_months_labels); ?>;
 var vbolistener = null;
 var vbodialog_on = false;
 var vbodialogfests_on = false;
-jQuery(document).ready(function() {
+
+jQuery(function() {
 	// fests
 	jQuery(document.body).on("click", "td.bluedays", function() {
 		if (jQuery(this).hasClass('skip-bluedays-click')) {
@@ -1413,6 +1487,129 @@ jQuery(document).ready(function() {
 	jQuery(document.body).on('click', '.vbo-ratesoverview-vcmwarn-close', function() {
 		vcm_exists = 0;
 		jQuery('.vbo-ratesoverview-right-inner').hide().html('');
+	});
+
+	// show booking details
+	jQuery('.vbo-roverw-daybusy[data-bids]').click(function() {
+		var date_bids = jQuery(this).attr('data-bids');
+		if (!date_bids || !date_bids.length) {
+			return;
+		}
+
+		// get room name, date and day-bids
+		var rid = jQuery(this).closest('table').attr('data-idroom');
+		var room_name = jQuery('.vbo-ratesoverview-roomname[data-idroom="' + rid + '"]').text();
+		var date_read = jQuery(this).attr('data-vbodateread');
+		var def_bicon = '<?php VikBookingIcons::e('user', 'vbo-dashboard-guest-activity-avatar-icon'); ?>';
+		var closure_i = '<?php VikBookingIcons::e('ban', 'vbo-dashboard-guest-activity-avatar-icon'); ?>';
+
+		// display modal with booking details
+		var rday_bookings_modal_body = VBOCore.displayModal({
+			suffix: 	   'roverv-rdaybookings',
+			extra_class:   'vbo-modal-rounded vbo-modal-tall',
+			title: 		   room_name + ' - ' + date_read,
+			dismiss_event: 'vbo-dismiss-modal-roverv-rdaybookings',
+			loading_event: 'vbo-loading-modal-roverv-rdaybookings',
+			loading_body:  '<?php VikBookingIcons::e('circle-notch', 'fa-spin fa-fw'); ?>',
+		});
+
+		// show loading
+		VBOCore.emitMultitaskEvent('vbo-loading-modal-roverv-rdaybookings');
+
+		// make the request to get the bookings information
+		VBOCore.doAjax(
+			"<?php echo VikBooking::ajaxUrl('index.php?option=com_vikbooking&task=getbookingsinfo'); ?>",
+			{
+				status: 'any',
+				idorders: date_bids,
+				tmpl: 'component'
+			},
+			(res) => {
+				// stop loading
+				VBOCore.emitMultitaskEvent('vbo-loading-modal-roverv-rdaybookings');
+				try {
+					var obj_res = typeof res === 'string' ? JSON.parse(res) : res;
+					// build the HTML response
+					var rday_bookings_html = '';
+					rday_bookings_html += '<div class="vbo-dashboard-guests-latest">' + "\n";
+					rday_bookings_html += '	<div class="vbo-dashboard-guest-messages-list">' + "\n";
+					for (var b in obj_res) {
+						if (!obj_res.hasOwnProperty(b)) {
+							continue;
+						}
+						// nights and guests
+						var nights_guests = [
+							obj_res[b]['roomsnum'] + ' ' + Joomla.JText._((obj_res[b]['roomsnum'] > 1 ? 'VBPVIEWORDERSTHREE' : 'VBEDITORDERTHREE')),
+							obj_res[b]['days'] + ' ' + Joomla.JText._((obj_res[b]['days'] > 1 ? 'VBDAYS' : 'VBDAY')),
+							obj_res[b]['tot_adults'] + ' ' + Joomla.JText._((obj_res[b]['tot_adults'] > 1 ? 'VBMAILADULTS' : 'VBMAILADULT'))
+						];
+						if (obj_res[b]['tot_children'] > 0) {
+							nights_guests.push(obj_res[b]['tot_children'] + ' ' + Joomla.JText._((obj_res[b]['tot_children'] > 1 ? 'VBMAILCHILDREN' : 'VBMAILCHILD')));
+						}
+
+						// build booking structure
+						rday_bookings_html += '	<div class="vbo-dashboard-guest-activity vbo-w-guestmessages-message" data-idorder="' + obj_res[b]['id'] + '" onclick="vboRovervOpenBooking(\'' + obj_res[b]['id'] + '\');">' + "\n";
+						rday_bookings_html += '		<div class="vbo-dashboard-guest-activity-avatar">' + "\n";
+						if (obj_res[b]['avatar_src']) {
+							rday_bookings_html += '<img class="vbo-dashboard-guest-activity-avatar-profile" src="' + obj_res[b]['avatar_src'] + '" alt="' + obj_res[b]['avatar_alt'] + '" />' + "\n";
+						} else if (obj_res[b]['closure']) {
+							rday_bookings_html += closure_i + "\n";
+						} else {
+							rday_bookings_html += def_bicon + "\n";
+						}
+						rday_bookings_html += '		</div>' + "\n";
+						rday_bookings_html += '		<div class="vbo-dashboard-guest-activity-content">' + "\n";
+						rday_bookings_html += '			<div class="vbo-dashboard-guest-activity-content-head">' + "\n";
+						rday_bookings_html += '				<div class="vbo-dashboard-guest-activity-content-info-details">' + "\n";
+						rday_bookings_html += '					<h4 class="vbo-w-guestmessages-message-gtitle">' + (!obj_res[b]['closure'] ? obj_res[b]['cinfo'] : obj_res[b]['closure_txt']) + '</h4>' + "\n";
+						rday_bookings_html += '					<div class="vbo-dashboard-guest-activity-content-info-icon">' + "\n";
+						rday_bookings_html += '						<span class="label label-info">' + obj_res[b]['id'] + '</span> ' + "\n";
+						rday_bookings_html += '						<span class="badge badge-' + (obj_res[b]['status'] == 'confirmed' ? 'success' : 'warning') + '">' + obj_res[b]['status_lbl'] + '</span>' + "\n";
+						rday_bookings_html += '							<span class="vbo-w-guestmessages-message-staydates">' + "\n";
+						rday_bookings_html += '							<span class="vbo-w-guestmessages-message-staydates-in">' + obj_res[b]['checkin_short'] + '</span>' + "\n";
+						rday_bookings_html += '							<span class="vbo-w-guestmessages-message-staydates-sep">-</span>' + "\n";
+						rday_bookings_html += '							<span class="vbo-w-guestmessages-message-staydates-out">' + obj_res[b]['checkout_short'] + '</span>' + "\n";
+						rday_bookings_html += '						</span>' + "\n";
+						rday_bookings_html += '					</div>' + "\n";
+						rday_bookings_html += '				</div>' + "\n";
+						rday_bookings_html += '				<div class="vbo-dashboard-guest-activity-content-info-date">' + "\n";
+						rday_bookings_html += '					<span>' + obj_res[b]['book_date'] + '</span>' + "\n";
+						rday_bookings_html += '					<span>' + obj_res[b]['book_time'] + '</span>' + "\n";
+						rday_bookings_html += '				</div>' + "\n";
+						rday_bookings_html += '			</div>' + "\n";
+						rday_bookings_html += '			<div class="vbo-dashboard-guest-activity-content-info-msg">' + "\n";
+						rday_bookings_html += '				<div>' + nights_guests.join(', ') + '</div>' + "\n";
+						if (obj_res[b].hasOwnProperty('sub_units_data')) {
+							rday_bookings_html += '			<div class="vbo-rdaybooking-subunits">' + "\n";
+							for (let sub_rname in obj_res[b]['sub_units_data']) {
+								if (!obj_res[b]['sub_units_data'].hasOwnProperty(sub_rname)) {
+									continue;
+								}
+								rday_bookings_html += '<span class="label label-success">' + (obj_res[b]['roomsnum'] > 1 ? sub_rname + ' ' : '') + '#' + obj_res[b]['sub_units_data'][sub_rname] + '</span>' + "\n";
+							}
+							rday_bookings_html += '			</div>' + "\n";
+						}
+						rday_bookings_html += '			</div>' + "\n";
+						rday_bookings_html += '		</div>' + "\n";
+						rday_bookings_html += '	</div>' + "\n";
+					}
+					rday_bookings_html += '	</div>' + "\n";
+					rday_bookings_html += '</div>' + "\n";
+
+					// append the response
+					rday_bookings_modal_body.html(rday_bookings_html);
+				} catch(err) {
+					console.error('could not parse JSON response', err, res);
+					alert('Could not parse JSON response');
+				}
+			},
+			(err) => {
+				// stop loading and display alert message
+				VBOCore.emitMultitaskEvent('vbo-loading-modal-roverv-rdaybookings');
+				console.error(err);
+				alert(err.responseText);
+			}
+		);
 	});
 });
 
@@ -2229,8 +2426,10 @@ function vboToggleCollapse() {
 	var collapse = expand ? 0 : 1;
 	if (expand) {
 		jQuery('.vbo-ratesoverview-roomsel-entry-calc-inner, .vbo-roverv-forecast-inner').show();
+		jQuery('.vbo-ratesoverview-top-container').removeClass('collapsed');
 	} else {
 		jQuery('.vbo-ratesoverview-roomsel-entry-calc-inner, .vbo-roverv-forecast-inner').hide();
+		jQuery('.vbo-ratesoverview-top-container').addClass('collapsed');
 	}
 	var nd = new Date();
 	nd.setTime(nd.getTime() + (365*24*60*60*1000));
@@ -2257,7 +2456,17 @@ function vboSelectAllRooms(btn) {
 
 var timeline_height_set = false;
 
-jQuery(document).ready(function() {
+jQuery(function() {
+	// register to the event emitted when a new booking is created through an admin widget
+	document.addEventListener('vbo_new_booking_created', (e) => {
+		if (!e || !e.detail || !e.detail.hasOwnProperty('bid') || !e.detail['bid']) {
+			// do nothing
+			return;
+		}
+		// reload the page to display the new booking just created
+		location.reload();
+	});
+
 	// toggle OBP rows
 	if (jQuery('.vbo-ratesoverview-obp-toggle').length && jQuery('tr.vbo-roverviewtablerow-occupancy').length) {
 		jQuery('.vbo-ratesoverview-obp-toggle').show();
@@ -2329,7 +2538,7 @@ jQuery(document).ready(function() {
 		}
 	});
 	jQuery('#vbo-ratesoverview-calculate').click(function() {
-		jQuery(this).text('<?php echo addslashes(JText::translate('VBRATESOVWRATESCALCULATORCALCING')); ?>').prop('disabled', true);
+		jQuery(this).text(Joomla.JText._('VBRATESOVWRATESCALCULATORCALCING')).prop('disabled', true);
 		var checkindate = jQuery("#checkindate").val();
 		if (!(checkindate.length > 0)) {
 			checkindate = '<?php echo date('Y-m-d') ?>';
@@ -2399,10 +2608,10 @@ jQuery(document).ready(function() {
 				});
 				//
 			}
-			jQuery('#vbo-ratesoverview-calculate').text('<?php echo addslashes(JText::translate('VBRATESOVWRATESCALCULATORCALC')); ?>').prop('disabled', false);
+			jQuery('#vbo-ratesoverview-calculate').text(Joomla.JText._('VBRATESOVWRATESCALCULATORCALC')).prop('disabled', false);
 		}).fail(function() { 
 			jQuery(".vbo-ratesoverview-calculation-response").fadeOut();
-			jQuery('#vbo-ratesoverview-calculate').text('<?php echo addslashes(JText::translate('VBRATESOVWRATESCALCULATORCALC')); ?>').prop('disabled', false);
+			jQuery('#vbo-ratesoverview-calculate').text(Joomla.JText._('VBRATESOVWRATESCALCULATORCALC')).prop('disabled', false);
 			alert("Error Performing Ajax Request"); 
 		});
 	});

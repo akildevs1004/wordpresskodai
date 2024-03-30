@@ -397,6 +397,46 @@ class VikBookingLanguageSystem implements JLanguageHandler
 				break;
 
 			/**
+			 * Relative dates
+			 */
+
+			case 'JLIB_HTML_DATE_RELATIVE_LESSTHANAMINUTE':
+				$result = __('Less than a minute ago.', 'vikbooking');
+				break;
+
+			case 'JLIB_HTML_DATE_RELATIVE_MINUTES':
+				$result = __('%d minutes ago.', 'vikbooking');
+				break;
+
+			case 'JLIB_HTML_DATE_RELATIVE_MINUTES_1':
+				$result = __('a minute ago.', 'vikbooking');
+				break;
+
+			case 'JLIB_HTML_DATE_RELATIVE_HOURS':
+				$result = __('%d hours ago.', 'vikbooking');
+				break;
+
+			case 'JLIB_HTML_DATE_RELATIVE_HOURS_1':
+				$result = __('an hour ago.', 'vikbooking');
+				break;
+
+			case 'JLIB_HTML_DATE_RELATIVE_DAYS':
+				$result = __('%d days ago.', 'vikbooking');
+				break;
+
+			case 'JLIB_HTML_DATE_RELATIVE_DAYS_1':
+				$result = __('a day ago.', 'vikbooking');
+				break;
+
+			case 'JLIB_HTML_DATE_RELATIVE_WEEKS':
+				$result = __('%d weeks ago.', 'vikbooking');
+				break;
+
+			case 'JLIB_HTML_DATE_RELATIVE_WEEKS_1':
+				$result = __('a week ago.', 'vikbooking');
+				break;
+
+			/**
 			 * Pro version warning
 			 */
 			

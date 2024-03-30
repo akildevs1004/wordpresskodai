@@ -9,12 +9,20 @@ input, textarea, select, .wp-core-ui select {
 	padding: 10px 12px;
 	font-size: 13px;
 }
+.btn.btn-small {
+    padding: 2px 10px;
+    font-size: 12px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+}
 
 .btn-group button.btn,
 .input-append button.btn,
 .input-prepend button.btn {
-	padding: 9.5px 10px;
+	padding: 8px 10px;
 	margin: 0;
+	height: 40px;
 }
 
 .btn-group input[type="text"],
@@ -40,8 +48,14 @@ input, textarea, select, .wp-core-ui select {
 .wp-admin select {
 	line-height: 2em;
 	min-height: 40px;
-	padding: 5px 24px 5px 10px !important;
+	padding: 5px 34px 5px 10px !important;
 	border-color: #ddd;
+}
+select.vbo-select-small {
+	padding: 0px 24px 0px 8px !important;
+	min-height: 25px;
+	font-size: 12px;
+	height: 25px !important;
 }
 .wp-calendar-box {
 	padding: 0 10px 0 0;
@@ -56,9 +70,6 @@ input, textarea, select, .wp-core-ui select {
 .vbo-feature-remove {
 	margin-top: 4px;
 }
-.vbplusminus {
-	margin-top: 16px;
-}
 .vbroomparampactive * {
 	vertical-align: top;
 }
@@ -71,7 +82,6 @@ i.icon-new::before {
 .vbo-ratesoverview-entryinline .input-append button.btn, .admintable .input-append button.btn, #adminForm .btn-group button.btn, #filter-bar .input-append .btn,
 .vbo-report-filter-val .input-append button.btn, .vbo-btn-toolbar .btn-group .btn {
 	padding: 9px 14px;
-	height: 40px;
 }
 .vbo-ratesoverview-entryinline .input-append input[type="text"], .admintable .input-append input[type="text"], #adminForm .btn-group input[type="text"] {
 	height: 40px;

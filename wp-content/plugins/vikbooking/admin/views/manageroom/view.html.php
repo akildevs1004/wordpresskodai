@@ -13,9 +13,10 @@ defined('ABSPATH') or die('No script kiddies please!');
 // import Joomla view library
 jimport('joomla.application.component.view');
 
-class VikBookingViewManageroom extends JViewVikBooking {
-	
-	function display($tpl = null) {
+class VikBookingViewManageroom extends JViewVikBooking
+{
+	public function display($tpl = null)
+	{
 		// Set the toolbar
 		$this->addToolBar();
 
@@ -59,7 +60,7 @@ class VikBookingViewManageroom extends JViewVikBooking {
 			$adultsdiff = $dbo->getNumRows() > 0 ? $dbo->loadAssocList() : "";
 		}
 		
-		// rooms map and calendar relations
+		// rooms map and calendar relations (used also for room-upgrade)
 		$rooms_map = array();
 		$q = "SELECT `id`, `name` FROM `#__vikbooking_rooms`" . (!empty($cid[0]) ? " WHERE `id`!={$id}" : '') . " ORDER BY `name` ASC;";
 		$dbo->setQuery($q);
@@ -91,13 +92,13 @@ class VikBookingViewManageroom extends JViewVikBooking {
 		}
 		//
 		
-		$this->row = &$row;
-		$this->cats = &$cats;
-		$this->carats = &$carats;
-		$this->optionals = &$optionals;
-		$this->adultsdiff = &$adultsdiff;
-		$this->rooms_map = &$rooms_map;
-		$this->cal_xref = &$cal_xref;
+		$this->row = $row;
+		$this->cats = $cats;
+		$this->carats = $carats;
+		$this->optionals = $optionals;
+		$this->adultsdiff = $adultsdiff;
+		$this->rooms_map = $rooms_map;
+		$this->cal_xref = $cal_xref;
 		
 		// Display the template
 		parent::display($tpl);
@@ -106,7 +107,8 @@ class VikBookingViewManageroom extends JViewVikBooking {
 	/**
 	 * Sets the toolbar
 	 */
-	protected function addToolBar() {
+	protected function addToolBar()
+	{
 		$cid = VikRequest::getVar('cid', array(0));
 		
 		if (!empty($cid[0])) {
@@ -131,5 +133,4 @@ class VikBookingViewManageroom extends JViewVikBooking {
 			JToolBarHelper::spacer();
 		}
 	}
-
 }

@@ -14,8 +14,6 @@ defined('ABSPATH') or die('No script kiddies please!');
 $deactivate_url_js = !empty($displayData['url']) ? $displayData['url'] : '#';
 $is_pro            = isset($displayData['pro'])  ? $displayData['pro'] : false;
 
-$is_pro = false;
-
 $plain_deactivation_url = JUri::getInstance();
 $plain_deactivation_url->setVar('feedback', 0);
 

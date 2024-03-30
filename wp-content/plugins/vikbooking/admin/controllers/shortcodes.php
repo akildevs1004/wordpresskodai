@@ -91,6 +91,10 @@ class VikBookingControllerShortcodes extends JControllerAdmin
 		{
 			$return = base64_decode($return);
 		}
+		else
+		{
+			$return = 'admin.php?option=com_vikbooking';
+		}
 
 		$app->redirect($return);
 	}

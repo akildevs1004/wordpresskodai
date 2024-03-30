@@ -198,7 +198,7 @@ class VikBookingAdminWidgetCurrencyConverter extends VikBookingAdminWidget
 		?>
 		<div class="vbo-admin-widget-wrapper">
 			<div class="vbo-admin-widget-head">
-				<h4><?php echo $this->widgetIcon; ?> <?php echo $this->widgetName; ?></h4>
+				<h4><?php echo $this->widgetIcon; ?> <span><?php echo $this->widgetName; ?></span></h4>
 			</div>
 			<div id="<?php echo $wrapper_id; ?>" class="vbo-widget-currconv-wrap" data-instance="<?php echo $wrapper_instance; ?>">
 				<div class="vbo-widget-currconv-filters">
@@ -285,7 +285,7 @@ class VikBookingAdminWidgetCurrencyConverter extends VikBookingAdminWidget
 					},
 					function(response) {
 						try {
-							var obj_res = JSON.parse(response);
+							var obj_res = typeof response === 'string' ? JSON.parse(response) : response;
 							if (!obj_res.hasOwnProperty(call_method) || !obj_res[call_method]) {
 								console.error('Unexpected JSON response', obj_res);
 								return false;

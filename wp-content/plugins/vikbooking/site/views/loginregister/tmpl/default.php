@@ -111,62 +111,82 @@ function checkVrcReg() {
 
 <div class="loginregistercont">
 		
-	<div class="registerblock">
-	<form action="<?php echo JRoute::rewrite('index.php?option=com_vikbooking'.(!empty($pitemid) ? '&Itemid='.$pitemid : '')); ?>" method="post" name="vbreg" onsubmit="return checkVrcReg();">
-	<h3><?php echo JText::translate('VBREGSIGNUP'); ?></h3>
-	<table valign="top">
-		<tr><td align="right"><span id="vbfname"><?php echo JText::translate('VBREGNAME'); ?></span></td><td><input type="text" name="fname" value="" size="20" class="vbinput"/></td></tr>
-		<tr><td align="right"><span id="vbflname"><?php echo JText::translate('VBREGLNAME'); ?></span></td><td><input type="text" name="lname" value="" size="20" class="vbinput"/></td></tr>
-		<tr><td align="right"><span id="vbfemail"><?php echo JText::translate('VBREGEMAIL'); ?></span></td><td><input type="text" name="email" value="" size="20" class="vbinput"/></td></tr>
-		<tr><td align="right"><span id="vbfusername"><?php echo JText::translate('VBREGUNAME'); ?></span></td><td><input type="text" name="username" value="" size="20" class="vbinput"/></td></tr>
-		<tr><td align="right"><span id="vbfpassword"><?php echo JText::translate('VBREGPWD'); ?></span></td><td><input type="password" name="password" value="" size="20" class="vbinput"/></td></tr>
-		<tr><td align="right"><span id="vbfconfpassword"><?php echo JText::translate('VBREGCONFIRMPWD'); ?></span></td><td><input type="password" name="confpassword" value="" size="20" class="vbinput"/></td></tr>
-		<tr><td align="right">&nbsp;</td><td><input type="submit" value="<?php echo JText::translate('VBREGSIGNUPBTN'); ?>" class="booknow vbo-pref-color-btn" name="submit" /></td></tr>
-	</table>
-	<?php
-	foreach ($prices as $num => $pid) {
-		?>
-		<input type="hidden" name="priceid<?php echo $num; ?>" value="<?php echo $pid; ?>" />
+	<div class="loginregister-block registerblock">
+		<form action="<?php echo JRoute::rewrite('index.php?option=com_vikbooking'.(!empty($pitemid) ? '&Itemid='.$pitemid : '')); ?>" method="post" name="vbreg" onsubmit="return checkVrcReg();">
+			<h3><?php echo JText::translate('VBREGSIGNUP'); ?></h3>
+			<div class="loginregister-inner-block">
+				<div class="loginregister-row">
+					<div class="loginregister-lbl"><span id="vbfname"><?php echo JText::translate('VBREGNAME'); ?></span></div>
+					<div class="loginregister-val"><input type="text" name="fname" value="" size="20" class="vbinput"/></div>
+				</div>
+				<div class="loginregister-row">
+					<div class="loginregister-lbl"><span id="vbflname"><?php echo JText::translate('VBREGLNAME'); ?></span></div>
+					<div class="loginregister-val"><input type="text" name="lname" value="" size="20" class="vbinput"/></div>
+				</div>
+				<div class="loginregister-row">
+					<div class="loginregister-lbl"><span id="vbfemail"><?php echo JText::translate('VBREGEMAIL'); ?></span></div>
+					<div class="loginregister-val"><input type="text" name="email" value="" size="20" class="vbinput"/></div>
+				</div>
+				<div class="loginregister-row">
+					<div class="loginregister-lbl"><span id="vbfusername"><?php echo JText::translate('VBREGUNAME'); ?></span></div>
+					<div class="loginregister-val"><input type="text" name="username" value="" size="20" class="vbinput"/></div>
+				</div>
+				<div class="loginregister-row">
+					<div class="loginregister-lbl"><span id="vbfpassword"><?php echo JText::translate('VBREGPWD'); ?></span></div>
+					<div class="loginregister-val"><input type="password" name="password" value="" size="20" class="vbinput"/></div>
+				</div>
+				<div class="loginregister-row">
+					<div class="loginregister-lbl"><span id="vbfconfpassword"><?php echo JText::translate('VBREGCONFIRMPWD'); ?></span></div>
+					<div class="loginregister-val"><input type="password" name="confpassword" value="" size="20" class="vbinput"/></div>
+				</div>
+				<div class="loginregister-row loginregister-submit">
+					<input type="submit" value="<?php echo JText::translate('VBREGSIGNUPBTN'); ?>" class="btn booknow vbo-pref-color-btn" name="submit" />
+				</div>
+			</div>
 		<?php
-	}
-	for ($ir = 1; $ir <= $roomsnum; $ir++) {
-		if (isset($selopt[$ir]) && is_array($selopt[$ir])) {
-			foreach ($selopt[$ir] as $opt) {
-				?>
-				<input type="hidden" name="optid<?php echo $ir.$opt['id']; ?>" value="<?php echo $opt['quan']; ?>" />
-				<?php
+		foreach ($prices as $num => $pid) {
+			?>
+			<input type="hidden" name="priceid<?php echo $num; ?>" value="<?php echo $pid; ?>" />
+			<?php
+		}
+		for ($ir = 1; $ir <= $roomsnum; $ir++) {
+			if (isset($selopt[$ir]) && is_array($selopt[$ir])) {
+				foreach ($selopt[$ir] as $opt) {
+					?>
+					<input type="hidden" name="optid<?php echo $ir.$opt['id']; ?>" value="<?php echo $opt['quan']; ?>" />
+					<?php
+				}
 			}
 		}
-	}
-	foreach ($rooms as $num => $r) {
-		?>
-		<input type="hidden" name="roomid[]" value="<?php echo $r['id']; ?>" />
-		<?php
-	}
-	foreach ($arrpeople as $indroom => $aduch) {
-		?>
-		<input type="hidden" name="adults[]" value="<?php echo $aduch['adults']; ?>" />
-		<input type="hidden" name="children[]" value="<?php echo $aduch['children']; ?>" />
-		<?php
-	}
-	for ($ir = 1; $ir <= $roomsnum; $ir++) {
-		if (isset($selopt[$ir]) && is_array($selopt[$ir])) {
-			foreach ($selopt[$ir] as $opt) {
-				?>
-				<input type="hidden" name="optid<?php echo $ir.$opt['id']; ?>" value="<?php echo $opt['quan']; ?>" />
-				<?php
+		foreach ($rooms as $num => $r) {
+			?>
+			<input type="hidden" name="roomid[]" value="<?php echo $r['id']; ?>" />
+			<?php
+		}
+		foreach ($arrpeople as $indroom => $aduch) {
+			?>
+			<input type="hidden" name="adults[]" value="<?php echo $aduch['adults']; ?>" />
+			<input type="hidden" name="children[]" value="<?php echo $aduch['children']; ?>" />
+			<?php
+		}
+		for ($ir = 1; $ir <= $roomsnum; $ir++) {
+			if (isset($selopt[$ir]) && is_array($selopt[$ir])) {
+				foreach ($selopt[$ir] as $opt) {
+					?>
+					<input type="hidden" name="optid<?php echo $ir.$opt['id']; ?>" value="<?php echo $opt['quan']; ?>" />
+					<?php
+				}
 			}
 		}
-	}
-	?>
-	<input type="hidden" name="roomsnum" value="<?php echo $roomsnum; ?>" />
-	<input type="hidden" name="days" value="<?php echo $days; ?>" />
-	<input type="hidden" name="checkin" value="<?php echo $checkin; ?>" />
-	<input type="hidden" name="checkout" value="<?php echo $checkout; ?>" />
-	<input type="hidden" name="Itemid" value="<?php echo $pitemid; ?>" />
-	<input type="hidden" name="option" value="com_vikbooking" />
-	<input type="hidden" name="task" value="register" />
-	</form>
+		?>
+		<input type="hidden" name="roomsnum" value="<?php echo $roomsnum; ?>" />
+		<input type="hidden" name="days" value="<?php echo $days; ?>" />
+		<input type="hidden" name="checkin" value="<?php echo $checkin; ?>" />
+		<input type="hidden" name="checkout" value="<?php echo $checkout; ?>" />
+		<input type="hidden" name="Itemid" value="<?php echo $pitemid; ?>" />
+		<input type="hidden" name="option" value="com_vikbooking" />
+		<input type="hidden" name="task" value="register" />
+		</form>
 	</div>
 <?php
 
@@ -178,14 +198,22 @@ $url .= (strpos($url, '?') !== false ? '&' : '?') . 'action=login';
 
 ?>
 
-	<div class="loginblock">
+	<div class="loginregister-block loginblock">
 		<form action="<?php echo $url; ?>" method="post">
 			<h3><?php echo JText::translate('VBREGSIGNIN'); ?></h3>
-			<table valign="top">
-				<tr><td align="right"><?php echo JText::translate('VBREGUNAME'); ?></td><td><input type="text" name="log" value="" size="20" class="vbinput"/></td></tr>
-				<tr><td align="right"><?php echo JText::translate('VBREGPWD'); ?></td><td><input type="password" name="pwd" value="" size="20" class="vbinput"/></td></tr>
-				<tr><td align="right">&nbsp;</td><td><input type="submit" value="<?php echo JText::translate('VBREGSIGNINBTN'); ?>" class="booknow vbo-pref-color-btn" name="Login" /></td></tr>
-			</table>
+			<div class="loginregister-inner-block">
+				<div class="loginregister-row">
+					<div class="loginregister-lbl"><?php echo JText::translate('VBREGUNAME'); ?></div>
+					<div class="loginregister-val"><input type="text" name="log" value="" size="20" class="vbinput"/></div>
+				</div>
+				<div class="loginregister-row">
+					<div class="loginregister-lbl"><?php echo JText::translate('VBREGPWD'); ?></div>
+					<div class="loginregister-val"><input type="password" name="pwd" value="" size="20" class="vbinput"/></div>
+				</div>
+				<div class="loginregister-row loginregister-submit">
+					<input type="submit" value="<?php echo JText::translate('VBREGSIGNINBTN'); ?>" class="btn booknow vbo-pref-color-btn" name="Login" />
+				</div>
+			</div>
 			<input type="hidden" name="remember" id="remember" value="yes" />
 			<?php echo JHtml::fetch('form.token'); ?>
 		</form>

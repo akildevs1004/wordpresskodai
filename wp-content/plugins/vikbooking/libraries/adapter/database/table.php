@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.database
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -24,6 +24,15 @@ class JTable extends JObject
 	 * @var array
 	 */
 	private static $_includePaths = array();
+
+	/**
+	 * Table fields cache to prevent the static changed applied by PHP 8.1.
+	 * @link https://bugs.php.net/bug.php?id=81686
+	 *
+	 * @var array
+	 * @since 10.1.41
+	 */
+	protected static $_tableFields = [];
 
 	/**
 	 * Name of the database table to model.
@@ -204,9 +213,9 @@ class JTable extends JObject
 	 */
 	public function getFields($reload = false)
 	{
-		static $cache = null;
+		$key = $this->getTableName();
 
-		if ($cache === null || $reload)
+		if (!isset(static::$_tableFields[$key]) || $reload)
 		{
 			$dbo = JFactory::getDbo();
 
@@ -218,10 +227,10 @@ class JTable extends JObject
 				throw new Exception(sprintf('No columns found for [%s] table', $this->_table));
 			}
 
-			$cache = $fields;
+			static::$_tableFields[$key] = $fields;
 		}
 
-		return $cache;
+		return static::$_tableFields[$key];
 	}
 
 	/**

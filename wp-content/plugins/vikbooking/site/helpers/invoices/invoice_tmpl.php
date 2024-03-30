@@ -41,9 +41,16 @@ defined('_VIKBOOKINGEXEC') OR die('Restricted Area');
  * Example: the ID of the booking is contained in $booking_info['id'] - you can see the whole array content with the code "print_r($booking_info)"
  *
  * It is also possible to access the customer information array by using this code:
- * $customer = VikBooking::getCPinIstance()->getCustomerFromBooking($booking_info['id']);
+ * $customer = VikBooking::getCPinInstance()->getCustomerFromBooking($booking_info['id']);
  * The variable $customer will always be an array, even if no customers were found. In this case, the array will be empty.
  * Debug the content of the array with the code "print_r($customer)" by placing it on any part of the PDF content below.
+ * 
+ * Need to access the events related to the payments of the reservation? The PHP code below will help you obtain and debug the array of the "payment events".
+ * 
+ * if (isset($booking_info) && is_array($booking_info) && !empty($booking_info['id'])) {
+ * 	echo '<pre>' . print_r(VikBooking::getBookingHistoryInstance()->setBid($booking_info['id'])->getEventsWithData(['P0', 'PN', 'PU'], null, false), true) . '</pre>';
+ * }
+ *
  */
 
 //Custom Invoice PDF Template Parameters
@@ -73,7 +80,8 @@ $invoice_params = array(
 	'pdf_image_scale_ratio' => 'VBO_INVOICE_PDF_IMAGE_SCALE_RATIO', //must be a constant - ratio used to adjust the conversion of pixels to user units (1.25 by default)
 	'header_font_size' => '10', //must be a number
 	'body_font_size' => '10', //must be a number
-	'footer_font_size' => '8' //must be a number
+	'footer_font_size' => '8', //must be a number
+	'show_lines_taxrate_col' => 0, // 0 to not show the tax rate for each line, 1 to show it, but add a new TD to the HTML below.
 );
 defined('_VIKBOOKING_INVOICE_PARAMS') OR define('_VIKBOOKING_INVOICE_PARAMS', '1');
 //
@@ -90,10 +98,10 @@ defined('_VIKBOOKING_INVOICE_PARAMS') OR define('_VIKBOOKING_INVOICE_PARAMS', '1
 			<td width="30%" align="right" valign="bottom">
 				<table align="right" width="100%" style="border: 1px solid #ccc;" bgcolor="#f2f3f7" cellspacing="0" cellpadding="2">
 					<tr>
-						<td align="right"><strong><?php echo JText::translate('VBOINVNUM'); ?> <span>{invoice_number}</span><span>{invoice_suffix}</span></strong></td>
+						<td align="right"><?php echo JText::translate('VBOINVNUM'); ?> <strong><span>{invoice_number}</span><span>{invoice_suffix}</span></strong></td>
 					</tr>
 					<tr>
-						<td align="right"><strong><?php echo JText::translate('VBOINVDATE'); ?> <span>{invoice_date}</span></strong></td>
+						<td align="right"><?php echo JText::translate('VBOINVDATE'); ?> <strong><span>{invoice_date}</span></strong></td>
 					</tr>
 				</table>
 			</td>
@@ -112,11 +120,20 @@ defined('_VIKBOOKING_INVOICE_PARAMS') OR define('_VIKBOOKING_INVOICE_PARAMS', '1
 		{invoice_products_descriptions}
 	</table>
 	<br/>
+	<table width="100%" bgcolor="#f2f3f7" border="0" cellspacing="1" cellpadding="2">
+		<tr bgcolor="#C5C5C5">
+			<td width="40%"><strong><?php echo JText::translate('VBO_INV_TAX_SUMMARY'); ?></strong></td>
+			<td width="30%"><strong><?php echo JText::translate('VBO_INV_TAX_ALIQUOTE'); ?></strong></td>
+			<td width="30%"><strong><?php echo JText::translate('VBOINVCOLTOTAL'); ?></strong></td>
+		</tr>
+		{invoice_tax_summary}
+	</table>
+	<br/>
 	<table width="100%" border="0" cellspacing="1" cellpadding="2">
 		<tr bgcolor="#f2f3f7">
-			<td rowspan="3" valign="top"><strong><?php echo JText::translate('VBOINVCOLCUSTINFO'); ?></strong><br/><span>{customer_info}</span></td>
+			<td rowspan="3" valign="top"><strong><?php echo JText::translate('VBOINVCOLCUSTINFO'); ?></strong><br/><br/><span>{customer_info}</span></td>
 			<td rowspan="3" valign="top">
-				<strong><?php echo JText::translate('VBOINVCOLBOOKINGDETS'); ?></strong><br/>
+				<strong><?php echo JText::translate('VBOINVCOLBOOKINGDETS'); ?></strong><br/><br/>
 				<?php echo JText::translate('VBOINVCHECKIN'); ?>: <span>{checkin_date}</span><br/>
 				<?php echo JText::translate('VBOINVCHECKOUT'); ?>: <span>{checkout_date}</span><br/>
 				<?php echo JText::translate('VBOINVTOTGUESTS'); ?>: <span>{tot_guests}</span>

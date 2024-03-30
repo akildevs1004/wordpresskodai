@@ -33,6 +33,8 @@ final class VBONotificationDisplayMessage extends JObject implements VBONotifica
 	 * the notification in the browser.
 	 * 
 	 * @return 	null|object 	the notification display data payload.
+	 * 
+	 * @throws 	Exception
 	 */
 	public function getData()
 	{
@@ -41,12 +43,17 @@ final class VBONotificationDisplayMessage extends JObject implements VBONotifica
 			return null;
 		}
 
+		// customer picture
+		$customer_pic = $this->get('pic', '');
+
 		// channel logo
 		$channel_logo = $this->get('channel_logo', '');
 
 		// the notification icon
 		$notif_icon = '';
-		if (!empty($channel_logo)) {
+		if (!empty($customer_pic)) {
+			$notif_icon = strpos($customer_pic, 'http') === 0 ? $customer_pic : VBO_SITE_URI . 'resources/uploads/' . $customer_pic;
+		} elseif (!empty($channel_logo)) {
 			$notif_icon = $channel_logo;
 		} else {
 			$notif_icon = $this->getIconUrl();
@@ -62,11 +69,21 @@ final class VBONotificationDisplayMessage extends JObject implements VBONotifica
 		$notif_data->title 	 = $notif_title;
 		$notif_data->message = $this->get('content', '');
 		$notif_data->icon 	 = $notif_icon;
-		$notif_data->onclick = 'VBOCore.handleGoto';
-		$notif_data->gotourl = 'index.php?option=com_vikbooking&task=editorder&cid[]=' . $booking_id;
-		if (defined('ABSPATH')) {
-			$notif_data->gotourl = str_replace('index.php', 'admin.php', $notif_data->gotourl);
-		}
+		$notif_data->onclick = 'VBOCore.handleDisplayWidgetNotification';
+		$notif_data->gotourl = VBOFactory::getPlatform()->getUri()->admin("index.php?option=com_vikbooking&task=editorder&cid[]={$booking_id}", false);
+
+		// set additional properties to the notification payload related to the guest message
+		$notif_data->widget_id 	 = 'guest_messages';
+		$notif_data->channel 	 = $this->get('channel', null);
+		$notif_data->id_order 	 = $booking_id;
+		$notif_data->id_customer = $this->get('id_customer', null);
+		$notif_data->id_message  = $this->get('id_message', null);
+		$notif_data->id_thread 	 = $this->get('id_thread', null);
+		// set additional data options to ensure the conversation will be found
+		$notif_data->_options  = [
+			'_web' => 1,
+			'bid'  => $booking_id,
+		];
 
 		return $notif_data;
 	}

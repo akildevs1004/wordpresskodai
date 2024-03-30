@@ -12,7 +12,6 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 class VikBookingReportIstatLiguria extends VikBookingReport
 {
-
 	private $from_ts;
 	private $to_ts;
 	public $bookings;
@@ -21,19 +20,23 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 	 * Property 'defaultKeySort' is used by the View that renders the report.
 	 */
 	public $defaultKeySort = 'checkin';
+
 	/**
 	 * Property 'defaultKeyOrder' is used by the View that renders the report.
 	 */
 	public $defaultKeyOrder = 'ASC';
+
 	/**
 	 * Property 'customExport' is used by the View to display custom export buttons.
 	 * We should not define the property $exportAllowed.
 	 */
 	public $customExport = '';
+
 	/**
 	 * Debug mode is activated by passing the value 'e4j_debug' > 0
 	 */
 	private $debug;
+
 	/**
 	 * An associative array of regions (keys) and provinces (sub-arrays)
 	 * 
@@ -196,8 +199,8 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 			'Vicenza',
 		)
 	);
-	private $map_reg_codes = array(
 
+	private $map_reg_codes = array(
 		"Piemonte" => "01",
 		"ValledAosta" => "02",
 		"Lombardia" => "03",
@@ -220,12 +223,9 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 		"Sardegna" => "20",
 		"Bolzano" => "21",
 		"Trento" => "22"
-
-
 	);
 
 	private $map_prov_codes = array(
-
 		"Torino" => "001",
 		"Vercelli" => "002",
 		"Novara" => "003",
@@ -340,6 +340,7 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 		"Fermo" => "109",
 		"Barletta-Andria-Trani" => "110"
 	);
+
 	private $map_country_codes = array(
 		'AUT' => 'Austria',
 		'BEL' => 'Belgio',
@@ -392,6 +393,7 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 		'AUS' => 'Australia',
 		'NZL' => 'NuovaZelanda',
 	);
+
 	/**
 	 * An associative array of country 3-char codes (keys) and ISTAT "tipo" codes (values).
 	 * Only for those who live outside Italy
@@ -458,8 +460,9 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 		'AltriAfricaMed' => '230',
 		'AltriAfrica' => '300',
 		'AltriOceania' => '810',
-		 'NonSpecificato' => '777' 
+		'NonSpecificato' => '777' 
 	);
+
 	/**
 	 * An associative array of valid country types (keys)
 	 * and readable country types (values).
@@ -495,6 +498,8 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 		$this->footerRow = array();
 
 		$this->debug = (VikRequest::getInt('e4j_debug', 0, 'request') > 0);
+
+		$this->registerExportFileName();
 
 		parent::__construct();
 	}
@@ -1169,6 +1174,7 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 		if (!$this->getReportData()) {
 			return false;
 		}
+
 		$pfromdate = VikRequest::getString('fromdate', '', 'request');
 		$ptodate = VikRequest::getString('todate', '', 'request');
 		$pcodstru = VikRequest::getString('codstru', '', 'request');
@@ -1183,12 +1189,12 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 			return false;
 		}
 		//
-		$q="SELECT SUM(`units`) FROM `#__vikbooking_rooms` WHERE `avail`= '1';";
+		$q = "SELECT SUM(`units`) FROM `#__vikbooking_rooms` WHERE `avail`= '1';";
 		$this->dbo->setQuery($q);
 		$this->dbo->execute();
 		$totalRooms= $this->dbo->loadResult();
 		$records = array();
-		$q="SELECT SUM(`units`) AS `sommaunita`, SUM(`totpeople`) AS `numeropersone`, COUNT(*) AS `numerocamere`  FROM `#__vikbooking_rooms` WHERE `avail`= '1';";
+		$q = "SELECT SUM(`units`) AS `sommaunita`, SUM(`totpeople`) AS `numeropersone`, COUNT(*) AS `numerocamere`  FROM `#__vikbooking_rooms` WHERE `avail`= '1';";
 		$this->dbo->setQuery($q);
 		$this->dbo->execute();
 		if ($this->dbo->getNumRows() > 0) {
@@ -1286,34 +1292,29 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 							'partiti' => 0,
 							'arrivi' => 0,
 							'presenti' => 0,
-							
 						);
 					} elseif(!isset($arr['estero'][$arrcode])) {
 						$arr['estero'][$arrcode] = array(
 							'partiti' => 0,
 							'arrivi' => 0,
-							'presenti' => 0,	
-							
-
+							'presenti' => 0,
 						);
 					}
 					foreach ($this->bookings as $gbook) {
-							$guestsnum = 0;
+						$guestsnum = 0;
 						foreach ($gbook as $book) {
 							$guestsnum += $book['adults'] + $book['children'];
 						}
-						
-						
-						if($italia == 1){
 
-							if($idswh == $gbook[0]['id'] && $arrcode == $this->map_prov_codes[$export_value] && !in_array($gbook[0]['id'], $arr['idres'])){
+						if ($italia == 1) {
+							if ($idswh == $gbook[0]['id'] && $arrcode == $this->map_prov_codes[$export_value] && !in_array($gbook[0]['id'], $arr['idres'])) {
 								array_push($arr['idres'], $gbook[0]['id']);
-								if (date('Y-m-d',$gbook[0]['checkin']) == date('Y-m-d',$this->from_ts) || date('Y-m-d',$gbook[0]['checkin']) == date('Y-m-d',$this->to_ts) ) {
+								if (date('Y-m-d',$gbook[0]['checkin']) == date('Y-m-d',$this->from_ts) || date('Y-m-d',$gbook[0]['checkin']) == date('Y-m-d',$this->to_ts)) {
 									$arr['italia'][$arrcode]['arrivi'] += $guestsnum;
 									$arr['italia'][$arrcode]['presenti'] += $guestsnum;
 									$arrivi = $arrivi + $guestsnum;
 									$presenti = $presenti + $guestsnum;
-								} elseif (date('Y-m-d',$gbook[0]['checkout']) == date('Y-m-d',$this->from_ts)|| date('Y-m-d',$gbook[0]['checkout']) == date('Y-m-d',$this->to_ts) ) {
+								} elseif (date('Y-m-d',$gbook[0]['checkout']) == date('Y-m-d',$this->from_ts)|| date('Y-m-d',$gbook[0]['checkout']) == date('Y-m-d',$this->to_ts)) {
 									$arr['italia'][$arrcode]['partiti'] += $guestsnum;
 									$partenze = $partenze + $guestsnum;
 								} else {
@@ -1321,46 +1322,37 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 									$presenti = $presenti + $guestsnum;
 								}
 							}
-
 						} else {
-
-							if ($idswh == $gbook[0]['id'] && $arrcode == $this->map_country_codes_transfer[$export_value] && !in_array($gbook[0]['id'], $arr['idres'])){
+							if ($idswh == $gbook[0]['id'] && $arrcode == $this->map_country_codes_transfer[$export_value] && !in_array($gbook[0]['id'], $arr['idres'])) {
 								array_push($arr['idres'], $gbook[0]['id']);
-								if (date('Y-m-d',$gbook[0]['checkin']) == date('Y-m-d',$this->from_ts) || date('Y-m-d',$gbook[0]['checkin']) == date('Y-m-d',$this->to_ts) ) {
+								if (date('Y-m-d',$gbook[0]['checkin']) == date('Y-m-d',$this->from_ts) || date('Y-m-d',$gbook[0]['checkin']) == date('Y-m-d',$this->to_ts)) {
 									$arr['estero'][$arrcode]['arrivi'] += $guestsnum;
 									$arr['estero'][$arrcode]['presenti'] += $guestsnum;
 									$arrivi = $arrivi + $guestsnum;
 									$presenti = $presenti + $guestsnum;
-								} elseif (date('Y-m-d',$gbook[0]['checkout']) == date('Y-m-d',$this->from_ts)|| date('Y-m-d',$gbook[0]['checkout']) == date('Y-m-d',$this->to_ts) ) {
+								} elseif (date('Y-m-d',$gbook[0]['checkout']) == date('Y-m-d',$this->from_ts)|| date('Y-m-d',$gbook[0]['checkout']) == date('Y-m-d',$this->to_ts)) {
 									$arr['estero'][$arrcode]['partiti'] += $guestsnum;
 									$partenze = $partenze + $guestsnum;
 								} else {
 									$arr['estero'][$arrcode]['presenti'] += $guestsnum;
 									$presenti = $presenti + $guestsnum;
 								}
-
-								
-								
 							}
-
 						}
-					}	
-					
+					}
 				}
 				if ($field['key'] == 'roomsbooked') {
-					if($partenze == 0){
-						if($presenti != 0 ||$arrivi != 0){
+					if ($partenze == 0) {
+						if ($presenti != 0 ||$arrivi != 0) {
 							$numOccupiedrooms = $numOccupiedrooms + $export_value;
 						}
 					}
 				}
-
 			}
 		}
-	
-		
+
 		$xml .= ' <giornaliero numcamereoccupate="'.$numOccupiedrooms.'">'."\n";
-		
+
 		foreach ($arr['italia'] as $key => $value) {
 			if ($arr['italia'][$key]['presenti'] < 0) {
 				$arr['italia'][$key]['presenti'] = 0;
@@ -1368,21 +1360,56 @@ class VikBookingReportIstatLiguria extends VikBookingReport
 			$xml .= ' <rigac59 nazione="i" residenza= "'.$key.'" partiti="'.$arr['italia'][$key]['partiti'].'" arrivati="'.$arr['italia'][$key]['arrivi'].'" presenti="'.$arr['italia'][$key]['presenti'].'"/> '."\n";
 		}
 
-		foreach ($arr['estero'] as $key => $value) {	
+		foreach ($arr['estero'] as $key => $value) {
 			if ($arr['estero'][$key]['presenti'] < 0) {
 				$arr['estero'][$key]['presenti'] = 0;
-			}	
+			}
+			if (!array_sum($arr['estero'][$key])) {
+				// FIX: no values found so do not include the node
+				continue;
+			}
 			$xml .= ' <rigac59 nazione="e" residenza= "'.$key.'" partiti="'.$arr['estero'][$key]['partiti'].'" arrivati="'.$arr['estero'][$key]['arrivi'].'" presenti="'.$arr['estero'][$key]['presenti'].'"/> '."\n";
 		}
-		
+
 		$xml .= '</giornaliero> '."\n";
 		$xml .= '</rm:c59>';
-		$filename = str_replace(' ', '_', $this->reportName).'-'.str_replace('/', '_', $pfromdate).'-'.str_replace('/', '_', $ptodate).'.xml';
-		header('Content-Disposition: attachment; filename='.$filename.'');
+
+		// format XML document
+		$this->formatXML($xml);
+
+		/**
+		 * Custom export method supports a custom export handler, if previously set.
+		 * 
+		 * @since 	1.16.1 (J) - 1.6.1 (WP)
+		 */
+		if ($this->hasExportHandler()) {
+			// write data onto the custom file handler
+			$fp = $this->getExportCSVHandler();
+			fwrite($fp, $xml);
+			fclose($fp);
+
+			return true;
+		}
+
+		header('Content-Disposition: attachment; filename=' . $this->getExportCSVFileName());
 		header('Content-type: text/xml');
-		echo $this->formatXML($xml);
+		echo $xml;
 		
 		exit;
 	}
 
+	/**
+	 * Registers the name to give to the file being exported.
+	 * 
+	 * @return 	void
+	 * 
+	 * @since 	1.16.1 (J) - 1.6.1 (WP)
+	 */
+	protected function registerExportFileName()
+	{
+		$pfromdate = VikRequest::getString('fromdate', '', 'request');
+		$ptodate = VikRequest::getString('todate', '', 'request');
+
+		$this->setExportCSVFileName(str_replace(' ', '_', $this->reportName) . '-' . str_replace('/', '_', $pfromdate) . '-' . str_replace('/', '_', $ptodate) . '.xml');
+	}
 }

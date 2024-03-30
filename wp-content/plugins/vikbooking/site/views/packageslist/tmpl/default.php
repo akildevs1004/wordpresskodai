@@ -50,7 +50,7 @@ if (!(count($packages) > 0)) {
 		if(!empty($package['img'])) {
 			?>
 			<div class="vbo-pkglist-pkg-img">
-				<img src="<?php echo VBO_SITE_URI; ?>resources/uploads/thumb_<?php echo $package['img']; ?>" alt="<?php echo $package['name']; ?>" />
+				<img src="<?php echo VBO_SITE_URI; ?>resources/uploads/thumb_<?php echo $package['img']; ?>" alt="<?php echo htmlspecialchars($package['name']); ?>" />
 			</div>
 			<?php
 		}

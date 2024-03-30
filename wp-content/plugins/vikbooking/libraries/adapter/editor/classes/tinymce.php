@@ -3,7 +3,7 @@
  * @package     VikWP - Libraries
  * @subpackage  adapter.editor
  * @author      E4J s.r.l.
- * @copyright   Copyright (C) 2021 E4J s.r.l. All Rights Reserved.
+ * @copyright   Copyright (C) 2023 E4J s.r.l. All Rights Reserved.
  * @license     http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL
  * @link        https://vikwp.com
  */
@@ -40,12 +40,12 @@ class JEditorTinyMCE extends JEditor
 	 */
 	protected function render($name, $html, $width, $height, $col, $row, $buttons, $id, $params)
 	{
-		$editor = array(
+		$editor = [
 			'resize'                  => true,
 			'wp_autoresize_on'        => true,
 			'add_unload_trigger'      => false,
 			'wp_keep_scroll_position' => true,
-		);
+		];
 
 		/**
 		 * It is now possible to override the parameters sent to the

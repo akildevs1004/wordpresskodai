@@ -63,6 +63,7 @@
 					<option value="BBD: Barbadian Dollar">BBD: Barbadian Dollar</option>
 					<option value="BDT: Bangladeshi Taka">BDT: Bangladeshi Taka</option>
 					<option value="BGN: Bulgarian Lev">BGN: Bulgarian Lev</option>
+					<option value="BHD: Bahraini dinar">BHD: Bahraini Dinar</option>
 					<option value="BIF: Burundian Franc">BIF: Burundian Franc</option>
 					<option value="BMD: Bermudian Dollar">BMD: Bermudian Dollar</option>
 					<option value="BND: Brunei Dollar">BND: Brunei Dollar</option>
@@ -116,6 +117,7 @@
 					<option value="KRW: South Korean Won">KRW: South Korean Won</option>
 					<option value="KYD: Cayman Islands Dollar">KYD: Cayman Islands Dollar</option>
 					<option value="KZT: Kazakhstani Tenge">KZT: Kazakhstani Tenge</option>
+					<option value="KWD: Kuwaiti Dinar">KWD: Kuwaiti Dinar</option>
 					<option value="LAK: Lao Kip">LAK: Lao Kip</option>
 					<option value="LBP: Lebanese Pound">LBP: Lebanese Pound</option>
 					<option value="LKR: Sri Lankan Rupee">LKR: Sri Lankan Rupee</option>
@@ -129,7 +131,7 @@
 					<option value="MKD: Macedonian Denar">MKD: Macedonian Denar</option>
 					<option value="MNT: Mongolian Tögrög">MNT: Mongolian Tögrög</option>
 					<option value="MOP: Macanese Pataca">MOP: Macanese Pataca</option>
-					<option value="MRO: Mauritanian Ouguiya">MRO: Mauritanian Ouguiya</option>
+					<option value="MRU: Mauritanian Ouguiya">MRU: Mauritanian Ouguiya</option>
 					<option value="MUR: Mauritian Rupee">MUR: Mauritian Rupee</option>
 					<option value="MVR: Maldivian Rufiyaa">MVR: Maldivian Rufiyaa</option>
 					<option value="MWK: Malawian Kwacha">MWK: Malawian Kwacha</option>
@@ -142,6 +144,7 @@
 					<option value="NOK: Norwegian Krone">NOK: Norwegian Krone</option>
 					<option value="NPR: Nepalese Rupee">NPR: Nepalese Rupee</option>
 					<option value="NZD: New Zealand Dollar">NZD: New Zealand Dollar</option>
+					<option value="OMR: Omani Rial">OMR: Omani Rial</option>
 					<option value="PAB: Panamanian Balboa">PAB: Panamanian Balboa</option>
 					<option value="PEN: Peruvian Nuevo Sol">PEN: Peruvian Nuevo Sol</option>
 					<option value="PGK: Papua New Guinean Kina">PGK: Papua New Guinean Kina</option>

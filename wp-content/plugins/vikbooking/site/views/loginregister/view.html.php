@@ -69,16 +69,16 @@ class VikbookingViewLoginregister extends JViewVikBooking {
 				}
 			}
 		}
-		$this->prices = &$prices;
-		$this->rooms = &$rooms;
-		$this->days = &$pdays;
-		$this->checkin = &$pcheckin;
-		$this->checkout = &$pcheckout;
-		$this->selopt = &$selopt;
-		$this->roomsnum = &$proomsnum;
-		$this->adults = &$padults;
-		$this->children = &$pchildren;
-		$this->arrpeople = &$arrpeople;
+		$this->prices = $prices;
+		$this->rooms = $rooms;
+		$this->days = $pdays;
+		$this->checkin = $pcheckin;
+		$this->checkout = $pcheckout;
+		$this->selopt = $selopt;
+		$this->roomsnum = $proomsnum;
+		$this->adults = $padults;
+		$this->children = $pchildren;
+		$this->arrpeople = $arrpeople;
 		//theme
 		$theme = VikBooking::getTheme();
 		if($theme != 'default') {
@@ -91,6 +91,3 @@ class VikbookingViewLoginregister extends JViewVikBooking {
 		parent::display($tpl);
 	}
 }
-
-
-?>

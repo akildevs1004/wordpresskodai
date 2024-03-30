@@ -211,6 +211,22 @@ class VBOBackupExportRuleSql extends VBOBackupExportRule
 	 */
 	protected function registerQuery($query)
 	{
+		/**
+		 * @wponly
+		 * 
+		 * While escaping a SQL string, WordPress replaces any "%" character with a random hash.
+		 * Normally that hash is automatically unescaped while executing the query, but in our case,
+		 * since we are dumping the query for later use, we have to manually unescape it, otherwise
+		 * the WordPress website that is going to import the dump won't be able to revert the hash
+		 * back, because the latter changes at every page loading.
+		 * 
+		 * @since 1.6
+		 */
+		if (VBOPlatformDetection::isWordPress())
+		{
+			$query = JFactory::getDbo()->remove_placeholder_escape($query);
+		}
+
 		if (!preg_match("/;$/", $query))
 		{
 			$query .= ';';

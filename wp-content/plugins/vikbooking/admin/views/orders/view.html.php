@@ -13,28 +13,29 @@ defined('ABSPATH') or die('No script kiddies please!');
 // import Joomla view library
 jimport('joomla.application.component.view');
 
-class VikBookingViewOrders extends JViewVikBooking {
-	
-	function display($tpl = null) {
+class VikBookingViewOrders extends JViewVikBooking
+{
+	public function display($tpl = null)
+	{
 		// Set the toolbar
 		$this->addToolBar();
 
 		$rows = "";
 		$navbut = "";
-		$mainframe = JFactory::getApplication();
+		$app = JFactory::getApplication();
 		$dbo = JFactory::getDbo();
 		if (file_exists(VCM_ADMIN_PATH.DIRECTORY_SEPARATOR.'assets'.DIRECTORY_SEPARATOR.'css'.DIRECTORY_SEPARATOR.'vcm-channels.css')) {
 			$document = JFactory::getDocument();
 			$document->addStyleSheet(VCM_ADMIN_URI.'assets/css/vcm-channels.css');
 		}
 		$pconfirmnumber = VikRequest::getString('confirmnumber', '', 'request');
-		$pidroom = $mainframe->getUserStateFromRequest("vbo.orders.idroom", 'idroom', 0, 'int');
-		$pchannel = $mainframe->getUserStateFromRequest("vbo.orders.channel", 'channel', '', 'string');
-		$pcust_id = $mainframe->getUserStateFromRequest("vbo.orders.cust_id", 'cust_id', 0, 'int');
-		$pdatefilt = $mainframe->getUserStateFromRequest("vbo.orders.datefilt", 'datefilt', 0, 'int');
-		$pdatefiltfrom = $mainframe->getUserStateFromRequest("vbo.orders.datefiltfrom", 'datefiltfrom', '', 'string');
-		$pdatefiltto = $mainframe->getUserStateFromRequest("vbo.orders.datefiltto", 'datefiltto', '', 'string');
-		$pcategory_id = $mainframe->getUserStateFromRequest("vbo.orders.category_id", 'category_id', 0, 'int');
+		$pidroom = $app->getUserStateFromRequest("vbo.orders.idroom", 'idroom', 0, 'int');
+		$pchannel = $app->getUserStateFromRequest("vbo.orders.channel", 'channel', '', 'string');
+		$pcust_id = $app->getUserStateFromRequest("vbo.orders.cust_id", 'cust_id', 0, 'int');
+		$pdatefilt = $app->getUserStateFromRequest("vbo.orders.datefilt", 'datefilt', 0, 'int');
+		$pdatefiltfrom = $app->getUserStateFromRequest("vbo.orders.datefiltfrom", 'datefiltfrom', '', 'string');
+		$pdatefiltto = $app->getUserStateFromRequest("vbo.orders.datefiltto", 'datefiltto', '', 'string');
+		$pcategory_id = $app->getUserStateFromRequest("vbo.orders.category_id", 'category_id', 0, 'int');
 		$dates_filter = '';
 		if (!empty($pdatefilt) && (!empty($pdatefiltfrom) || !empty($pdatefiltto))) {
 			$dates_filter_field = '`o`.`ts`';
@@ -52,7 +53,7 @@ class VikBookingViewOrders extends JViewVikBooking {
 			}
 			$dates_filter = implode(' AND ', $dates_filter_clauses);
 		}
-		$pstatus = $mainframe->getUserStateFromRequest("vbo.orders.status", 'status', 0, 'string');
+		$pstatus = $app->getUserStateFromRequest("vbo.orders.status", 'status', 0, 'string');
 		$status_filter = !empty($pstatus) && in_array($pstatus, array('confirmed', 'standby', 'cancelled')) ? "`o`.`status`='".$pstatus."' AND `o`.`closure`=0" : '';
 		if (empty($status_filter) && !empty($pstatus)) {
 			if ($pstatus == 'closure') {
@@ -74,18 +75,20 @@ class VikBookingViewOrders extends JViewVikBooking {
 					default:
 						break;
 				}
-			} elseif ($pstatus == 'request' || $pstatus == 'inquiry') {
+			} elseif (in_array($pstatus, ['request', 'inquiry', 'overbooking'])) {
 				$status_filter = "`o`.`type`=" . $dbo->quote($pstatus);
+			} elseif ($pstatus == 'split_stay') {
+				$status_filter = "`o`.`split_stay`=1";
 			}
 		}
-		$pidpayment = $mainframe->getUserStateFromRequest("vbo.orders.idpayment", 'idpayment', 0, 'int');
+		$pidpayment = $app->getUserStateFromRequest("vbo.orders.idpayment", 'idpayment', 0, 'int');
 		$payment_filter = '';
 		if (!empty($pidpayment)) {
 			$payment_filter = "`o`.`idpayment` LIKE '".$pidpayment."=%'";
 		}
 		$ordersfound = false;
-		$lim = $mainframe->getUserStateFromRequest("com_vikbooking.limit", 'limit', $mainframe->get('list_limit'), 'int');
-		$lim0 = $mainframe->getUserStateFromRequest("vbo.orders.limitstart", 'limitstart', 0, 'int');
+		$lim = $app->getUserStateFromRequest("com_vikbooking.limit", 'limit', $app->get('list_limit'), 'int');
+		$lim0 = $app->getUserStateFromRequest("vbo.orders.limitstart", 'limitstart', 0, 'int');
 		$session = JFactory::getSession();
 		$pvborderby = VikRequest::getString('vborderby', '', 'request');
 		$pvbordersort = VikRequest::getString('vbordersort', '', 'request');
@@ -100,61 +103,73 @@ class VikBookingViewOrders extends JViewVikBooking {
 				$session->set('vbViewOrdersOrdersort', $ordersort);
 			}
 		}
-		$allrooms = array();
+
 		$q = "SELECT `id`,`name` FROM `#__vikbooking_rooms` ORDER BY `name` ASC;";
 		$dbo->setQuery($q);
-		$dbo->execute();
-		if ($dbo->getNumRows() > 0) {
-			$allrooms = $dbo->loadAssocList();
-		}
+		$allrooms = $dbo->loadAssocList();
+
 		if (!empty($pconfirmnumber)) {
 			/**
-			 * We allow looking for a specific ID, OTAID or coupon code by using syntaxes like "id: 500"
-			 * 
-			 * @since 	1.13.5
+			 * We allow looking for a specific ID, OTAID, Coupon code etc.. by using syntaxes like "id: 500"
 			 */
-			$seek_clauses = array();
+			$q = $dbo->getQuery(true)->select('SQL_CALC_FOUND_ROWS `o`.*');
+			$q->from($dbo->qn('#__vikbooking_orders', 'o'));
+			$q->where(1);
+
 			if (stripos($pconfirmnumber, 'id:') === 0) {
-				// search by ID
-				$seek_parts = explode(':', $pconfirmnumber);
+				// search by ID or OTA ID
+				$seek_parts = explode('id:', $pconfirmnumber);
 				$seek_value = trim($seek_parts[1]);
-				array_push($seek_clauses, "`id`=" . $dbo->quote($seek_value));
-				array_push($seek_clauses, "`idorderota`=" . $dbo->quote($seek_value));
+				$q->andWhere([
+					$dbo->qn('o.id') . ' = ' . $dbo->q($seek_value),
+					$dbo->qn('o.idorderota') . ' = ' . $dbo->q($seek_value),
+				], $glue = 'OR');
 			} elseif (stripos($pconfirmnumber, 'otaid:') === 0) {
 				// search by OTA Booking ID
-				$seek_parts = explode(':', $pconfirmnumber);
+				$seek_parts = explode('otaid:', $pconfirmnumber);
 				$seek_value = trim($seek_parts[1]);
-				array_push($seek_clauses, "`idorderota`=" . $dbo->quote($seek_value));
+				$q->where($dbo->qn('o.idorderota') . ' = ' . $dbo->q($seek_value));
 			} elseif (stripos($pconfirmnumber, 'coupon:') === 0) {
 				// search by coupon code
-				$seek_parts = explode(':', $pconfirmnumber);
+				$seek_parts = explode('coupon:', $pconfirmnumber);
 				$seek_value = trim($seek_parts[1]);
-				array_push($seek_clauses, "`coupon` LIKE " . $dbo->quote("%{$seek_value}%"));
+				$q->where($dbo->qn('o.coupon') . ' LIKE ' . $dbo->q("%{$seek_value}%"));
+			} elseif (stripos($pconfirmnumber, 'name:') === 0) {
+				// search by customer nominative
+				$seek_parts = explode('name:', $pconfirmnumber);
+				$seek_value = trim($seek_parts[1]);
+				$q->leftJoin($dbo->qn('#__vikbooking_customers_orders', 'co') . ' ON ' . $dbo->qn('co.idorder') . ' = ' . $dbo->qn('o.id'));
+				$q->leftJoin($dbo->qn('#__vikbooking_customers', 'c') . ' ON ' . $dbo->qn('c.id') . ' = ' . $dbo->qn('co.idcustomer'));
+				$q->where('CONCAT_WS(\' \', ' . $dbo->qn('c.first_name') . ', ' . $dbo->qn('c.last_name') . ') LIKE ' . $dbo->q("%{$seek_value}%"));
 			} else {
 				// seek for various values
-				array_push($seek_clauses, "`id`=" . $dbo->quote($pconfirmnumber));
-				array_push($seek_clauses, "`confirmnumber` LIKE " . $dbo->quote("%{$pconfirmnumber}%"));
-				array_push($seek_clauses, "`idorderota`=" . $dbo->quote($pconfirmnumber));
+				$q->andWhere([
+					$dbo->qn('o.id') . ' = ' . $dbo->q($pconfirmnumber),
+					$dbo->qn('o.confirmnumber') . ' LIKE ' . $dbo->q("%{$pconfirmnumber}%"),
+					$dbo->qn('o.idorderota') . ' = ' . $dbo->q($pconfirmnumber),
+				], $glue = 'OR');
 			}
-			//
-			$q = "SELECT SQL_CALC_FOUND_ROWS * FROM `#__vikbooking_orders` WHERE " . implode(' OR ', $seek_clauses) . " ORDER BY `#__vikbooking_orders`.`".$orderby."` ".$ordersort;
+
+			$q->order($dbo->qn("o.{$orderby}") . ' ' . $ordersort);
+
 			$dbo->setQuery($q, $lim0, $lim);
-			$dbo->execute();
-			if ($dbo->getNumRows() > 0) {
-				$rows = $dbo->loadAssocList();
+			$rows = $dbo->loadAssocList();
+
+			if ($rows) {
 				$dbo->setQuery('SELECT FOUND_ROWS();');
 				$totres = $dbo->loadResult();
 				if ($totres == 1 && count($rows) == 1) {
-					$mainframe->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=".$rows[0]['id']);
-					exit;
-				} else {
-					$ordersfound = true;
-					jimport('joomla.html.pagination');
-					$pageNav = new JPagination( $dbo->loadResult(), $lim0, $lim );
-					$navbut = "<table align=\"center\"><tr><td>".$pageNav->getListFooter()."</td></tr></table>";
+					$app->redirect("index.php?option=com_vikbooking&task=editorder&cid[]=".$rows[0]['id']);
+					$app->close();
 				}
+
+				$ordersfound = true;
+				jimport('joomla.html.pagination');
+				$pageNav = new JPagination( $dbo->loadResult(), $lim0, $lim );
+				$navbut = "<table align=\"center\"><tr><td>".$pageNav->getListFooter()."</td></tr></table>";
 			}
 		}
+
 		if (!$ordersfound) {
 			if (!empty($pcust_id)) {
 				$q = "SELECT SQL_CALC_FOUND_ROWS `o`.*,`co`.`idcustomer`,CONCAT_WS(' ', `c`.`first_name`, `c`.`last_name`) AS `customer_fullname` FROM `#__vikbooking_orders` AS `o` LEFT JOIN `#__vikbooking_customers_orders` `co` ON `co`.`idorder`=`o`.`id` LEFT JOIN `#__vikbooking_customers` `c` ON `c`.`id`=`co`.`idcustomer` AND `c`.`id`=".$pcust_id." WHERE ".(!empty($dates_filter) ? $dates_filter.' AND ' : '').(!empty($payment_filter) ? $payment_filter.' AND ' : '').(!empty($status_filter) ? $status_filter.' AND ' : '')."`co`.`idcustomer`=".$pcust_id." ORDER BY `o`.`".$orderby."` ".$ordersort;
@@ -203,12 +218,12 @@ class VikBookingViewOrders extends JViewVikBooking {
 			 * Call assertListQuery() from the View class to make sure the filters set
 			 * do not produce an empty result. This would reset the page in this case.
 			 * 
-			 * @since 	1.2.0
+			 * @since 	1.12.0 (J) - 1.2.0 (WP)
 			 */
 			$this->assertListQuery($lim0, $lim);
 			//
 
-			if ($dbo->getNumRows() > 0) {
+			if ($dbo->getNumRows()) {
 				$rows = $dbo->loadAssocList();
 				$dbo->setQuery('SELECT FOUND_ROWS();');
 				jimport('joomla.html.pagination');
@@ -234,13 +249,13 @@ class VikBookingViewOrders extends JViewVikBooking {
 		}
 		//
 		
-		$this->rows = &$rows;
-		$this->allrooms = &$allrooms;
-		$this->lim0 = &$lim0;
-		$this->navbut = &$navbut;
-		$this->orderby = &$orderby;
-		$this->ordersort = &$ordersort;
-		$this->categories = &$categories;
+		$this->rows = $rows;
+		$this->allrooms = $allrooms;
+		$this->lim0 = $lim0;
+		$this->navbut = $navbut;
+		$this->orderby = $orderby;
+		$this->ordersort = $ordersort;
+		$this->categories = $categories;
 		
 		// Display the template
 		parent::display($tpl);
@@ -251,6 +266,10 @@ class VikBookingViewOrders extends JViewVikBooking {
 	 */
 	protected function addToolBar() {
 		JToolBarHelper::title(JText::translate('VBMAINORDERTITLE'), 'vikbooking');
+		if (JFactory::getUser()->authorise('core.create', 'com_vikbooking')) {
+			JToolBarHelper::addNew('calendar', JText::translate('VBO_NEW_BOOKING'));
+			JToolBarHelper::spacer();
+		}
 		if (JFactory::getUser()->authorise('core.edit', 'com_vikbooking')) {
 			JToolBarHelper::editList('editorder', JText::translate('VBMAINORDEREDIT'));
 			JToolBarHelper::spacer();

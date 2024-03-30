@@ -269,21 +269,21 @@ class VikBookingViewTrackings extends JViewVikBooking {
 			}
 		}
 		
-		$this->rows = &$rows;
-		$this->stats_data = &$stats_data;
-		$this->rooms = &$rooms;
-		$this->prices = &$prices;
-		$this->mindate = &$mindate;
-		$this->maxdate = &$maxdate;
-		$this->countries = &$countries;
-		$this->referrers = &$referrers;
-		$this->lim0 = &$lim0;
-		$this->navbut = &$navbut;
-		$this->orderby = &$orderby;
-		$this->ordersort = &$ordersort;
-		$this->datefilt = &$pdatefilt;
-		$this->datefiltfrom = &$pdatefiltfrom;
-		$this->datefiltto = &$pdatefiltto;
+		$this->rows = $rows;
+		$this->stats_data = $stats_data;
+		$this->rooms = $rooms;
+		$this->prices = $prices;
+		$this->mindate = $mindate;
+		$this->maxdate = $maxdate;
+		$this->countries = $countries;
+		$this->referrers = $referrers;
+		$this->lim0 = $lim0;
+		$this->navbut = $navbut;
+		$this->orderby = $orderby;
+		$this->ordersort = $ordersort;
+		$this->datefilt = $pdatefilt;
+		$this->datefiltfrom = $pdatefiltfrom;
+		$this->datefiltto = $pdatefiltto;
 		
 		// Display the template
 		parent::display($tpl);

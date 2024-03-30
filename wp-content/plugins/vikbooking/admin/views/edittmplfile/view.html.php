@@ -13,9 +13,10 @@ defined('ABSPATH') or die('No script kiddies please!');
 // import Joomla view library
 jimport('joomla.application.component.view');
 
-class VikBookingViewEdittmplfile extends JViewVikBooking {
-	
-	function display($tpl = null) {
+class VikBookingViewEdittmplfile extends JViewVikBooking
+{
+	public function display($tpl = null)
+	{
 		// This view is usually called within a modal box, so it does not require the toolbar or page title
 		
 		$fpath = VikRequest::getString('path', '', 'request', VIKREQUEST_ALLOWRAW);
@@ -33,10 +34,9 @@ class VikBookingViewEdittmplfile extends JViewVikBooking {
 		}
 		$fpath = is_file($fpath) ? $fpath : '';
 		
-		$this->fpath = &$fpath;
+		$this->fpath = $fpath;
 		
 		// Display the template
 		parent::display($tpl);
 	}
-
 }

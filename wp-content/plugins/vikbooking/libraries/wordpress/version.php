@@ -320,6 +320,16 @@ if (!class_exists('VersionListener'))
 		}
 
 		/**
+		 * Checks if the installed Joomla is 5.0 or higher.
+		 *
+		 * @return 	boolean  True if Joomla is 5.0 or higher, otherwise false.
+		 */
+		public static function isJoomla50()
+		{
+			return false;
+		}
+
+		/**
 		 * Checks if the installed Wordpress is 4.0 or higher.
 		 *
 		 * @return 	boolean  True if Wordpress is 4.0 or higher, otherwise false.

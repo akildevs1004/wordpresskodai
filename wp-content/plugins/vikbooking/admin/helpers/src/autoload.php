@@ -25,6 +25,24 @@ JHtml::addIncludePath(VBO_ADMIN_PATH . DIRECTORY_SEPARATOR . 'helpers' . DIRECTO
  */
 spl_autoload_register(function($class)
 {
+	// handle base VCM library
+	if ($class === 'VikChannelManager')
+	{
+		return (bool) @include_once implode(DIRECTORY_SEPARATOR, [VCM_SITE_PATH, 'helpers', 'lib.vikchannelmanager.php']);
+	}
+
+	// handle config VCM library
+	if ($class === 'VikChannelManagerConfig')
+	{
+		return (bool) @include_once implode(DIRECTORY_SEPARATOR, [VCM_SITE_PATH, 'helpers', 'vcm_config.php']);
+	}
+
+	// handle base VBO library
+	if ($class === 'VikBooking')
+	{
+		return (bool) require_once implode(DIRECTORY_SEPARATOR, [VBO_SITE_PATH, 'helpers', 'lib.vikbooking.php']);
+	}
+
 	$guess_vbo = stripos($class, 'VBO');
 	$guess_vcm = stripos($class, 'VCM');
 

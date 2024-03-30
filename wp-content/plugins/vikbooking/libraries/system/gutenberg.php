@@ -57,5 +57,26 @@ class VikBookingGutenberg
 			'editor_script' => 'vikbooking-gutenberg-shortcodes',
 			'editor_style'  => 'vikbooking-gutenberg-shortcodes',
 		));
+
+		// get shortcode model
+		$model = JModel::getInstance('vikbooking', 'shortcodes', 'admin');
+
+		// obtain a categorized shortcodes list 
+		$shortcodes = array();
+
+		foreach ($model->all() as $s)
+		{
+			$title = JText::translate($s->title);
+
+			if (!isset($shortcodes[$title]))
+			{
+				$shortcodes[$title] = array();
+			}
+
+			$shortcodes[$title][] = $s;
+		}
+
+		// register script to access JSON object
+		JFactory::getDocument()->addScriptDeclaration("var VIKBOOKING_SHORTCODES_BLOCK = " . json_encode($shortcodes) . ";");
 	}
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package     VikBooking
  * @subpackage  mod_vikbooking_horizontalsearch
@@ -31,6 +32,10 @@ if (method_exists('VikBooking', 'loadPreferredColorStyles')) {
 $randid = str_replace('mod_vikbooking_horizontalsearch-', '', $params->get('widget_id', rand(1, 999)));
 // get widget base URL
 $baseurl = VBO_MODULES_URI;
+
+//exit;
+
+
 
 // module layout file
 require JModuleHelper::getLayoutPath('mod_vikbooking_horizontalsearch', $params->get('layout', 'default'));

@@ -12,7 +12,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 $vbo_tn = $this->vbo_tn;
 
-$vbo_app = new VboApplication();
+$vbo_app = VikBooking::getVboApplication();
 $vbo_app->loadVisualEditorAssets();
 
 $editor = JEditor::getInstance(JFactory::getApplication()->get('editor'));
@@ -34,7 +34,7 @@ if (!(count($langs) > 1)) {
 		<input type="hidden" name="option" value="com_vikbooking">
 	</form>
 	<?php
-} elseif (!count($xml_tables) || strlen($vbo_tn->getError())) {
+} elseif (!$xml_tables || strlen($vbo_tn->getError())) {
 	//Error: XML file not readable or errors occurred
 	?>
 	<p class="err"><?php echo $vbo_tn->getError(); ?></p>
@@ -49,6 +49,14 @@ if (!(count($langs) > 1)) {
 	if (!empty($table)) {
 		$table = $vbo_tn->replacePrefix($table);
 	}
+
+	/**
+	 * Allows to filter/search translations by a key-search value.
+	 * 
+	 * @since 	1.16.6 (J) - 1.6.6 (WP)
+	 */
+	$keysearch = VikRequest::getString('keysearch', '', 'request');
+	$vbo_tn->setKeySearch($keysearch);
 ?>
 
 <form action="index.php?option=com_vikbooking&amp;task=translations" method="post" onsubmit="return vboCheckChanges();">
@@ -70,6 +78,15 @@ if (!(count($langs) > 1)) {
 			?>
 			</select>
 		</div>
+	<?php
+	if (!empty($active_table_key)) {
+		?>
+		<div class="btn-group pull-left">
+			<input type="text" name="keysearch" value="<?php echo JHtml::fetch('esc_attr', $keysearch); ?>" placeholder="<?php echo JHtml::fetch('esc_attr', JText::translate('VBODASHSEARCHKEYS')); ?>..." />
+		</div>
+		<?php
+	}
+	?>
 	</div>
 	<input type="hidden" name="vbo_lang" class="vbo_lang" value="<?php echo $vbo_tn->default_lang; ?>">
 	<input type="hidden" name="option" value="com_vikbooking" />
@@ -82,7 +99,7 @@ foreach ($langs as $ltag => $lang) {
 	$is_def = ($ltag == $vbo_tn->default_lang);
 	$lcountry = substr($ltag, 0, 2);
 	$flag = '';
-	if (!defined('ABSPATH') && is_file(JPATH_SITE . DIRECTORY_SEPARATOR . 'media' . DIRECTORY_SEPARATOR . 'mod_languages' . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . $lcountry . '.gif')) {
+	if (VBOPlatformDetection::isJoomla() && is_file(JPATH_SITE . DIRECTORY_SEPARATOR . 'media' . DIRECTORY_SEPARATOR . 'mod_languages' . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR . $lcountry . '.gif')) {
 		$flag = '<img src="' . JUri::root() . 'media/mod_languages/images/' . $lcountry . '.gif"/>';
 	}
 		?><div class="vbo-translation-tab<?php echo $is_def ? ' vbo-translation-tab-default' : ''; ?>" data-vbolang="<?php echo $ltag; ?>">
@@ -97,7 +114,7 @@ foreach ($langs as $ltag => $lang) {
 		</div><?php
 }
 
-if (!defined('ABSPATH')) {
+if (VBOPlatformDetection::isJoomla()) {
 	?>
 		<div class="vbo-translation-tab vbo-translation-tab-ini" data-vbolang="">
 			<span class="vbo-translation-iniflag">.INI</span>
@@ -109,10 +126,13 @@ if (!defined('ABSPATH')) {
 	</div>
 	<div class="vbo-translation-tabscontents">
 <?php
-$table_cols = !empty($active_table_key) ? $vbo_tn->getTableColumns($active_table_key) : array();
-$table_def_dbvals = !empty($active_table_key) ? $vbo_tn->getTableDefaultDbValues($active_table_key, array_keys($table_cols)) : array();
+$table_cols = !empty($active_table_key) ? $vbo_tn->getTableColumns($active_table_key) : [];
+$table_def_dbvals = !empty($active_table_key) ? $vbo_tn->getTableDefaultDbValues($active_table_key, array_keys($table_cols)) : [];
 if (!empty($active_table_key)) {
 	echo '<input type="hidden" name="vbo_table" value="'.$active_table_key.'"/>'."\n";
+	if (!empty($keysearch)) {
+		echo '<input type="hidden" name="keysearch" value="' . JHtml::fetch('esc_attr', $keysearch) . '"/>'."\n";
+	}
 }
 foreach ($langs as $ltag => $lang) {
 	$is_def = ($ltag == $vbo_tn->default_lang);
@@ -134,7 +154,7 @@ foreach ($langs as $ltag => $lang) {
 				<div class="vbo-translations-tab-container">
 	<?php
 	if ($is_def) {
-		//Values of Default Language to be translated
+		// values of Default Language to be translated
 		foreach ($table_def_dbvals as $reference_id => $values) {
 			?>
 					<div class="vbo-translations-default-element">
@@ -157,7 +177,7 @@ foreach ($langs as $ltag => $lang) {
 				<?php
 				if ($type == 'json') {
 					$tn_keys = $table_cols[$field]['keys'];
-					$keys = !empty($tn_keys) ? explode(',', $tn_keys) : array();
+					$keys = !empty($tn_keys) ? explode(',', $tn_keys) : [];
 					$json_def_values = json_decode($def_value, true);
 					if (count($json_def_values) > 0) {
 						foreach ($json_def_values as $jkey => $jval) {
@@ -187,7 +207,7 @@ foreach ($langs as $ltag => $lang) {
 			<?php
 		}
 	} else {
-		//Translation Fields for this language
+		// translation fields for this language
 		$lang_record_tn = $vbo_tn->getTranslatedTable($active_table_key, $ltag);
 		foreach ($table_def_dbvals as $reference_id => $values) {
 			?>
@@ -235,7 +255,7 @@ foreach ($langs as $ltag => $lang) {
 							if (array_key_exists($reference_id, $lang_record_tn) && array_key_exists($field, $lang_record_tn[$reference_id]['content'])) {
 								$tn_value = $lang_record_tn[$reference_id]['content'][$field];
 							}
-							if (defined('ABSPATH') && interface_exists('Throwable')) {
+							if (VBOPlatformDetection::isWordPress() && interface_exists('Throwable')) {
 								/**
 								 * With PHP >= 7 supporting throwable exceptions for Fatal Errors
 								 * we try to avoid issues with third party plugins that make use
@@ -259,10 +279,10 @@ foreach ($langs as $ltag => $lang) {
 				<?php
 				if ($type == 'json') {
 					$tn_keys = $table_cols[$field]['keys'];
-					$keys = !empty($tn_keys) ? explode(',', $tn_keys) : array();
+					$keys = !empty($tn_keys) ? explode(',', $tn_keys) : [];
 					$json_def_values = json_decode($def_value, true);
 					if (count($json_def_values)) {
-						$tn_json_value = array();
+						$tn_json_value = [];
 						if (array_key_exists($reference_id, $lang_record_tn) && array_key_exists($field, $lang_record_tn[$reference_id]['content'])) {
 							$tn_json_value = json_decode($lang_record_tn[$reference_id]['content'][$field], true);
 						}
@@ -334,7 +354,7 @@ foreach ($langs as $ltag => $lang) {
 }
 
 // ini files status
-if (!defined('ABSPATH')) {
+if (VBOPlatformDetection::isJoomla()) {
 	$all_inis = $vbo_tn->getIniFiles();
 	?>
 		<div class="vbo-translation-langcontent" style="display: none;" id="vbo_langcontent_ini">
@@ -381,6 +401,7 @@ if (!defined('ABSPATH')) {
 	<input type="hidden" name="vbo_lang" class="vbo_lang" value="<?php echo $vbo_tn->default_lang; ?>">
 	<input type="hidden" name="task" value="translations">
 	<input type="hidden" name="option" value="com_vikbooking">
+	<?php echo JHtml::fetch('form.token'); ?>
 
 	<div class="vbo-translations-lim-wrap">
 		<table align="center">

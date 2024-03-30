@@ -94,7 +94,7 @@ $thumbs_rel = array();
 if (!empty($package['img'])) {
 	?>
 		<div class="vbo-pkgdet-img">
-			<img src="<?php echo VBO_SITE_URI; ?>resources/uploads/big_<?php echo $package['img']; ?>" alt="<?php echo $package['name']; ?>" />
+			<img src="<?php echo VBO_SITE_URI; ?>resources/uploads/big_<?php echo $package['img']; ?>" alt="<?php echo htmlspecialchars($package['name']); ?>" />
 		</div>
 	<?php
 }
@@ -153,7 +153,7 @@ if (array_key_exists('rooms', $package) && count($package['rooms'])) {
 			if (!empty($room['img'])) {
 				?>
 					<div class="vbo-pkgdet-room-img">
-						<img src="<?php echo VBO_SITE_URI; ?>resources/uploads/<?php echo $room['img']; ?>" alt="<?php echo $room['name']; ?>" />
+						<img src="<?php echo VBO_SITE_URI; ?>resources/uploads/<?php echo $room['img']; ?>" alt="<?php echo htmlspecialchars($room['name']); ?>" />
 					</div>
 				<?php
 			}
@@ -189,7 +189,7 @@ if (array_key_exists('rooms', $package) && count($package['rooms'])) {
 					foreach ($extra_photos as $extra_photo) {
 						?>
 						<div class="vbo-pkgdet-room-thumb">
-							<a href="<?php echo $extra_photo['big']; ?>" title="<?php echo $extra_photo['alt']; ?>" rel="room<?php echo $room['idroom']; ?>" target="_blank"><img src="<?php echo $extra_photo['thumb']; ?>" alt="<?php echo $extra_photo['alt']; ?>" /></a>
+							<a href="<?php echo $extra_photo['big']; ?>" title="<?php echo htmlspecialchars($extra_photo['alt']); ?>" rel="room<?php echo $room['idroom']; ?>" target="_blank"><img src="<?php echo $extra_photo['thumb']; ?>" alt="<?php echo htmlspecialchars($extra_photo['alt']); ?>" /></a>
 						</div>
 						<?php
 					}
@@ -283,18 +283,23 @@ jQuery(function(){
 });";
 						$document->addScriptDeclaration($sdecl);
 						$start_info = $orig_start_info;
-						$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkindate".$room['idroom']."\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkindate\" id=\"checkindate".$room['idroom']."\" size=\"16\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkinh\" value=\"".$hcheckin."\"/><input type=\"hidden\" name=\"checkinm\" value=\"".$mcheckin."\"/></div>\n";
-						$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkoutdate".$room['idroom']."\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkoutdate\" id=\"checkoutdate".$room['idroom']."\" size=\"16\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkouth\" value=\"".$hcheckout."\"/><input type=\"hidden\" name=\"checkoutm\" value=\"".$mcheckout."\"/></div>\n";
+						$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkin\"><label for=\"checkindate".$room['idroom']."\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkindate\" id=\"checkindate".$room['idroom']."\" size=\"10\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkinh\" value=\"".$hcheckin."\"/><input type=\"hidden\" name=\"checkinm\" value=\"".$mcheckin."\"/></div>\n";
+						$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkout\"><label for=\"checkoutdate".$room['idroom']."\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\"><input type=\"text\" name=\"checkoutdate\" id=\"checkoutdate".$room['idroom']."\" size=\"10\" autocomplete=\"off\" onfocus=\"this.blur();\" readonly/><i class=\"".VikBookingIcons::i('calendar', 'vbo-caltrigger')."\"></i></div><input type=\"hidden\" name=\"checkouth\" value=\"".$hcheckout."\"/><input type=\"hidden\" name=\"checkoutm\" value=\"".$mcheckout."\"/></div>\n";
 					} else {
 						//default Joomla Calendar
 						$vbo_app = VikBooking::getVboApplication();
-						$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkindate".$room['idroom']."\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkindate', 'checkindate'.$room['idroom'], $vbdateformat, array ('class' => '','size' => '16','maxlength' => '19'));
+						$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkin\"><label for=\"checkindate".$room['idroom']."\">" . JText::translate('VBPICKUPROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkindate', 'checkindate'.$room['idroom'], $vbdateformat, array ('class' => '','size' => '10','maxlength' => '19'));
 						$selform .= "<input type=\"hidden\" name=\"checkinh\" value=\"".$hcheckin."\"/><input type=\"hidden\" name=\"checkinm\" value=\"".$mcheckin."\"/></div></div>\n";
-						$selform .= "<div class=\"vbo-search-inpblock col-lg-3\"><label for=\"checkoutdate".$room['idroom']."\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkoutdate', 'checkoutdate'.$room['idroom'], $vbdateformat, array ('class' => '','size' => '16','maxlength' => '19')); 
+						$selform .= "<div class=\"vbo-search-inpblock vbo-search-inpblock-checkout\"><label for=\"checkoutdate".$room['idroom']."\">" . JText::translate('VBRETURNROOM') . "</label><div class=\"input-group\">" . $vbo_app->getCalendar('', 'checkoutdate', 'checkoutdate'.$room['idroom'], $vbdateformat, array ('class' => '','size' => '10','maxlength' => '19')); 
 						$selform .= "<input type=\"hidden\" name=\"checkouth\" value=\"".$hcheckout."\"/><input type=\"hidden\" name=\"checkoutm\" value=\"".$mcheckout."\"/></div></div>\n";
 					}
 					//rooms, adults, children
 					$showchildren = VikBooking::showChildrenFront();
+					$guests_label = VBOFactory::getConfig()->get('guests_label', 'adults');
+					$use_guests_label = 'VBFORMADULTS';
+					if (!$showchildren && !strcasecmp($guests_label, 'guests')) {
+						$use_guests_label = 'VBOINVTOTGUESTS';
+					}
 					//max number of rooms
 					$multi_units = (int)VikBooking::getRoomParam('multi_units', $room['params']);
 					if ($multi_units === 1 && $room['units'] > 1) {
@@ -310,9 +315,10 @@ jQuery(function(){
 					}
 					//
 					//max number of adults per room
+					$suggocc = (int)VikBooking::getRoomParam('suggocc', $room['params']);
 					$adultsel = "<select name=\"adults[]\">";
-					for ($a = 1; $a <= $room['toadult']; $a++) {
-						$adultsel .= "<option value=\"".$a."\"".((!empty($ch_num_adults) && $ch_num_adults == $a) || (empty($ch_num_adults) && $a == $room['toadult']) ? " selected=\"selected\"" : "").">".$a."</option>";
+					for ($a = $room['fromadult']; $a <= $room['toadult']; $a++) {
+						$adultsel .= "<option value=\"".$a."\"".($a == $suggocc ? " selected=\"selected\"" : "").">".$a."</option>";
 					}
 					$adultsel .= "</select>";
 					//
@@ -324,11 +330,11 @@ jQuery(function(){
 					$childrensel .= "</select>";
 					//
 
-					$selform .= "<div class=\"vbo-search-num-racblock col-lg-4\">\n";
+					$selform .= "<div class=\"vbo-search-num-racblock\">\n";
 					$selform .= "	<div class=\"vbo-search-num-rooms\">".$roomsel."</div>\n";
 					$selform .= "	<div class=\"vbo-search-num-aduchild-block\" id=\"vbo-search-num-aduchild-block".$room['idroom']."\">\n";
 					$selform .= "		<div class=\"vbo-search-num-aduchild-entry\"><span class=\"vbo-search-roomnum\">".JText::translate('VBFORMNUMROOM')." 1</span>\n";
-					$selform .= "			<div class=\"vbo-search-num-adults-entry\"><label class=\"vbo-search-num-adults-entry-label\">".JText::translate('VBFORMADULTS')."</label><span class=\"vbo-search-num-adults-entry-inp\">".$adultsel."</span></div>\n";
+					$selform .= "			<div class=\"vbo-search-num-adults-entry\"><label class=\"vbo-search-num-adults-entry-label\">".JText::translate($use_guests_label)."</label><span class=\"vbo-search-num-adults-entry-inp\">".$adultsel."</span></div>\n";
 					if ($showchildren) {
 						$selform .= "		<div class=\"vbo-search-num-children-entry\"><label class=\"vbo-search-num-children-entry-label\">".JText::translate('VBFORMCHILDREN')."</label><span class=\"vbo-search-num-children-entry-inp\">".$childrensel."</span></div>\n";
 					}
@@ -461,7 +467,7 @@ function vbAddElement(rid) {
 	var newdiv = document.createElement('div');
 	var divIdName = 'vb'+num+'detracont';
 	newdiv.setAttribute('id',divIdName);
-	newdiv.innerHTML = '<div class=\'vbo-search-num-aduchild-entry\'><span class=\'vbo-search-roomnum\'><?php echo addslashes(JText::translate('VBFORMNUMROOM')); ?> '+ num +'</span><div class=\'vbo-search-num-adults-entry\'><label class=\'vbo-search-num-adults-entry-label\'><?php echo addslashes(JText::translate('VBFORMADULTS')); ?></label><span class=\'vbo-search-num-adults-entry-inp\'><?php echo addslashes(str_replace('"', "'", $adultsel)); ?></span></div><?php if ($showchildren): ?><div class=\'vbo-search-num-children-entry\'><label class=\'vbo-search-num-children-entry-label\'><?php echo addslashes(JText::translate('VBFORMCHILDREN')); ?></label><span class=\'vbo-search-num-adults-entry-inp\'><?php echo addslashes(str_replace('"', "'", $childrensel)); ?></span></div><?php endif; ?></div>';
+	newdiv.innerHTML = '<div class=\'vbo-search-num-aduchild-entry\'><span class=\'vbo-search-roomnum\'><?php echo addslashes(JText::translate('VBFORMNUMROOM')); ?> '+ num +'</span><div class=\'vbo-search-num-adults-entry\'><label class=\'vbo-search-num-adults-entry-label\'><?php echo addslashes(JText::translate($use_guests_label)); ?></label><span class=\'vbo-search-num-adults-entry-inp\'><?php echo addslashes(str_replace('"', "'", $adultsel)); ?></span></div><?php if ($showchildren): ?><div class=\'vbo-search-num-children-entry\'><label class=\'vbo-search-num-children-entry-label\'><?php echo addslashes(JText::translate('VBFORMCHILDREN')); ?></label><span class=\'vbo-search-num-adults-entry-inp\'><?php echo addslashes(str_replace('"', "'", $childrensel)); ?></span></div><?php endif; ?></div>';
 	ni.appendChild(newdiv);
 }
 function vbSetRoomsAdults(totrooms, rid) {

@@ -15,7 +15,7 @@ JHtml::fetch('script', VBO_SITE_URI.'resources/jquery-ui.sortable.min.js');
 
 $config = VBOFactory::getConfig();
 
-$vbo_app = new VboApplication();
+$vbo_app = VikBooking::getVboApplication();
 $timeopst = VikBooking::getTimeOpenStore(true);
 if (is_array($timeopst)) {
 	$openat = VikBooking::getHoursMinutes($timeopst[0]);
@@ -74,13 +74,13 @@ $adultsparts = explode('-', $globnumadults);
 $globnumchildren = VikBooking::getSearchNumChildren(true);
 $childrenparts = explode('-', $globnumchildren);
 
-$maxdatefuture = VikBooking::getMaxDateFuture(true);
+$maxdatefuture = VikBooking::getMaxDateFuture();
 $maxdate_val = intval(substr($maxdatefuture, 1, (strlen($maxdatefuture) - 1)));
 $maxdate_interval = substr($maxdatefuture, -1, 1);
 
 $smartseach_type = VikBooking::getSmartSearchType(true);
 
-$vbosef = file_exists(VBO_SITE_PATH.DS.'router.php');
+$vbosef = is_file(VBO_SITE_PATH . DIRECTORY_SEPARATOR . 'router.php');
 
 $vcm_autoupd  		= (int)VikBooking::vcmAutoUpdate();
 $chat_enabled 		= (int)VikBooking::chatEnabled();
@@ -455,10 +455,111 @@ jQuery(document).ready(function() {
 					<div class="vbo-param-label"><?php echo JText::translate('VBCONFIGONETENFOUR'); ?></div>
 					<div class="vbo-param-setting"><?php echo $vbo_app->printYesNoButtons('showcategories', JText::translate('VBYES'), JText::translate('VBNO'), (VikBooking::showCategoriesFront(true) ? 'yes' : 0), 'yes', 0); ?></div>
 				</div>
+				<?php
+				$showchildren = VikBooking::showChildrenFront(true);
+				$guests_label = $config->getString('guests_label', 'adults');
+				?>
 				<div class="vbo-param-container">
-					<div class="vbo-param-label"><?php echo JText::translate('VBCONFIGSHOWCHILDREN'); ?></div>
-					<div class="vbo-param-setting"><?php echo $vbo_app->printYesNoButtons('showchildren', JText::translate('VBYES'), JText::translate('VBNO'), (VikBooking::showChildrenFront(true) ? 'yes' : 0), 'yes', 0); ?></div>
+					<div class="vbo-param-label">
+						<?php echo $vbo_app->createPopover(array('title' => JText::translate('VBCONFIGSHOWCHILDREN'), 'content' => JText::translate('VBO_CHOOSE_CHILDREN_HELP'))); ?>
+						<?php echo JText::translate('VBCONFIGSHOWCHILDREN'); ?>
+					</div>
+					<div class="vbo-param-setting">
+						<?php echo $vbo_app->printYesNoButtons('showchildren', JText::translate('VBYES'), JText::translate('VBNO'), ($showchildren ? 'yes' : 0), 'yes', 0, 'vboToggleShowChildren(this.checked);'); ?>
+					</div>
 				</div>
+				<div class="vbo-param-container vbo-param-nested" data-config-type="showchildren" style="<?php echo $showchildren ? 'display: none;' : ''; ?>">
+					<div class="vbo-param-label"><?php echo JText::translate('VBO_GUESTS_LABEL'); ?></div>
+					<div class="vbo-param-setting">
+						<select name="guests_label">
+							<option value="adults"<?php echo $guests_label == 'adults' ? ' selected="selected"' : ''; ?>><?php echo JText::translate('VBEDITORDERADULTS'); ?></option>
+							<option value="guests"<?php echo $guests_label == 'guests' ? ' selected="selected"' : ''; ?>><?php echo JText::translate('VBPVIEWORDERSPEOPLE'); ?></option>
+						</select>
+						<span class="vbo-param-setting-comment"><?php echo JText::translate('VBO_GUESTS_LABEL_HELP'); ?></span>
+					</div>
+				</div>
+				<div class="vbo-param-container vbo-param-nested" data-config-type="showchildren" style="<?php echo $showchildren ? 'display: none;' : ''; ?>">
+					<div class="vbo-param-label"><?php echo JText::translate('VBO_GUESTS_POLICY'); ?></div>
+					<div class="vbo-param-setting">
+						<textarea name="guests_allowed_policy" rows="5" cols="50"><?php echo JHtml::fetch('esc_textarea', VikBooking::getGuestsAllowedPolicy()); ?></textarea>
+						<span class="vbo-param-setting-comment"><?php echo JText::translate('VBO_GUESTS_POLICY_HELP'); ?></span>
+					</div>
+				</div>
+				<div class="vbo-param-container">
+					<div class="vbo-param-label">
+						<?php echo $vbo_app->createPopover(array('title' => JText::translate('VBO_BOOK_SPLIT_STAYS'), 'content' => JText::translate('VBO_BOOK_SPLIT_STAYS_HELP'))); ?>
+						<?php echo JText::translate('VBO_BOOK_SPLIT_STAYS'); ?>
+					</div>
+					<div class="vbo-param-setting">
+						<?php
+						JText::script('VBO_SPLIT_STAY_RATIO_TEST');
+						$split_stay_ratio = $config->getFloat('split_stay_ratio', 50);
+						echo $vbo_app->printYesNoButtons('split_stay', JText::translate('VBYES'), JText::translate('VBNO'), (int)($split_stay_ratio > 0), 1, 0, 'vboToggleSplitStay(this.checked);');
+						?>
+					</div>
+				</div>
+				<div class="vbo-param-container vbo-param-nested" data-config-type="split-stay" style="<?php echo $split_stay_ratio < 1 ? 'display: none;' : ''; ?>">
+					<div class="vbo-param-label">
+						<?php echo $vbo_app->createPopover(array('title' => JText::translate('VBO_SPLIT_STAYS_RATIO'), 'content' => JText::translate('VBO_SPLIT_STAYS_RATIO_HELP'))); ?>
+						<?php echo JText::translate('VBO_SPLIT_STAYS_RATIO'); ?>
+					</div>
+					<div class="vbo-param-setting">
+						<div class="input-append">
+							<input type="number" min="0" max="100" step="5" name="split_stay_ratio" value="<?php echo $split_stay_ratio > 0 ? $split_stay_ratio : '50';?>" />
+							<button type="button" class="btn">%</button>
+						</div>
+					</div>
+				</div>
+				<div class="vbo-param-container vbo-param-nested" data-config-type="split-stay" style="<?php echo $split_stay_ratio < 1 ? 'display: none;' : ''; ?>">
+					<div class="vbo-param-label"><?php echo JText::translate('VBOCRONSMSREMPARAMTEST'); ?></div>
+					<div class="vbo-param-setting">
+						<div class="input-append">
+							<input type="number" id="vbo-test-splitstay-nights" min="2" max="365" value="<?php echo rand(4, 10); ?>" />
+							<button type="button" class="btn"><?php echo JText::translate('VBDAYS'); ?></button>
+							<button type="button" class="btn vbo-config-btn vbo-btn-dont-append" onclick="vboTestSplitStay();"><?php echo JText::translate('VBRATESOVWRATESCALCULATORCALC'); ?></button>
+						</div>
+						<div class="vbo-param-setting-comment" data-config-type="split-stay"></div>
+					</div>
+				</div>
+
+				<script type="text/javascript">
+					function vboToggleShowChildren(enabled) {
+						if (enabled) {
+							jQuery('.vbo-param-container[data-config-type="showchildren"]').hide();
+						} else {
+							jQuery('.vbo-param-container[data-config-type="showchildren"]').show();
+						}
+					}
+
+					function vboToggleSplitStay(active) {
+						if (active) {
+							jQuery('.vbo-param-container[data-config-type="split-stay"]').show();
+						} else {
+							jQuery('.vbo-param-container[data-config-type="split-stay"]').hide();
+							jQuery('.vbo-param-setting-comment[data-config-type="split-stay"]').text('');
+						}
+					}
+
+					function vboTestSplitStay() {
+						var nights = jQuery('#vbo-test-splitstay-nights').val() * 1;
+						nights = nights < 2 ? 2 : nights;
+
+						var ratio = jQuery('input[name="split_stay_ratio"]').val() * 1;
+						ratio = ratio < 1 ? 1 : ratio;
+						ratio = ratio > 100 ? 100 : ratio;
+
+						var transfers = Math.round(nights * ratio / 100);
+
+						// According to the current ratio (%s), a stay for %d night(s) will allow up to %d room transfer(s).
+						var help_text = Joomla.JText._('VBO_SPLIT_STAY_RATIO_TEST');
+						help_text = help_text.replace('%s', ratio + '%');
+						help_text = help_text.replace('%d', nights);
+						help_text = help_text.replace('%d', transfers);
+
+						jQuery('.vbo-param-setting-comment[data-config-type="split-stay"]').text(help_text);
+					}
+				</script>
+
 			</div>
 		</div>
 	</fieldset>
@@ -536,7 +637,7 @@ jQuery(document).ready(function() {
 					 * appearance mode: light, auto, dark.
 					 */
 					function vboPreviewAppeareance(mode) {
-						var vbo_css_base_uri = '<?php echo VBO_ADMIN_URI . (defined('ABSPATH') ? 'resources/' : '') . 'vbo-appearance-%s.css'; ?>';
+						var vbo_css_base_uri = '<?php echo VBO_ADMIN_URI . (VBOPlatformDetection::isWordPress() ? 'resources/' : '') . 'vbo-appearance-%s.css'; ?>';
 						var vbo_css_base_id  = 'vbo-css-appearance-';
 						var vbo_css_modes 	 = {
 							auto: vbo_css_base_uri.replace('%s', 'auto'),
@@ -575,20 +676,49 @@ jQuery(document).ready(function() {
 					<div class="vbo-param-label"><?php echo JText::translate('VBCONFIGMULTILANG'); ?></div>
 					<div class="vbo-param-setting"><?php echo $vbo_app->printYesNoButtons('multilang', JText::translate('VBYES'), JText::translate('VBNO'), (int)VikBooking::allowMultiLanguage(true), 1, 0); ?></div>
 				</div>
+				<?php
+				if (VBOPlatformDetection::isWordPress()) {
+					?>
 				<!-- @wponly  we cannot display the setting for the SEF Router -->
+					<?php
+				} else {
+					?>
+				<div class="vbo-param-container">
+					<div class="vbo-param-label"><?php echo JText::translate('VBCONFIGROUTER'); ?></div>
+					<div class="vbo-param-setting"><?php echo $vbo_app->printYesNoButtons('vbosef', JText::translate('VBYES'), JText::translate('VBNO'), (int)$vbosef, 1, 0); ?></div>
+				</div>
+					<?php
+				}
+				?>
 				<div class="vbo-param-container">
 					<div class="vbo-param-label"><?php echo JText::translate('VBLOADBOOTSTRAP'); ?></div>
-					<div class="vbo-param-setting"><?php echo $vbo_app->printYesNoButtons('loadbootstrap', JText::translate('VBYES'), JText::translate('VBNO'), (int)VikBooking::loadBootstrap(true), 1, 0); ?></div>
+					<div class="vbo-param-setting"><?php echo $vbo_app->printYesNoButtons('loadbootstrap', JText::translate('VBYES'), JText::translate('VBNO'), (int)VikBooking::loadBootstrap(), 1, 0); ?></div>
 				</div>
 				<div class="vbo-param-container">
 					<div class="vbo-param-label"><?php echo JText::translate('VBOLOADFA'); ?></div>
-					<div class="vbo-param-setting"><?php echo $vbo_app->printYesNoButtons('usefa', JText::translate('VBYES'), JText::translate('VBNO'), (int)VikBooking::isFontAwesomeEnabled(true), 1, 0); ?></div>
+					<div class="vbo-param-setting"><?php echo $vbo_app->printYesNoButtons('usefa', JText::translate('VBYES'), JText::translate('VBNO'), (int)VikBooking::isFontAwesomeEnabled(), 1, 0); ?></div>
 				</div>
+				<?php
+				if (VBOPlatformDetection::isWordPress()) {
+					?>
 				<!-- @wponly  jQuery main library should not be loaded as it's already included by WP -->
-				<!-- @wponly  calendar type should be always jQuery -->
+					<?php
+				} else {
+					?>
+				<div class="vbo-param-container">
+					<div class="vbo-param-label"><?php echo JText::translate('VBCONFIGONEJQUERY'); ?></div>
+					<div class="vbo-param-setting"><?php echo $vbo_app->printYesNoButtons('loadjquery', JText::translate('VBYES'), JText::translate('VBNO'), (VikBooking::loadJquery() ? 'yes' : 0), 'yes', 0); ?></div>
+				</div>
+					<?php
+				}
+				?>
 				<div class="vbo-param-container">
 					<div class="vbo-param-label"><?php echo JText::translate('VBCONFIGONECALENDAR'); ?></div>
-					<div class="vbo-param-setting"><select name="calendar"><option value="jqueryui"<?php echo ($calendartype == "jqueryui" ? " selected=\"selected\"" : ""); ?>>jQuery UI</option></select></div>
+					<div class="vbo-param-setting">
+						<select name="calendar">
+							<option value="jqueryui"<?php echo ($calendartype == "jqueryui" ? " selected=\"selected\"" : ""); ?>>jQuery UI</option>
+						</select>
+					</div>
 				</div>
 				<div class="vbo-param-container">
 					<div class="vbo-param-label"><?php echo JText::translate('VBO_GMAPS_APIKEY'); ?></div>
@@ -700,7 +830,7 @@ jQuery(document).ready(function() {
 						?>
 						<input type="text" name="backupfolder" value="<?php echo $this->escape($path); ?>" size="64" />
 						<div class="vbo-param-setting-comment">
-							<?php echo JText::sprintf('VBO_CONFIG_BACKUP_FOLDER_HELP', (defined('ABSPATH') ? ABSPATH : JPATH_SITE)); ?>
+							<?php echo JText::sprintf('VBO_CONFIG_BACKUP_FOLDER_HELP', (VBOPlatformDetection::isWordPress() ? ABSPATH : JPATH_SITE)); ?>
 						</div>
 					</div>
 				</div>
@@ -731,6 +861,28 @@ jQuery(document).ready(function() {
 						$('#adminForm *[id^="backup_export_type_"]').hide();
 						$('#backup_export_type_' + type).show();
 					});
+
+					$('a#backup-btn').on('click', function() {
+						try {
+							// gather action details
+							let actionName = $(this).text();
+							let actionHref = $(this).attr('href');
+
+							// register clicked button on global scope
+							VBOCore.registerAdminMenuAction({
+								name: actionName,
+								href: actionHref,
+							}, 'global');
+
+							// register clicked button on VBO's default scope (for VCM)
+							VBOCore.registerAdminMenuAction({
+								name: actionName,
+								href: actionHref,
+							}, '');
+						} catch(e) {
+							console.error(e);
+						}
+					});
 				});
 			})(jQuery);
 		</script>
@@ -738,10 +890,7 @@ jQuery(document).ready(function() {
 	</fieldset>
 
 <?php
-/**
- * @wponly 	trigger event onDisplayViewConfigGlobal to display additional parameters
- */
-$extra_forms = JFactory::getApplication()->triggerEvent('onDisplayViewConfigGlobal', array($this));
+$extra_forms = VBOFactory::getPlatform()->getDispatcher()->filter('onDisplayViewConfigGlobal', [$this]);
 foreach ($extra_forms as $extra_form) {
 	foreach ($extra_form as $form_name => $form_html) {
 		?>
@@ -754,7 +903,6 @@ foreach ($extra_forms as $extra_form) {
 		<?php
 	}
 }
-//
 ?>
 
 </div>

@@ -129,6 +129,9 @@ class Mod_VikBooking_ChannelratesLanguageHandler implements JLanguageHandler
 			case 'VBMFORMADULTS':
 				$result = __('Adults', 'vikbooking');
 				break;
+			case 'VBMHORSGUESTS':
+				$result = __('Guests', 'vikbooking');
+				break;
 			case 'VBMFORMNUMROOM':
 				$result = __('Room', 'vikbooking');
 				break;

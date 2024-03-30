@@ -10,7 +10,7 @@
 
 defined('ABSPATH') or die('No script kiddies please!');
 
-$vbo_app = new VboApplication();
+$vbo_app = VikBooking::getVboApplication();
 $editor = JEditor::getInstance(JFactory::getApplication()->get('editor'));
 $sitelogo = VikBooking::getSiteLogo();
 $backlogo = VikBooking::getBackendLogo();
