@@ -1,0 +1,113 @@
+{
+  "customer_type": "Regular",
+  "customer_status": "",
+  "all_room_Total_amount": 3360,
+  "total_extra": 0,
+  "type": "Walking",
+  "source": "walking",
+  "agent_name": "",
+  "booking_status": 1,
+  "check_in": "2024-01-17",
+  "check_out": "2024-01-18",
+  "discount": 0,
+  "reference_number": "",
+  "advance_price": 0,
+  "payment_mode_id": 1,
+  "total_days": 1,
+  "sub_total": 3360,
+  "after_discount": 0,
+  "sales_tax": 0,
+  "total_price": 3360,
+  "remaining_price": 3360,
+  "request": "",
+  "company_id": 1,
+  "remark": "",
+  "rooms": "106",
+  "reference_no": "",
+  "paid_by": "",
+  "purpose": "Tour",
+  "allFoods": [
+    {
+      "breakfast": {
+        "adult": 0,
+        "child": 0,
+        "baby": 0
+      }
+    },
+    {
+      "lunch": {
+        "adult": 0,
+        "child": 0,
+        "baby": 0
+      }
+    },
+    {
+      "dinner": {
+        "adult": 0,
+        "child": 0,
+        "baby": 0
+      }
+    }
+  ],
+  "selectedRooms": [
+    {
+      "room_no": "106",
+      "room_type": "castle",
+      "room_id": 4,
+      "price": 3360,
+      "days": 1,
+      "sgst": 180,
+      "cgst": 180,
+      "check_in": "2024-01-17",
+      "check_out": "2024-01-18",
+      "bed_amount": 0,
+      "room_extra_amount": 0,
+      "extra_amount_reason": "",
+      "room_discount": 0,
+      "after_discount": 3360,
+      "room_tax": 360,
+      "total_with_tax": 0,
+      "total": 3360,
+      "grand_total": 3360,
+      "company_id": 1,
+      "no_of_adult": 1,
+      "no_of_child": 0,
+      "no_of_baby": 0,
+      "tot_adult_food": 0,
+      "tot_child_food": 0,
+      "discount_reason": "",
+      "priceList": [
+         
+      ],
+      "meal": "--- | --- | ---"
+    }
+  ],
+  "id": 1716,
+  "title": "Mr",
+  "name": null,
+  "first_name": "Venu",
+  "last_name": "J",
+  "contact_no": "1234567890",
+  "whatsapp": "1234567890",
+  "email": "venu@gmail.com",
+  "nationality": "India",
+  "image": null,
+  "id_card_type_id": 2,
+  "id_card_no": "111111",
+  "car_no": null,
+  "no_of_adult": "1",
+  "no_of_child": "0",
+  "no_of_baby": "0",
+  "address": "DUBAI",
+  "dob": null,
+  "document": null,
+  "created_at": "2023-08-25T12:21:45.000000Z",
+  "updated_at": "2023-12-30T11:35:33.000000Z",
+  "passport_expiration": null,
+  "gst_number": null,
+  "full_name": "Venu J",
+  "document_name": null,
+
+  "user_id": 2,
+  "merge_food_in_room_price": ""
+}
