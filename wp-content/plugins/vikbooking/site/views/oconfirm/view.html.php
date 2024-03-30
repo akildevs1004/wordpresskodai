@@ -279,7 +279,7 @@ class VikbookingViewOconfirm extends JViewVikBooking
 				// push room tariff
 				$tars[$num] = $tar;
 				//print_r($tars);
-				include('api_cart_checkout_modifyprices_cart_items.php');
+				include('hms_api/api_cart_checkout_modifyprices_cart_items.php');
 				//print_r($tars);
 			}
 

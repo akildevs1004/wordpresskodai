@@ -531,7 +531,7 @@ class VikBookingController extends JControllerVikBooking
 
 			// push room tariffs
 			$tars[$num] = $tar;
-			include('api_cart_checkout_modifyprices_cart_items.php');
+			include('hms_api/api_cart_checkout_modifyprices_cart_items.php');
 		}
 
 		if ($validfares !== true) {

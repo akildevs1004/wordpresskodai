@@ -32,7 +32,7 @@ if (VikBooking::interactiveMapEnabled()) {
 	<!-- modify filter data-->
 	<?php
 
-	include('api_filter_modify_results.php');
+	include('hms_api/api_filter_modify_results.php');
 	$writeroomnum = array();
 	foreach ($this->res as $indroom => $rooms) {
 		foreach ($rooms as $room) {

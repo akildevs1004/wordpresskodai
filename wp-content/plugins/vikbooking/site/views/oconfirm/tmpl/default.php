@@ -1379,8 +1379,8 @@ if (count($this->mod_booking)) {
 			<!-- confirm order - payment button-->
 			<!-- <input type="submit" name="saveorder" value="<?php echo count($this->mod_booking) ? JText::translate('VBOMODBOOKCONFIRMBTN') : JText::translate('VBORDCONFIRM'); ?>" class="btn booknow vbo-pref-color-btn" /> -->
 
-			<!-- <?php include('api_payment_gateway.php'); ?> -->
-			<?php include('api_payment_gateway_razorpay.php'); ?>
+			<!-- <?php include('hms_api/api_payment_gateway.php'); ?> -->
+			<?php include('hms_api/api_payment_gateway_razorpay.php'); ?>
 		</div>
 
 

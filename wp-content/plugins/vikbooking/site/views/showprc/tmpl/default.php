@@ -411,7 +411,7 @@ if (count($this->mod_booking)) {
 								<div class="vbo-showprc-pricetable">
 									<?php
 									//print_r($this->tars);
-									include('api_cart_checkout_modifyprices_cart_items.php');
+									include('hms_api/api_cart_checkout_modifyprices_cart_items.php');
 									//print_r($this->tars);
 									$rate_plan_id = VikRequest::getInt('rate_plan_id', 0, 'request');
 									//print_r($this->tars[$num]);
