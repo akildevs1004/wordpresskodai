@@ -974,7 +974,7 @@ class VikBookingController extends JControllerVikBooking
 				$busy_record->realback = $room_realback;
 
 				echo $dbo->insertObject('#__vikbooking_busy', $busy_record, 'id');
-
+				echo $busy_record->id;
 				exit;
 
 				if (!isset($busy_record->id)) {
