@@ -225,14 +225,30 @@ if (isset($_SESSION["api_search_results"])) {
                 }
 
                 //update to wordpress DB
+                //         $wpdb->query(
+                //             $wpdb->prepare("UPDATE " . $wpdb->prefix . "vikbooking_orders
+                //     SET hms_api_booking_id = '" . $hms_booking_id . "'
+                //     ,hms_api_reservation_number	 = '" .  $hms_reservation_number . "'
+                //     ,hms_json_request	 = '" .  json_encode($decodedData) . "'
+                //     ,hms_json_response	 = '" .  json_encode($api_response) . "'
+
+                //  WHERE id = " . $ord['id'])
+                //         );
+
                 $wpdb->query(
-                    $wpdb->prepare("UPDATE " . $wpdb->prefix . "vikbooking_orders
-            SET hms_api_booking_id = '" . $hms_booking_id . "'
-            ,hms_api_reservation_number	 = '" .  $hms_reservation_number . "'
-            ,hms_json_request	 = '" .  json_encode($decodedData) . "'
-            ,hms_json_response	 = '" .  json_encode($api_response) . "'
-            
-         WHERE id = " . $ord['id'])
+                    $wpdb->prepare(
+                        "UPDATE " . $wpdb->prefix . "vikbooking_orders
+                        SET hms_api_booking_id = %s,
+                            hms_api_reservation_number = %s,
+                            hms_json_request = %s,
+                            hms_json_response = %s
+                        WHERE id = %d",
+                        $hms_booking_id,
+                        $hms_reservation_number,
+                        json_encode($decodedData),
+                        json_encode($api_response),
+                        $ord['id']
+                    )
                 );
             } else {
 
