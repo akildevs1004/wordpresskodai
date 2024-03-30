@@ -37,7 +37,7 @@ $api_response = curl_exec($curl);
 curl_close($curl);
 //echo $api_response;
 $api_rooms_price_list = json_decode($api_response);
-print_r($api_rooms_price_list);
+//print_r($api_rooms_price_list);
 //get WP rooms list 
 $wp_rooms_list = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "vikbooking_rooms");
 //print_r($wp_rooms_list);
