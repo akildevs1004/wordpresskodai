@@ -973,7 +973,9 @@ class VikBookingController extends JControllerVikBooking
 				$busy_record->checkout = $room_checkout;
 				$busy_record->realback = $room_realback;
 
-				$dbo->insertObject('#__vikbooking_busy', $busy_record, 'id');
+				echo $dbo->insertObject('#__vikbooking_busy', $busy_record, 'id');
+
+				exit;
 
 				if (!isset($busy_record->id)) {
 					showSelectVb('Critical error while occupying the rooms. Please try again');
