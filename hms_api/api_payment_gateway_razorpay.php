@@ -1,7 +1,7 @@
 <?php
 
 //echo $_SERVER['HTTP_REFERER'];
-include('wp-content/razorpay-php-master-updated/Razorpay.php');
+include('../wp-content/razorpay-php-master-updated/Razorpay.php');
 
 //echo "<pre>";
 
