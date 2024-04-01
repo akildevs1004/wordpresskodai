@@ -12,13 +12,13 @@ $reference_id = HMS_API_PG_REFERENCE_CODE . date('dmYHis');
 $_SESSION['payment_reference_id'] = $reference_id;
 
 
-$api = new Api('rzp_live_8g6bjwIrihwn3T', 'JNs1nXW6PmUnNkHIdPfQ63n4');
+$api = new Api(HMS_API_PG_KEY, HMS_API_PG_TOKEN);
 
-//$origtotdue = 10;
+$origtotdue = 10;
 try {
     $results =  $api->paymentLink->create(array(
         'amount' => $origtotdue * 100, 'currency' => 'INR', 'accept_partial' => false,
-        'expire_by' => strtotime(date('Y-m-d H:i:s')) + 10000, 'reference_id' => $reference_id, 'description' => 'Room Reservation', 'customer' => array(
+        'expire_by' => strtotime(date('Y-m-d H:i:s')) + 10000, 'reference_id' => $reference_id, 'description' => HMS_API_PG_MESSAGE . '- Room Reservation', 'customer' => array(
             'name' => 'Online',
             'email' => 'customer@gmail.com', 'contact' => '+911122334455'
         ),  'notify' => array('sms' => false, 'email' => false),
