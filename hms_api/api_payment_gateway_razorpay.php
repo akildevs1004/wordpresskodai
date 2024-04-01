@@ -42,7 +42,7 @@ try {
 if ($short_url != '') {
 ?>
 
-    <button type="button" class="btn booknow vbo-pref-color-btn paybutton" value="PayButton"><img src="razor_pay_button.png" /></button>
+    <button type="button" class="btn booknow vbo-pref-color-btn paybutton" value="PayButton"><img src="hms_api/razor_pay_button.png" /></button>
     <script>
         jQuery(document).ready(function() {
             jQuery(".paybutton").click(function() {
