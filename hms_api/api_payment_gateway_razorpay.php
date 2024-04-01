@@ -14,7 +14,7 @@ $_SESSION['payment_reference_id'] = $reference_id;
 
 $api = new Api(HMS_API_PG_KEY, HMS_API_PG_TOKEN);
 
-$origtotdue = 10;
+//$origtotdue = 10;
 try {
     $results =  $api->paymentLink->create(array(
         'amount' => $origtotdue * 100, 'currency' => 'INR', 'accept_partial' => false,
