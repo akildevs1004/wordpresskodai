@@ -1,7 +1,7 @@
 <?php
 
 //echo $_SERVER['HTTP_REFERER'];
-include('../razorpay-paymentgateway/Razorpay.php');
+include('razorpay-paymentgateway/Razorpay.php');
 
 //echo "<pre>";
 
