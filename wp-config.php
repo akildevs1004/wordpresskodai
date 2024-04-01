@@ -60,7 +60,7 @@ define('FS_METHOD', 'direct');
 
 
 define('HMS_API_SERVER', "https://backend.ezhms.com/api");
-define('HMS_API_COMPANY_ID', "2"); //  tanjore 1, Demo 3,kodai 2
+define('HMS_API_COMPANY_ID', "2"); //  tanjore 1, kodai 2, Demo 3,
 define('HMS_API_COMPANY_REF_NAME', "kodai.hyderspark.com");
 define('HMS_API_PG_CALL_BACK_URL', "https://kodai.hyderspark.com/api_payment_success.php");
 define('HMS_API_PG_MESSAGE', "Kodai Hyderspark");
