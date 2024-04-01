@@ -10,6 +10,8 @@ use Razorpay\Api\Api;
 $short_url = '';
 $reference_id = HMS_API_PG_REFERENCE_CODE . date('dmYHis');
 $_SESSION['payment_reference_id'] = $reference_id;
+
+
 $api = new Api('rzp_live_8g6bjwIrihwn3T', 'JNs1nXW6PmUnNkHIdPfQ63n4');
 
 //$origtotdue = 10;
