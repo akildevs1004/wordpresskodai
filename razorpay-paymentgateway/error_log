@@ -1,0 +1,4 @@
+[08-Jan-2024 05:05:48 America/Chicago] PHP Fatal error:  Uncaught Error: Object of class Razorpay\Api\PaymentLink could not be converted to string in /home3/ariff/tanjore.hyderspark.com/razorpay-php-master/test.php:18
+Stack trace:
+#0 {main}
+  thrown in /home3/ariff/tanjore.hyderspark.com/razorpay-php-master/test.php on line 18

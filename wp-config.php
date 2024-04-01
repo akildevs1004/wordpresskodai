@@ -64,6 +64,9 @@ define('HMS_API_COMPANY_ID', "2"); //  tanjore 1, Demo 3,kodai 2
 define('HMS_API_COMPANY_REF_NAME', "kodai.hyderspark.com");
 define('HMS_API_PG_CALL_BACK_URL', "https://kodai.hyderspark.com/api_payment_success.php");
 define('HMS_API_PG_MESSAGE', "Kodai Hyderspark");
+define('HMS_API_PG_REFERENCE_CODE', "KD");
+
+
 
 
 

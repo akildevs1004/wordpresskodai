@@ -1,14 +1,14 @@
 <?php
 
 //echo $_SERVER['HTTP_REFERER'];
-include('../wp-content/razorpay-php-master-updated/Razorpay.php');
+include('../paymentgateway/Razorpay.php');
 
 //echo "<pre>";
 
 use Razorpay\Api\Api;
 
 $short_url = '';
-$reference_id = 'TJ' . date('dmYHis');
+$reference_id = HMS_API_PG_REFERENCE_CODE . date('dmYHis');
 $_SESSION['payment_reference_id'] = $reference_id;
 $api = new Api('rzp_live_8g6bjwIrihwn3T', 'JNs1nXW6PmUnNkHIdPfQ63n4');
 
@@ -20,7 +20,7 @@ try {
             'name' => 'Online',
             'email' => 'customer@gmail.com', 'contact' => '+911122334455'
         ),  'notify' => array('sms' => false, 'email' => false),
-        'reminder_enable' => false, 'notes' => array('website' => "Kodai Hyderspark", 'ref_id' => $reference_id), 'callback_url' => 'https://tanjore.hyderspark.com/api_payment_success.php',
+        'reminder_enable' => false, 'notes' => array('website' => HMS_API_PG_MESSAGE, 'ref_id' => $reference_id), 'callback_url' => HMS_API_PG_CALL_BACK_URL,
         'callback_method' => 'get'
     ));
 

@@ -1376,13 +1376,22 @@ if (count($this->mod_booking)) {
 
 	<div class="vboconfirmbottom">
 		<div>
-			<!-- confirm order - payment button-->
-			<input type="submit" name="saveorder" value="<?php echo count($this->mod_booking) ? JText::translate('VBOMODBOOKCONFIRMBTN') : JText::translate('VBORDCONFIRM'); ?>" class="btn booknow vbo-pref-color-btn" />
 
-			<!-- <?php //include('hms_api/api_payment_gateway.php'); 
-					?> -->
-			<?php //include('hms_api/api_payment_gateway_razorpay.php'); 
+			<?php
+			$onlinePayment = true;
+			if ($onlinePayment) {
+
+				include('hms_api/api_payment_gateway_razorpay.php');
+			} else {
 			?>
+
+				<!-- confirm order - payment button wihtout payment-->
+				<input type="submit" name="saveorder" value="<?php echo count($this->mod_booking) ? JText::translate('VBOMODBOOKCONFIRMBTN') : JText::translate('VBORDCONFIRM'); ?>" class="btn booknow vbo-pref-color-btn" />
+			<?php
+			}
+
+			?>
+
 		</div>
 
 
